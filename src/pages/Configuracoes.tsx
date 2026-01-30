@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,16 +12,61 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { User, Bell, Shield, Link, Building2, Save } from "lucide-react";
+import { User, Bell, Shield, Link, Building2, Save, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Configuracoes = () => {
+  const { profile, refreshProfile } = useAuth();
+  const { toast } = useToast();
+  const [nome, setNome] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load profile data when component mounts or profile changes
+  useEffect(() => {
+    if (profile) {
+      setNome(profile.nome || "");
+    }
+  }, [profile]);
+
+  const handleSaveProfile = async () => {
+    if (!profile) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ nome })
+        .eq("user_id", profile.user_id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: error.message || "Não foi possível atualizar o perfil.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const roleLabels: Record<string, string> = {
+    pending: "Pendente",
+    sdr: "SDR",
+    consultor: "Consultor",
+    gestor: "Gestor",
+  };
+
   return (
     <AppLayout title="Configurações" subtitle="Gerencie suas preferências do sistema">
       <div className="max-w-4xl space-y-6">
@@ -43,28 +89,30 @@ const Configuracoes = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="nome">Nome completo</Label>
-                <Input id="nome" defaultValue="João Silva" />
+                <Input 
+                  id="nome" 
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" defaultValue="joao@loft.com.br" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input id="telefone" defaultValue="(11) 99999-9999" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={profile?.email || ""} 
+                  disabled 
+                  className="bg-muted"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cargo">Cargo</Label>
-                <Select defaultValue="consultor">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sdr">SDR</SelectItem>
-                    <SelectItem value="consultor">Consultor</SelectItem>
-                    <SelectItem value="gestor">Gestor</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  id="cargo" 
+                  value={profile?.role ? roleLabels[profile.role] : ""} 
+                  disabled 
+                  className="bg-muted"
+                />
               </div>
             </div>
           </CardContent>
@@ -202,8 +250,12 @@ const Configuracoes = () => {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button size="lg">
-            <Save className="w-4 h-4 mr-2" />
+          <Button size="lg" onClick={handleSaveProfile} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
             Salvar Alterações
           </Button>
         </div>
