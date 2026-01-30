@@ -157,6 +157,46 @@ const GestaoUsuarios = () => {
     setRejectDialogOpen(true);
   };
 
+  // Handler para aprovar diretamente da lista de usuários (pendentes sem solicitação)
+  const handleApproveUserClick = (userProfile: UserProfile) => {
+    // Cria um "fake" request para reutilizar o dialog
+    const fakeRequest: AccessRequest = {
+      id: "",
+      user_id: userProfile.user_id,
+      email: userProfile.email,
+      nome: userProfile.nome,
+      requested_role: "consultor",
+      justificativa: null,
+      status: "pending",
+      reviewed_by: null,
+      reviewed_at: null,
+      review_notes: null,
+      created_at: userProfile.created_at,
+    };
+    setSelectedRequest(fakeRequest);
+    setSelectedRole("consultor");
+    setApproveDialogOpen(true);
+  };
+
+  const handleRejectUserClick = (userProfile: UserProfile) => {
+    const fakeRequest: AccessRequest = {
+      id: "",
+      user_id: userProfile.user_id,
+      email: userProfile.email,
+      nome: userProfile.nome,
+      requested_role: "consultor",
+      justificativa: null,
+      status: "pending",
+      reviewed_by: null,
+      reviewed_at: null,
+      review_notes: null,
+      created_at: userProfile.created_at,
+    };
+    setSelectedRequest(fakeRequest);
+    setRejectionReason("");
+    setRejectDialogOpen(true);
+  };
+
   const handleApprove = async () => {
     if (!selectedRequest || !user || !profile) return;
     setProcessing(true);
@@ -172,15 +212,17 @@ const GestaoUsuarios = () => {
         })
         .eq("user_id", selectedRequest.user_id);
 
-      // Update access request
-      await supabase
-        .from("access_requests")
-        .update({
-          status: "approved",
-          reviewed_by: user.id,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", selectedRequest.id);
+      // Update access request (only if it exists - i.e., has a valid id)
+      if (selectedRequest.id) {
+        await supabase
+          .from("access_requests")
+          .update({
+            status: "approved",
+            reviewed_by: user.id,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq("id", selectedRequest.id);
+      }
 
       // Log the action
       await supabase.from("admin_action_logs").insert({
@@ -240,16 +282,18 @@ const GestaoUsuarios = () => {
         })
         .eq("user_id", selectedRequest.user_id);
 
-      // Update access request
-      await supabase
-        .from("access_requests")
-        .update({
-          status: "rejected",
-          reviewed_by: user.id,
-          reviewed_at: new Date().toISOString(),
-          review_notes: rejectionReason || null,
-        })
-        .eq("id", selectedRequest.id);
+      // Update access request (only if it exists)
+      if (selectedRequest.id) {
+        await supabase
+          .from("access_requests")
+          .update({
+            status: "rejected",
+            reviewed_by: user.id,
+            reviewed_at: new Date().toISOString(),
+            review_notes: rejectionReason || null,
+          })
+          .eq("id", selectedRequest.id);
+      }
 
       // Log the action
       await supabase.from("admin_action_logs").insert({
@@ -513,6 +557,7 @@ const GestaoUsuarios = () => {
                   <TableHead className="font-semibold">Perfil</TableHead>
                   <TableHead className="font-semibold">Aprovado em</TableHead>
                   <TableHead className="font-semibold">Cadastro</TableHead>
+                  <TableHead className="font-semibold text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -541,6 +586,30 @@ const GestaoUsuarios = () => {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(userProfile.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {userProfile.role === "pending" && (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                            onClick={() => handleApproveUserClick(userProfile)}
+                          >
+                            <Check className="w-3 h-3" />
+                            Aprovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() => handleRejectUserClick(userProfile)}
+                          >
+                            <X className="w-3 h-3" />
+                            Rejeitar
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
