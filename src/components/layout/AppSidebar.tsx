@@ -10,6 +10,7 @@ import {
   Settings,
   ChevronLeft,
   Building2,
+  BookOpen,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -33,6 +34,7 @@ const mainMenuItems = [
   { title: "Contatos Ativos", url: "/contatos", icon: UserCheck },
   { title: "Negociações", url: "/negociacoes", icon: Handshake },
   { title: "Calendário", url: "/calendario", icon: Calendar },
+  { title: "Central de Materiais", url: "/materiais", icon: BookOpen },
 ];
 
 const settingsItems = [
