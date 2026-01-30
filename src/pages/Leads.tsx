@@ -24,9 +24,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
+import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { mockLeads } from "@/data/mockData";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -43,11 +55,13 @@ import {
   Share2,
   HelpCircle,
   Send,
+  Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { roleLabels } from "@/types/permissions";
 
 const statusConfig: Record<LeadStatus, { label: string; className: string }> = {
   novo: { label: "Novo", className: "badge-new" },
@@ -99,10 +113,51 @@ const exportColumns = [
 const Leads = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentUser, canPerformAction, isGestor } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+
+  const handleEditLead = (lead: Lead) => {
+    setEditingLead(lead);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveLead = (updatedLead: Lead) => {
+    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+    setEditDialogOpen(false);
+    setEditingLead(null);
+  };
+
+  const handleDeleteClick = (lead: Lead) => {
+    if (!isGestor) {
+      toast({
+        title: "Ação não permitida",
+        description: "Apenas gestores podem excluir leads.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLeadToDelete(lead);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (leadToDelete) {
+      setLeads(prev => prev.filter(l => l.id !== leadToDelete.id));
+      toast({
+        title: "Lead excluído",
+        description: `${leadToDelete.nomeFantasia || leadToDelete.razaoSocial} foi removido.`,
+      });
+      setDeleteDialogOpen(false);
+      setLeadToDelete(null);
+    }
+  };
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
@@ -166,6 +221,14 @@ const Leads = () => {
 
   return (
     <AppLayout title="Repositório de Leads" subtitle="Gerencie todos os leads da sua base">
+      {/* Role Badge */}
+      <div className="flex items-center justify-end mb-4">
+        <Badge variant="outline" className="gap-1">
+          <Shield className="w-3 h-3" />
+          {roleLabels[currentUser.role]}
+        </Badge>
+      </div>
+
       {/* Filters Bar */}
       <div className="stat-card mb-6">
         <div className="flex flex-col gap-4">
@@ -248,8 +311,9 @@ const Leads = () => {
               return (
                 <TableRow
                   key={lead.id}
-                  className="table-row-hover animate-fade-in"
+                  className="table-row-hover animate-fade-in cursor-pointer"
                   style={{ animationDelay: `${index * 30}ms` }}
+                  onClick={() => handleEditLead(lead)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -300,7 +364,7 @@ const Leads = () => {
                     {formatCurrency(lead.valorEstimado)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Enviar Viabilidade">
                         <Send className="w-4 h-4 text-primary" />
                       </Button>
@@ -311,11 +375,11 @@ const Leads = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditLead(lead)}>
                             <Eye className="w-4 h-4 mr-2" />
                             Visualizar
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditLead(lead)}>
                             <Edit className="w-4 h-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
@@ -323,9 +387,16 @@ const Leads = () => {
                             <UserPlus className="w-4 h-4 mr-2" />
                             Apropriar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className={cn(
+                              "text-destructive",
+                              !isGestor && "opacity-50 cursor-not-allowed"
+                            )}
+                            onClick={() => handleDeleteClick(lead)}
+                          >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Excluir
+                            {!isGestor && <Shield className="w-3 h-3 ml-auto" />}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -349,6 +420,37 @@ const Leads = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <EditLeadDialog
+        lead={editingLead}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleSaveLead}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o lead{" "}
+              <strong>{leadToDelete?.nomeFantasia || leadToDelete?.razaoSocial}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
