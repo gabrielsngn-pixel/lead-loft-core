@@ -9,6 +9,7 @@ import NovoLead from "./pages/NovoLead";
 import Contatos from "./pages/Contatos";
 import Negociacoes from "./pages/Negociacoes";
 import Calendario from "./pages/Calendario";
+import Materiais from "./pages/Materiais";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/contatos" element={<Contatos />} />
           <Route path="/negociacoes" element={<Negociacoes />} />
           <Route path="/calendario" element={<Calendario />} />
+          <Route path="/materiais" element={<Materiais />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
