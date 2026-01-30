@@ -92,7 +92,7 @@ const Auth = () => {
 
       toast({
         title: "Login realizado!",
-        description: "Bem-vindo ao Loft CRM.",
+        description: "Bem-vindo ao Loft Incorporações.",
       });
       navigate("/");
     } catch (err) {
@@ -180,7 +180,7 @@ const Auth = () => {
             <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary">
               <Building2 className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="font-display text-3xl font-bold text-foreground">Loft CRM</span>
+            <span className="font-display text-3xl font-bold text-foreground">Loft Incorporações</span>
           </div>
           <p className="text-muted-foreground">Sistema de Gestão Comercial</p>
         </div>
