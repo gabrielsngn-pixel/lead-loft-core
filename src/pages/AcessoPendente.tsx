@@ -1,17 +1,51 @@
-import { Building2, Clock, Mail, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2, Clock, Mail, LogOut, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
 const AcessoPendente = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, isApproved, refreshProfile, loading } = useAuth();
   const navigate = useNavigate();
+  const [checking, setChecking] = useState(false);
 
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
   };
+
+  const handleCheckAgain = async () => {
+    setChecking(true);
+    try {
+      await refreshProfile();
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // If user is already approved, don't keep them here.
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+    if (isApproved) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, isApproved, navigate]);
+
+  // Re-check once when entering the page (useful if approval happened while user stayed logged in).
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return;
+    if (isApproved) return;
+
+    setChecking(true);
+    refreshProfile().finally(() => setChecking(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
@@ -28,8 +62,8 @@ const AcessoPendente = () => {
 
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="text-center pb-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-yellow-100 mx-auto mb-4">
-              <Clock className="w-8 h-8 text-yellow-600" />
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-accent mx-auto mb-4">
+                <Clock className="w-8 h-8 text-accent-foreground" />
             </div>
             <CardTitle className="text-2xl">Acesso Pendente</CardTitle>
             <CardDescription>
@@ -38,6 +72,13 @@ const AcessoPendente = () => {
           </CardHeader>
 
           <CardContent className="space-y-6">
+              {checking && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verificando status do acesso…
+                </div>
+              )}
+
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-muted-foreground" />
@@ -66,6 +107,19 @@ const AcessoPendente = () => {
                 </p>
               </div>
             </div>
+
+            <Button
+              className="w-full gap-2"
+              onClick={handleCheckAgain}
+              disabled={checking || loading}
+            >
+              {checking ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Verificar novamente
+            </Button>
 
             <Button
               variant="outline"
