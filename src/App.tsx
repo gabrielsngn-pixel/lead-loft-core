@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import NovoLead from "./pages/NovoLead";
@@ -13,6 +15,9 @@ import Materiais from "./pages/Materiais";
 import Reunioes from "./pages/Reunioes";
 import Script from "./pages/Script";
 import Configuracoes from "./pages/Configuracoes";
+import GestaoUsuarios from "./pages/GestaoUsuarios";
+import Auth from "./pages/Auth";
+import AcessoPendente from "./pages/AcessoPendente";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,24 +25,79 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/leads" element={<Leads />} />
-          <Route path="/leads/novo" element={<NovoLead />} />
-          <Route path="/contatos" element={<Contatos />} />
-          <Route path="/negociacoes" element={<Negociacoes />} />
-          <Route path="/calendario" element={<Calendario />} />
-          <Route path="/materiais" element={<Materiais />} />
-          <Route path="/reunioes" element={<Reunioes />} />
-          <Route path="/script" element={<Script />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/acesso-pendente" element={<AcessoPendente />} />
+
+            {/* Protected routes - require approval */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/leads" element={
+              <ProtectedRoute>
+                <Leads />
+              </ProtectedRoute>
+            } />
+            <Route path="/leads/novo" element={
+              <ProtectedRoute>
+                <NovoLead />
+              </ProtectedRoute>
+            } />
+            <Route path="/contatos" element={
+              <ProtectedRoute>
+                <Contatos />
+              </ProtectedRoute>
+            } />
+            <Route path="/negociacoes" element={
+              <ProtectedRoute>
+                <Negociacoes />
+              </ProtectedRoute>
+            } />
+            <Route path="/calendario" element={
+              <ProtectedRoute>
+                <Calendario />
+              </ProtectedRoute>
+            } />
+            <Route path="/materiais" element={
+              <ProtectedRoute>
+                <Materiais />
+              </ProtectedRoute>
+            } />
+            <Route path="/reunioes" element={
+              <ProtectedRoute>
+                <Reunioes />
+              </ProtectedRoute>
+            } />
+            <Route path="/script" element={
+              <ProtectedRoute>
+                <Script />
+              </ProtectedRoute>
+            } />
+            <Route path="/configuracoes" element={
+              <ProtectedRoute>
+                <Configuracoes />
+              </ProtectedRoute>
+            } />
+
+            {/* Gestor-only routes */}
+            <Route path="/gestao-usuarios" element={
+              <ProtectedRoute allowedRoles={["gestor"]}>
+                <GestaoUsuarios />
+              </ProtectedRoute>
+            } />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
