@@ -144,11 +144,11 @@
   }
 
   .stat-value {
-    @apply font-display text-3xl font-bold text-foreground;
+    @apply font-display text-3xl font-bold text-foreground tracking-tight;
   }
 
   .stat-label {
-    @apply text-sm font-medium text-muted-foreground;
+    @apply text-sm font-medium text-muted-foreground uppercase tracking-wide;
   }
 
   .badge-status {
@@ -175,6 +175,10 @@
     @apply bg-destructive/10 text-destructive;
   }
 
+  .badge-priority-high {
+    @apply bg-destructive/10 text-destructive font-semibold;
+  }
+
   .kanban-column {
     @apply flex flex-col rounded-xl bg-muted/50 p-4;
   }
@@ -185,6 +189,30 @@
 
   .table-row-hover {
     @apply transition-colors hover:bg-muted/50;
+  }
+
+  /* Zebra striping for tables */
+  .table-zebra tbody tr:nth-child(even) {
+    @apply bg-muted/20;
+  }
+
+  /* Page title styling */
+  .page-title {
+    @apply font-display text-2xl md:text-3xl font-bold tracking-tight;
+  }
+
+  .page-subtitle {
+    @apply text-muted-foreground text-sm md:text-base;
+  }
+
+  /* CTA Button - Loft Orange */
+  .btn-cta {
+    @apply bg-primary text-primary-foreground font-semibold shadow-md hover:bg-primary/90 transition-all;
+  }
+
+  /* Secondary text for muted info */
+  .text-secondary-info {
+    @apply text-muted-foreground text-sm;
   }
 }
 

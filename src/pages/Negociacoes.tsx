@@ -5,7 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { mockNegotiations } from "@/data/mockData";
 import { Negotiation } from "@/types/crm";
 import { cn } from "@/lib/utils";
-import { Plus, Building2, Calendar, DollarSign, MoreHorizontal } from "lucide-react";
+import { 
+  Plus, 
+  Building2, 
+  Calendar, 
+  DollarSign, 
+  MoreHorizontal, 
+  Send,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Download,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -14,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 type NegotiationStage = "qualificacao" | "proposta" | "negociacao" | "fechamento";
 
@@ -24,8 +36,15 @@ const stageConfig: Record<NegotiationStage, { label: string; color: string; bgCo
   fechamento: { label: "Fechamento", color: "text-success", bgColor: "bg-success/5 border-success/20" },
 };
 
+const viabilityConfig = {
+  sim: { label: "Viável", icon: CheckCircle, className: "text-success bg-success/10" },
+  nao: { label: "Inviável", icon: XCircle, className: "text-destructive bg-destructive/10" },
+  pendente: { label: "Pendente", icon: Clock, className: "text-muted-foreground bg-muted" },
+};
+
 const Negociacoes = () => {
   const [negotiations] = useState<Negotiation[]>(mockNegotiations);
+  const { toast } = useToast();
 
   const stages: NegotiationStage[] = ["qualificacao", "proposta", "negociacao", "fechamento"];
 
@@ -44,11 +63,41 @@ const Negociacoes = () => {
     return getNegotiationsByStage(stage).reduce((sum, n) => sum + n.valor, 0);
   };
 
+  const handleSendViability = (negotiation: Negotiation) => {
+    toast({
+      title: "Viabilidade enviada",
+      description: `Solicitação de viabilidade enviada para ${negotiation.lead.nomeFantasia || negotiation.lead.razaoSocial} (CNPJ: ${negotiation.lead.cnpj})`,
+    });
+  };
+
+  const handleExport = () => {
+    const csvContent = [
+      ["Empresa", "Título", "Valor", "Etapa", "Probabilidade", "Previsão Fechamento", "CNPJ", "Viabilidade"],
+      ...negotiations.map(n => [
+        n.lead.nomeFantasia || n.lead.razaoSocial,
+        n.titulo,
+        n.valor.toString(),
+        stageConfig[n.etapa].label,
+        `${n.probabilidade}%`,
+        n.dataPrevisaoFechamento ? format(n.dataPrevisaoFechamento, "dd/MM/yyyy") : "",
+        n.lead.cnpj,
+        n.lead.viabilidade?.status || "pendente",
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `negociacoes-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+  };
+
   return (
     <AppLayout title="Negociações" subtitle="Acompanhe o funil de vendas">
       {/* Header Actions */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
           <Badge variant="secondary" className="text-base px-4 py-2">
             {negotiations.length} negociações ativas
           </Badge>
@@ -56,10 +105,16 @@ const Negociacoes = () => {
             Total: {formatCurrency(negotiations.reduce((sum, n) => sum + n.valor, 0))}
           </Badge>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Negociação
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </Button>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Negociação
+          </Button>
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -101,66 +156,100 @@ const Negociacoes = () => {
 
             {/* Cards */}
             <div className="space-y-3">
-              {getNegotiationsByStage(stage).map((negotiation, cardIndex) => (
-                <div
-                  key={negotiation.id}
-                  className="kanban-card animate-fade-in"
-                  style={{ animationDelay: `${(stageIndex * 100) + (cardIndex * 50)}ms` }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
-                        <Building2 className="w-4 h-4 text-secondary" />
+              {getNegotiationsByStage(stage).map((negotiation, cardIndex) => {
+                const viability = negotiation.lead.viabilidade?.status || "pendente";
+                const ViabilityIcon = viabilityConfig[viability].icon;
+                
+                return (
+                  <div
+                    key={negotiation.id}
+                    className="kanban-card animate-fade-in"
+                    style={{ animationDelay: `${(stageIndex * 100) + (cardIndex * 50)}ms` }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
+                          <Building2 className="w-4 h-4 text-secondary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">
+                            {negotiation.lead.nomeFantasia || negotiation.lead.razaoSocial}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {negotiation.lead.cidade}/{negotiation.lead.estado}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-sm text-foreground">
-                          {negotiation.lead.nomeFantasia || negotiation.lead.razaoSocial}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {negotiation.lead.cidade}/{negotiation.lead.estado}
-                        </p>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
+                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem>Mover etapa</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <p className="text-sm font-medium text-foreground mb-3">
+                      {negotiation.titulo}
+                    </p>
+
+                    {/* Viability Badge */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-xs flex items-center gap-1", viabilityConfig[viability].className)}
+                      >
+                        <ViabilityIcon className="w-3 h-3" />
+                        {viabilityConfig[viability].label}
+                      </Badge>
+                      {negotiation.lead.viabilidade?.margem && (
+                        <span className="text-xs text-muted-foreground">
+                          Margem: {negotiation.lead.viabilidade.margem}%
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <DollarSign className="w-4 h-4" />
+                        <span className="font-semibold text-foreground">
+                          {formatCurrency(negotiation.valor)}
+                        </span>
                       </div>
+                      <Badge variant="outline" className="text-xs">
+                        {negotiation.probabilidade}%
+                      </Badge>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem>Mover etapa</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+
+                    {negotiation.dataPrevisaoFechamento && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-3 pt-3 border-t">
+                        <Calendar className="w-3 h-3" />
+                        <span>
+                          Previsão: {format(negotiation.dataPrevisaoFechamento, "dd/MM/yyyy", { locale: ptBR })}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-3 pt-3 border-t">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 text-xs"
+                        onClick={() => handleSendViability(negotiation)}
+                      >
+                        <Send className="w-3 h-3 mr-1" />
+                        Viabilidade
+                      </Button>
+                    </div>
                   </div>
-
-                  <p className="text-sm font-medium text-foreground mb-3">
-                    {negotiation.titulo}
-                  </p>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="font-semibold text-foreground">
-                        {formatCurrency(negotiation.valor)}
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {negotiation.probabilidade}%
-                    </Badge>
-                  </div>
-
-                  {negotiation.dataPrevisaoFechamento && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-3 pt-3 border-t">
-                      <Calendar className="w-3 h-3" />
-                      <span>
-                        Previsão: {format(negotiation.dataPrevisaoFechamento, "dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
               {getNegotiationsByStage(stage).length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
