@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/select";
 import { mockLeads, mockUsers } from "@/data/mockData";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
+import { usePermissions } from "@/hooks/usePermissions";
+import { roleLabels } from "@/types/permissions";
+import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -46,6 +49,8 @@ import {
   Upload,
   Filter,
   ArrowUpDown,
+  Edit,
+  Shield,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -79,6 +84,7 @@ const viabilityConfig = {
 };
 
 const Contatos = () => {
+  const { currentUser } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -86,9 +92,12 @@ const Contatos = () => {
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<"prioridade" | "dataUltimaInteracao">("prioridade");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [contacts, setContacts] = useState<Lead[]>(mockLeads);
+  const [editingContact, setEditingContact] = useState<Lead | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   // Filter only leads that have a responsible person (active contacts)
-  const activeContacts = mockLeads.filter(lead => lead.responsavelId);
+  const activeContacts = contacts.filter(lead => lead.responsavelId);
 
   const filteredContacts = activeContacts.filter((lead) => {
     const matchesSearch = 
@@ -155,8 +164,27 @@ const Contatos = () => {
     }
   };
 
+  const handleEditContact = (contact: Lead) => {
+    setEditingContact(contact);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveContact = (updatedContact: Lead) => {
+    setContacts(prev => prev.map(c => c.id === updatedContact.id ? updatedContact : c));
+    setEditDialogOpen(false);
+    setEditingContact(null);
+  };
+
   return (
     <AppLayout title="Contatos Ativos" subtitle="Lista de leads sob sua responsabilidade">
+      {/* Role Badge */}
+      <div className="flex items-center justify-end mb-4">
+        <Badge variant="outline" className="gap-1">
+          <Shield className="w-3 h-3" />
+          {roleLabels[currentUser.role]}
+        </Badge>
+      </div>
+
       {/* Filters Bar */}
       <div className="stat-card mb-6">
         <div className="flex flex-col gap-4">
@@ -283,8 +311,9 @@ const Contatos = () => {
               return (
                 <TableRow 
                   key={contact.id} 
-                  className="table-row-hover animate-fade-in"
+                  className="table-row-hover animate-fade-in cursor-pointer"
                   style={{ animationDelay: `${index * 30}ms` }}
+                  onClick={() => handleEditContact(contact)}
                 >
                   <TableCell>
                     <div className="font-medium">{contact.nomeContato || "—"}</div>
@@ -335,7 +364,7 @@ const Contatos = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Enviar Viabilidade">
                         <Send className="w-4 h-4 text-primary" />
                       </Button>
@@ -352,9 +381,13 @@ const Contatos = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditContact(contact)}>
                             <Eye className="w-4 h-4 mr-2" />
                             Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditContact(contact)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -378,6 +411,14 @@ const Contatos = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <EditLeadDialog
+        lead={editingContact}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleSaveContact}
+      />
     </AppLayout>
   );
 };
