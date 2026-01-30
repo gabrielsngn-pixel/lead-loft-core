@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   Building2,
   BookOpen,
+  ClipboardList,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -35,6 +36,7 @@ const mainMenuItems = [
   { title: "Negociações", url: "/negociacoes", icon: Handshake },
   { title: "Calendário", url: "/calendario", icon: Calendar },
   { title: "Central de Materiais", url: "/materiais", icon: BookOpen },
+  { title: "Reuniões & Atas", url: "/reunioes", icon: ClipboardList },
 ];
 
 const settingsItems = [
