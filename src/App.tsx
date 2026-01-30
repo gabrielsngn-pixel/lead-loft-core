@@ -11,6 +11,7 @@ import Negociacoes from "./pages/Negociacoes";
 import Calendario from "./pages/Calendario";
 import Materiais from "./pages/Materiais";
 import Reunioes from "./pages/Reunioes";
+import Script from "./pages/Script";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/materiais" element={<Materiais />} />
           <Route path="/reunioes" element={<Reunioes />} />
+          <Route path="/script" element={<Script />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

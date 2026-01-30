@@ -12,6 +12,7 @@ import {
   Building2,
   BookOpen,
   ClipboardList,
+  MessageSquareText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -37,6 +38,7 @@ const mainMenuItems = [
   { title: "Calendário", url: "/calendario", icon: Calendar },
   { title: "Central de Materiais", url: "/materiais", icon: BookOpen },
   { title: "Reuniões & Atas", url: "/reunioes", icon: ClipboardList },
+  { title: "Script de Atendimento", url: "/script", icon: MessageSquareText },
 ];
 
 const settingsItems = [
