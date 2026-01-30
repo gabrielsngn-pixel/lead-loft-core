@@ -14,6 +14,8 @@ import {
   History,
   AlertCircle,
   Loader2,
+  Edit,
+  RotateCcw,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,7 @@ interface UserProfile {
   nome: string;
   role: string;
   approved_at: string | null;
+  rejected_at: string | null;
   created_at: string;
 }
 
@@ -109,7 +112,9 @@ const GestaoUsuarios = () => {
   
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [changeRoleDialogOpen, setChangeRoleDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
+  const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("consultor");
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -195,6 +200,78 @@ const GestaoUsuarios = () => {
     setSelectedRequest(fakeRequest);
     setRejectionReason("");
     setRejectDialogOpen(true);
+  };
+
+  // Handler para alterar o perfil de um usuário já aprovado
+  const handleChangeRoleClick = (userProfile: UserProfile) => {
+    setSelectedUserProfile(userProfile);
+    setSelectedRole(userProfile.role);
+    setChangeRoleDialogOpen(true);
+  };
+
+  // Handler para reaprovar um usuário rejeitado
+  const handleReapproveClick = (userProfile: UserProfile) => {
+    const fakeRequest: AccessRequest = {
+      id: "",
+      user_id: userProfile.user_id,
+      email: userProfile.email,
+      nome: userProfile.nome,
+      requested_role: userProfile.role !== "pending" ? userProfile.role : "consultor",
+      justificativa: null,
+      status: "pending",
+      reviewed_by: null,
+      reviewed_at: null,
+      review_notes: null,
+      created_at: userProfile.created_at,
+    };
+    setSelectedRequest(fakeRequest);
+    setSelectedRole("consultor");
+    setApproveDialogOpen(true);
+  };
+
+  const handleChangeRole = async () => {
+    if (!selectedUserProfile || !user || !profile) return;
+    setProcessing(true);
+
+    try {
+      // Update profile role
+      await supabase
+        .from("profiles")
+        .update({
+          role: selectedRole as "sdr" | "consultor" | "gestor",
+        })
+        .eq("user_id", selectedUserProfile.user_id);
+
+      // Log the action
+      await supabase.from("admin_action_logs").insert({
+        admin_user_id: user.id,
+        admin_name: profile.nome,
+        action_type: "change_role",
+        target_user_id: selectedUserProfile.user_id,
+        target_user_email: selectedUserProfile.email,
+        details: { 
+          previous_role: selectedUserProfile.role,
+          new_role: selectedRole 
+        },
+      });
+
+      toast({
+        title: "Perfil alterado!",
+        description: `${selectedUserProfile.nome} agora é ${roleConfig[selectedRole]?.label || selectedRole}.`,
+      });
+
+      setChangeRoleDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      console.error("Error changing role:", error);
+      toast({
+        title: "Erro ao alterar perfil",
+        description: "Ocorreu um erro ao alterar o perfil. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleApprove = async () => {
@@ -588,28 +665,50 @@ const GestaoUsuarios = () => {
                       {format(new Date(userProfile.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="text-right">
-                      {userProfile.role === "pending" && (
-                        <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2">
+                        {userProfile.role === "pending" ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                              onClick={() => handleApproveUserClick(userProfile)}
+                            >
+                              <Check className="w-3 h-3" />
+                              Aprovar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={() => handleRejectUserClick(userProfile)}
+                            >
+                              <X className="w-3 h-3" />
+                              Rejeitar
+                            </Button>
+                          </>
+                        ) : userProfile.rejected_at ? (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                            onClick={() => handleApproveUserClick(userProfile)}
+                            className="gap-1 text-primary"
+                            onClick={() => handleReapproveClick(userProfile)}
                           >
-                            <Check className="w-3 h-3" />
-                            Aprovar
+                            <RotateCcw className="w-3 h-3" />
+                            Reaprovar
                           </Button>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                            onClick={() => handleRejectUserClick(userProfile)}
+                            className="gap-1"
+                            onClick={() => handleChangeRoleClick(userProfile)}
                           >
-                            <X className="w-3 h-3" />
-                            Rejeitar
+                            <Edit className="w-3 h-3" />
+                            Alterar Perfil
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -640,6 +739,8 @@ const GestaoUsuarios = () => {
                             ? "Aprovou usuário"
                             : log.action_type === "reject_user"
                             ? "Rejeitou usuário"
+                            : log.action_type === "change_role"
+                            ? "Alterou perfil"
                             : log.action_type}
                         </Badge>
                       </TableCell>
@@ -724,6 +825,43 @@ const GestaoUsuarios = () => {
             <Button variant="destructive" onClick={handleReject} disabled={processing}>
               {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Rejeitar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Change Role Dialog */}
+      <Dialog open={changeRoleDialogOpen} onOpenChange={setChangeRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Perfil</DialogTitle>
+            <DialogDescription>
+              Altere o perfil de acesso de {selectedUserProfile?.nome}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Novo Perfil de Acesso</Label>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sdr">SDR</SelectItem>
+                  <SelectItem value="consultor">Consultor</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangeRoleDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChangeRole} disabled={processing}>
+              {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
