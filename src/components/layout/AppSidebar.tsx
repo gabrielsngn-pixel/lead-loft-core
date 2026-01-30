@@ -86,7 +86,7 @@ export function AppSidebar() {
               Loft
             </span>
             <span className="text-[10px] text-sidebar-foreground/70 tracking-wider uppercase">
-              CRM
+              Incorporações
             </span>
           </div>
         )}
