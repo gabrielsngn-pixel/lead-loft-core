@@ -1,18 +1,24 @@
 export type LeadStatus = "novo" | "qualificado" | "proposta" | "ganho" | "perdido";
 export type LeadSource = "site" | "indicacao" | "evento" | "parceiro" | "outbound" | "outro";
 export type UserRole = "sdr" | "consultor" | "gestor";
+export type Priority = "alta" | "media" | "baixa";
+export type CompanyType = "incorporadora" | "banco" | "fundo" | "canal" | "outro";
+export type ActivityCategory = "loft" | "tech" | "interna";
 
 export interface Lead {
   id: string;
   cnpj: string;
   razaoSocial: string;
   nomeFantasia?: string;
+  nomeContato?: string;
   email: string;
   telefone: string;
   cidade: string;
   estado: string;
   origem: LeadSource;
   status: LeadStatus;
+  prioridade: Priority;
+  tipoEmpresa: CompanyType;
   responsavelId?: string;
   responsavelNome?: string;
   valorEstimado?: number;
@@ -20,6 +26,13 @@ export interface Lead {
   dataCriacao: Date;
   dataUltimaInteracao: Date;
   proximaAtividade?: Date;
+  proximaReuniao?: Date;
+  viabilidade?: {
+    status: "sim" | "nao" | "pendente";
+    margem?: number;
+    recomendacao?: "simples" | "media" | "nao";
+    dataAnalise?: Date;
+  };
 }
 
 export interface Negotiation {
@@ -40,12 +53,15 @@ export interface Activity {
   leadId?: string;
   negociacaoId?: string;
   tipo: "ligacao" | "email" | "reuniao" | "visita" | "tarefa";
+  categoria: ActivityCategory;
   titulo: string;
   descricao?: string;
   dataAgendada: Date;
   dataConclusao?: Date;
   concluida: boolean;
   responsavelId: string;
+  responsavelNome?: string;
+  comentario?: string;
 }
 
 export interface User {
@@ -63,4 +79,8 @@ export interface DashboardStats {
   valorPipeline: number;
   taxaConversao: number;
   atividadesHoje: number;
+  contatosAtivos: number;
+  reunioesProximos7Dias: number;
+  leadsSemAtividade: number;
+  receitaPotencial: number;
 }

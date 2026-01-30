@@ -3,11 +3,16 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { RecentLeads } from "@/components/dashboard/RecentLeads";
 import { UpcomingActivities } from "@/components/dashboard/UpcomingActivities";
 import { PipelineChart } from "@/components/dashboard/PipelineChart";
+import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
+import { ActivitiesByConsultorChart } from "@/components/dashboard/ActivitiesByConsultorChart";
+import { UpcomingMeetings } from "@/components/dashboard/UpcomingMeetings";
+import { InactiveLeadsAlert } from "@/components/dashboard/InactiveLeadsAlert";
 import {
   mockLeads,
   mockActivities,
   mockNegotiations,
   mockDashboardStats,
+  mockUsers,
 } from "@/data/mockData";
 import {
   Users,
@@ -16,6 +21,8 @@ import {
   DollarSign,
   TrendingUp,
   CalendarCheck,
+  UserCheck,
+  Calendar,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -28,10 +35,13 @@ const Dashboard = () => {
     }).format(value);
   };
 
+  // Get active contacts (leads with responsible person)
+  const activeContacts = mockLeads.filter(lead => lead.responsavelId);
+
   return (
-    <AppLayout title="Dashboard" subtitle="Visão geral do seu CRM">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    <AppLayout title="Dashboard Executivo" subtitle="Visão gerencial do CRM">
+      {/* Stats Grid - Row 1 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total de Leads"
           value={mockDashboardStats.totalLeads}
@@ -39,9 +49,9 @@ const Dashboard = () => {
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard
-          title="Leads Novos"
-          value={mockDashboardStats.leadsNovos}
-          icon={<UserPlus className="w-6 h-6" />}
+          title="Contatos Ativos"
+          value={mockDashboardStats.contatosAtivos}
+          icon={<UserCheck className="w-6 h-6" />}
           variant="primary"
         />
         <StatCard
@@ -50,10 +60,24 @@ const Dashboard = () => {
           icon={<Handshake className="w-6 h-6" />}
         />
         <StatCard
+          title="Receita Potencial"
+          value={formatCurrency(mockDashboardStats.receitaPotencial)}
+          icon={<DollarSign className="w-6 h-6" />}
+          variant="secondary"
+        />
+      </div>
+
+      {/* Stats Grid - Row 2 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          title="Leads Novos"
+          value={mockDashboardStats.leadsNovos}
+          icon={<UserPlus className="w-6 h-6" />}
+        />
+        <StatCard
           title="Valor Pipeline"
           value={formatCurrency(mockDashboardStats.valorPipeline)}
           icon={<DollarSign className="w-6 h-6" />}
-          variant="secondary"
         />
         <StatCard
           title="Taxa Conversão"
@@ -62,27 +86,35 @@ const Dashboard = () => {
           trend={{ value: 3.2, isPositive: true }}
         />
         <StatCard
-          title="Atividades Hoje"
-          value={mockDashboardStats.atividadesHoje}
-          icon={<CalendarCheck className="w-6 h-6" />}
+          title="Reuniões Próx. 7 dias"
+          value={mockDashboardStats.reunioesProximos7Dias}
+          icon={<Calendar className="w-6 h-6" />}
         />
       </div>
 
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <StatusPieChart leads={activeContacts} />
+        <ActivitiesByConsultorChart activities={mockActivities} users={mockUsers} />
+        <UpcomingMeetings activities={mockActivities} />
+      </div>
+
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Recent Leads */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Left Column - Pipeline */}
         <div className="lg:col-span-2">
-          <RecentLeads leads={mockLeads} />
+          <PipelineChart negotiations={mockNegotiations} />
         </div>
 
-        {/* Right Column - Pipeline Chart */}
+        {/* Right Column - Inactive Leads Alert */}
         <div>
-          <PipelineChart negotiations={mockNegotiations} />
+          <InactiveLeadsAlert leads={mockLeads} daysThreshold={7} />
         </div>
       </div>
 
-      {/* Bottom Section - Upcoming Activities */}
-      <div className="mt-6">
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentLeads leads={mockLeads} />
         <UpcomingActivities activities={mockActivities} />
       </div>
     </AppLayout>
