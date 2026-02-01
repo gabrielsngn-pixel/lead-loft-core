@@ -1,7 +1,8 @@
-import { AlertTriangle, CheckCircle2, XCircle, Info, FileCheck2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Info, FileCheck2, Sparkles, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { SimuladorResults, formatCurrency, formatPercent, type RegistroTipo, CONSTANTS } from "@/lib/simulador";
 
@@ -243,16 +244,30 @@ export function ResultadosSidebar({
         </div>
       )}
 
-      {/* Botão Aprovar */}
+      {/* Botão Aprovar Simulação */}
       {results.status !== "inviable" && onAprovar && (
-        <Button 
-          onClick={onAprovar}
-          disabled={!canAprovar}
-          className="w-full h-12 text-base gap-2 bg-secondary hover:bg-secondary/90"
-        >
-          <FileCheck2 className="w-5 h-5" />
-          Aprovar Simulação
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Button 
+                  onClick={onAprovar}
+                  disabled={!canAprovar}
+                  className="w-full h-12 text-base gap-2 bg-secondary hover:bg-secondary/90"
+                >
+                  <FileSignature className="w-5 h-5" />
+                  Aprovar Simulação
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p className="text-xs">
+                Quando aplicável, a cobrança do registro ao cliente final é realizada pela 
+                incorporadora, que se compromete contratualmente a repassar os valores devidos à Loft.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {/* Margem Mínima */}
