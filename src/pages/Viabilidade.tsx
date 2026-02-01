@@ -11,12 +11,11 @@ import {
   Building2,
   MapPin,
   FileText,
-  DollarSign,
-  Percent,
   Trash2,
   Save,
   RefreshCw,
   CheckCircle2,
+  ArrowLeft,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -58,10 +57,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Slider } from "@/components/ui/slider";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,11 +70,16 @@ import {
   formatPercent,
   validarMixBancario,
   validarSubMixCaixa,
-  REGISTRO_OPTIONS,
   type SimuladorInputs,
   type RegistroTipo,
 } from "@/lib/simulador";
-import { BankMixSelector, ResultadosSimulador } from "@/components/simulador";
+import {
+  SimuladorHeader,
+  EstruturaProjeto,
+  BankMixCard,
+  ComissaoRegistro,
+  ResultadosSidebar,
+} from "@/components/simulador";
 
 const Viabilidade = () => {
   const { toast } = useToast();
@@ -287,9 +289,6 @@ const Viabilidade = () => {
     aprovadas: viabilidades.filter((v) => v.resultado === "viavel").length,
   };
 
-  const formatNumber = (value: number) => new Intl.NumberFormat("pt-BR").format(value);
-  const parseNumber = (value: string): number => parseInt(value.replace(/\D/g, ""), 10) || 0;
-
   return (
     <AppLayout
       title="Viabilidade"
@@ -309,7 +308,7 @@ const Viabilidade = () => {
           </TabsList>
           
           {activeTab === "lista" && (
-            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 bg-[#FF774A] hover:bg-[#FF774A]/90">
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4" />
               Novo Projeto
             </Button>
@@ -323,8 +322,8 @@ const Viabilidade = () => {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[#FF774A]/10">
-                    <Calculator className="w-5 h-5 text-[#FF774A]" />
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Calculator className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.total}</p>
@@ -336,8 +335,8 @@ const Viabilidade = () => {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-yellow-100">
-                    <Clock className="w-5 h-5 text-yellow-600" />
+                  <div className="p-2 rounded-lg bg-warning/20">
+                    <Clock className="w-5 h-5 text-warning-foreground" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.pendentes}</p>
@@ -349,8 +348,8 @@ const Viabilidade = () => {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[#115644]/10">
-                    <CheckCircle2 className="w-5 h-5 text-[#115644]" />
+                  <div className="p-2 rounded-lg bg-success/10">
+                    <CheckCircle2 className="w-5 h-5 text-success" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.aprovadas}</p>
@@ -404,8 +403,8 @@ const Viabilidade = () => {
                   <TableRow key={viabilidade.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[#FF774A]/10">
-                          <Building2 className="w-4 h-4 text-[#FF774A]" />
+                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10">
+                          <Building2 className="w-4 h-4 text-primary" />
                         </div>
                         <div>
                           <p className="font-medium">{viabilidade.nome_empreendimento}</p>
@@ -427,9 +426,9 @@ const Viabilidade = () => {
                     <TableCell>
                       {viabilidade.margem_estimada !== null ? (
                         <span className={cn("font-medium", {
-                          "text-[#115644]": viabilidade.resultado === "viavel",
-                          "text-amber-600": viabilidade.resultado === "condicional",
-                          "text-red-600": viabilidade.resultado === "inviavel",
+                          "text-success": viabilidade.resultado === "viavel",
+                          "text-warning-foreground": viabilidade.resultado === "condicional",
+                          "text-destructive": viabilidade.resultado === "inviavel",
                         })}>
                           {viabilidade.margem_estimada.toFixed(2)}%
                         </span>
@@ -444,7 +443,7 @@ const Viabilidade = () => {
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           size="sm"
-                          className="gap-1 bg-[#FF774A] hover:bg-[#FF774A]/90"
+                          className="gap-1 bg-primary hover:bg-primary/90"
                           onClick={() => handleOpenSimulador(viabilidade)}
                         >
                           <Play className="w-3 h-3" />
@@ -489,7 +488,7 @@ const Viabilidade = () => {
                 <p className="text-muted-foreground">Nenhum projeto encontrado</p>
                 <Button
                   variant="link"
-                  className="mt-2 text-[#FF774A]"
+                  className="mt-2 text-primary"
                   onClick={() => setCreateDialogOpen(true)}
                 >
                   Criar novo projeto
@@ -501,12 +500,26 @@ const Viabilidade = () => {
 
         {/* Simulador */}
         <TabsContent value="simulador" className="space-y-6 mt-0">
+          {/* Header do Simulador */}
+          <div className="bg-accent/30 rounded-2xl p-8 mb-6">
+            <SimuladorHeader />
+          </div>
+
+          {/* Projeto selecionado */}
           {selectedViabilidade && (
-            <Card className="bg-[#FF774A]/5 border-[#FF774A]/20">
+            <Card className="bg-primary/5 border-primary/20">
               <CardContent className="py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-[#FF774A]" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveTab("lista")}
+                      className="gap-1"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <Building2 className="w-5 h-5 text-primary" />
                     <div>
                       <p className="font-medium">{selectedViabilidade.nome_empreendimento}</p>
                       <p className="text-sm text-muted-foreground">
@@ -530,7 +543,7 @@ const Viabilidade = () => {
                       size="sm"
                       onClick={handleSaveSimulation}
                       disabled={saving || !isValidMix}
-                      className="gap-1 bg-[#115644] hover:bg-[#115644]/90"
+                      className="gap-1 bg-secondary hover:bg-secondary/90"
                     >
                       {saving ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -545,121 +558,45 @@ const Viabilidade = () => {
             </Card>
           )}
 
+          {/* Layout 2 colunas */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Inputs */}
-            <div className="space-y-6">
-              {/* Dados do Projeto */}
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-[#FF774A]" />
-                    Dados do Projeto
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Quantidade de Unidades</Label>
-                      <Input
-                        type="number"
-                        value={inputs.unidades}
-                        onChange={(e) => setInputs({ ...inputs, unidades: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>VGV Total (R$)</Label>
-                      <Input
-                        type="text"
-                        value={formatNumber(inputs.vgv)}
-                        onChange={(e) => setInputs({ ...inputs, vgv: parseNumber(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">Ticket Médio</p>
-                    <p className="text-xl font-bold text-[#FF774A]">{formatCurrency(ticketMedio)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Mix Bancário */}
-              <BankMixSelector
+            {/* Coluna Esquerda - Inputs */}
+            <div className="space-y-4">
+              <EstruturaProjeto
+                unidades={inputs.unidades}
+                vgv={inputs.vgv}
+                onUnidadesChange={(v) => setInputs({ ...inputs, unidades: v })}
+                onVgvChange={(v) => setInputs({ ...inputs, vgv: v })}
+              />
+              
+              <BankMixCard
                 bankMix={inputs.bankMix}
                 caixaSubMix={inputs.caixaSubMix}
                 onBankMixChange={(bankMix) => setInputs({ ...inputs, bankMix })}
                 onCaixaSubMixChange={(caixaSubMix) => setInputs({ ...inputs, caixaSubMix })}
                 ticketMedio={ticketMedio}
               />
-
-              {/* Comissão e Registro */}
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Percent className="w-5 h-5 text-[#FF774A]" />
-                    Comissão e Registro
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Comissão do Incorporador */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Comissão do Incorporador</Label>
-                      <span className="font-bold text-[#FF774A]">{inputs.comissaoIncorporador.toFixed(1)}%</span>
-                    </div>
-                    <Slider
-                      value={[inputs.comissaoIncorporador]}
-                      onValueChange={([v]) => setInputs({ ...inputs, comissaoIncorporador: v })}
-                      min={0}
-                      max={2}
-                      step={0.1}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>0%</span>
-                      <span>2%</span>
-                    </div>
-                  </div>
-
-                  {/* Tipo de Registro */}
-                  <div className="space-y-3">
-                    <Label>Registro</Label>
-                    <RadioGroup
-                      value={inputs.registroTipo}
-                      onValueChange={(v) => setInputs({ ...inputs, registroTipo: v as RegistroTipo })}
-                      className="space-y-2"
-                    >
-                      {REGISTRO_OPTIONS.map((option) => (
-                        <div key={option.id} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50">
-                          <RadioGroupItem value={option.id} id={option.id} />
-                          <Label htmlFor={option.id} className="flex-1 cursor-pointer">
-                            <span className="font-medium">{option.label}</span>
-                            <p className="text-sm text-muted-foreground">{option.desc}</p>
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-
-                  {/* Valor do Registro por Unidade */}
-                  {inputs.registroTipo === "internalizado" && (
-                    <div className="space-y-2 p-4 bg-[#FF774A]/5 rounded-lg border border-[#FF774A]/20">
-                      <Label>Valor do Registro por Unidade (R$)</Label>
-                      <Input
-                        type="text"
-                        value={formatNumber(inputs.valorRegistroPorUnidade)}
-                        onChange={(e) => setInputs({ ...inputs, valorRegistroPorUnidade: parseNumber(e.target.value) })}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Total: {formatCurrency(inputs.valorRegistroPorUnidade * inputs.unidades)}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              
+              <ComissaoRegistro
+                comissaoIncorporador={inputs.comissaoIncorporador}
+                registroTipo={inputs.registroTipo}
+                valorRegistroPorUnidade={inputs.valorRegistroPorUnidade}
+                unidades={inputs.unidades}
+                onComissaoChange={(v) => setInputs({ ...inputs, comissaoIncorporador: v })}
+                onRegistroTipoChange={(v) => setInputs({ ...inputs, registroTipo: v })}
+                onValorRegistroChange={(v) => setInputs({ ...inputs, valorRegistroPorUnidade: v })}
+              />
             </div>
 
-            {/* Resultados */}
+            {/* Coluna Direita - Resultados */}
             <div>
-              <ResultadosSimulador results={results} registroTipo={inputs.registroTipo} />
+              <ResultadosSidebar 
+                results={results} 
+                registroTipo={inputs.registroTipo}
+                vgv={inputs.vgv}
+                canAprovar={isValidMix && selectedViabilidade !== null}
+                onAprovar={handleSaveSimulation}
+              />
             </div>
           </div>
 
@@ -747,7 +684,7 @@ const Viabilidade = () => {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleCreate} disabled={processing} className="bg-[#FF774A] hover:bg-[#FF774A]/90">
+            <Button onClick={handleCreate} disabled={processing} className="bg-primary hover:bg-primary/90">
               {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Criar Projeto
             </Button>
