@@ -1,31 +1,50 @@
 /**
  * Simulador de Viabilidade Loft
- * Lógica exata conforme especificado no histórico
+ * Pacote Mínimo Transferível — 100% fiel às especificações
  */
 
-// Taxas dos bancos
-export const BANK_RATES = {
-  itau: 1.8,
-  santander: 1.8,
-  bradesco: 2.0,
+// ============================================
+// 1. CONSTANTES FIXAS (Não Expostas ao Usuário)
+// ============================================
+export const CONSTANTS = {
+  TAX_RATE: 0.101,              // 10,1% de impostos sobre receita bruta
+  OPERATIONAL_COSTS: 0.0024,    // 0,24% custos operacionais (100% Loft)
+  MIN_MARGIN: 0.003,            // 0,30% margem mínima (governança)
+  VIABLE_MARGIN: 0.004,         // 0,40% margem viável
+  LOFT_PARTICIPATION: 0.5,      // 50% rateio Loft
+  PARTNER_PARTICIPATION: 0.5,   // 50% rateio CRE
 };
 
-// Modelos Caixa
+// ============================================
+// 1.2 TAXAS BANCÁRIAS FIXAS
+// ============================================
+export const BANK_RATES = {
+  itau: 0.018,        // 1,80%
+  santander: 0.018,   // 1,80%
+  bradesco: 0.02,     // 2,00%
+  // caixa: variável (depende do sub-mix)
+};
+
+// ============================================
+// 1.3 PRODUTOS CAIXA (Taxas com Teto)
+// ============================================
 export interface CaixaModel {
   id: string;
   label: string;
-  rate: number; // %
-  ceiling: number | null; // R$ por unidade, null = sem teto
+  rate: number;        // Taxa base (decimal)
+  ceiling: number | null; // Teto R$/unidade, null = sem teto
 }
 
 export const CAIXA_MODELS: CaixaModel[] = [
-  { id: "individual_spbe", label: "Individual SPBE", rate: 1.0, ceiling: null },
-  { id: "alocacao_spbe", label: "Alocação SPBE", rate: 1.0, ceiling: 5000 },
-  { id: "individual_mcmv", label: "Individual MCMV", rate: 0.8, ceiling: 2000 },
-  { id: "alocacao_mcmv", label: "Alocação MCMV", rate: 0.8, ceiling: 600 },
+  { id: "individual_spbe", label: "Ind. SPBE", rate: 0.01, ceiling: null },
+  { id: "alocacao_spbe", label: "Aloc. SPBE", rate: 0.01, ceiling: 5000 },
+  { id: "individual_mcmv", label: "Ind. MCMV", rate: 0.008, ceiling: 2000 },
+  { id: "alocacao_mcmv", label: "Aloc. MCMV", rate: 0.008, ceiling: 600 },
 ];
 
-// Tipos de registro
+// ============================================
+// TIPOS DE REGISTRO
+// ============================================
 export type RegistroTipo = "parceiro" | "internalizado" | "sem_registro";
 
 export const REGISTRO_OPTIONS = [
@@ -34,22 +53,21 @@ export const REGISTRO_OPTIONS = [
   { id: "sem_registro" as const, label: "Projeto sem registro", desc: "Sensível à comissão" },
 ];
 
-// Coparticipação CRE (oculta para incorporadores)
-const COPARTICIPACAO_LOFT = 0.5; // 50%
-const MARGEM_MINIMA = 0.30; // 0,30%
-
+// ============================================
+// INTERFACES
+// ============================================
 export interface BankMix {
-  itau: number;
-  santander: number;
-  bradesco: number;
-  caixa: number;
+  itau: number;      // % (0-100)
+  santander: number; // % (0-100)
+  bradesco: number;  // % (0-100)
+  caixa: number;     // % (0-100)
 }
 
 export interface CaixaSubMix {
-  individual_spbe: number;
-  alocacao_spbe: number;
-  individual_mcmv: number;
-  alocacao_mcmv: number;
+  individual_spbe: number;  // % (0-100)
+  alocacao_spbe: number;    // % (0-100)
+  individual_mcmv: number;  // % (0-100)
+  alocacao_mcmv: number;    // % (0-100)
 }
 
 export interface SimuladorInputs {
@@ -57,106 +75,178 @@ export interface SimuladorInputs {
   vgv: number;
   bankMix: BankMix;
   caixaSubMix: CaixaSubMix;
-  comissaoIncorporador: number; // % (0-2)
+  comissaoIncorporador: number; // % (0-1)
   registroTipo: RegistroTipo;
   valorRegistroPorUnidade: number;
 }
 
 export interface SimuladorResults {
-  // Comissão calculada
-  taxaPonderadaBanco: number;
-  taxaEfetivaCaixa: number;
+  // Base
+  ticketMedio: number;
+  
+  // Comissão bancária
+  taxaPonderadaBanco: number;        // % (decimal, ex: 0.0175 = 1.75%)
+  taxaEfetivaCaixa: number;          // % (decimal)
   caixaTetoAplicado: boolean;
+  caixaDetalhe: CaixaProdutoDetalhe[];
   
-  // Receitas
-  receitaBrutaTotal: number;
-  custoComissaoIncorporador: number;
-  receitaLiquidaTotal: number;
+  // Receitas (em %)
+  receitaBrutaPercent: number;       // bank_commission - incorporator_commission
+  impostoPercent: number;            // receita_bruta × 0.101
+  receitaLiquidaTotalPercent: number;// receita_bruta - impostos
   
-  // Coparticipação (50/50)
-  receitaLoft: number;
-  receitaCRE: number;
+  // Rateio 50/50 (em %)
+  receitaLiquidaLoftPercent: number;
+  receitaLiquidaCREPercent: number;
   
-  // Registro
+  // Registro (em %)
+  receitaRegistroTotalPercent: number;
+  receitaRegistroLoftPercent: number;
+  receitaRegistroCREPercent: number;
+  
+  // Receita Loft com Registro (em %)
+  receitaLoftComRegistroPercent: number;
+  
+  // Custos Operacionais (em %)
+  custosOperacionaisPercent: number;
+  
+  // Margem Final (em %)
+  margemFinalPercent: number;
+  
+  // Valores em R$
+  receitaBrutaCurrency: number;
+  impostoCurrency: number;
+  receitaLiquidaTotalCurrency: number;
+  receitaLiquidaLoftCurrency: number;
+  receitaLiquidaCRECurrency: number;
   receitaRegistroTotal: number;
   receitaRegistroLoft: number;
   receitaRegistroCRE: number;
-  
-  // Margem final
-  margemLoft: number; // %
-  margemMinima: number; // %
+  custosOperacionaisCurrency: number;
+  margemFinalCurrency: number;
   
   // Status
-  status: "viavel" | "limite" | "inviavel";
-  mensagem: string;
+  status: "viable" | "limit" | "inviable";
+  statusLabel: string;
+  statusColor: "green" | "yellow" | "red";
+  
+  // Alertas
+  alerts: Alert[];
+  
+  // Legado (compatibilidade)
+  margemLoft: number;        // Em % (ex: 0.42 para 0.42%)
+  margemMinima: number;      // 0.30
+  receitaBrutaTotal: number;
+  receitaLiquidaTotal: number;
+  receitaLoft: number;
+  receitaCRE: number;
+  custoComissaoIncorporador: number;
 }
 
+export interface CaixaProdutoDetalhe {
+  id: string;
+  label: string;
+  pct: number;             // % do submix
+  taxaBase: number;        // taxa original
+  taxaEfetiva: number;     // após aplicar teto
+  contribuicao: number;    // contribuição para taxa ponderada
+  tetoAplicado: boolean;
+  valorTeto: number | null;
+}
+
+export interface Alert {
+  type: "success" | "warning" | "error";
+  message: string;
+}
+
+// ============================================
+// DEFAULTS
+// ============================================
 export const defaultInputs: SimuladorInputs = {
   unidades: 100,
   vgv: 50000000,
   bankMix: {
-    itau: 25,
-    santander: 25,
-    bradesco: 25,
-    caixa: 25,
+    itau: 40,
+    santander: 30,
+    bradesco: 20,
+    caixa: 10,
   },
   caixaSubMix: {
     individual_spbe: 50,
-    alocacao_spbe: 50,
-    individual_mcmv: 0,
-    alocacao_mcmv: 0,
+    alocacao_spbe: 30,
+    individual_mcmv: 15,
+    alocacao_mcmv: 5,
   },
   comissaoIncorporador: 0.5,
   registroTipo: "parceiro",
-  valorRegistroPorUnidade: 1500,
+  valorRegistroPorUnidade: 1000,
 };
 
+// ============================================
+// FUNÇÕES DE CÁLCULO
+// ============================================
+
 /**
- * Calcula taxa efetiva da Caixa baseado no sub-mix e ticket médio
+ * Calcula taxa efetiva de cada produto Caixa considerando teto
  */
 export function calcularTaxaEfetivaCaixa(
   subMix: CaixaSubMix,
   ticketMedio: number
-): { taxa: number; tetoAplicado: boolean } {
+): { taxaEfetiva: number; tetoAplicado: boolean; detalhe: CaixaProdutoDetalhe[] } {
   let taxaPonderada = 0;
   let tetoAplicado = false;
+  const detalhe: CaixaProdutoDetalhe[] = [];
 
   const entries = [
-    { key: "individual_spbe" as const, ...CAIXA_MODELS[0], pct: subMix.individual_spbe },
-    { key: "alocacao_spbe" as const, ...CAIXA_MODELS[1], pct: subMix.alocacao_spbe },
-    { key: "individual_mcmv" as const, ...CAIXA_MODELS[2], pct: subMix.individual_mcmv },
-    { key: "alocacao_mcmv" as const, ...CAIXA_MODELS[3], pct: subMix.alocacao_mcmv },
+    { key: "individual_spbe" as const, model: CAIXA_MODELS[0], pct: subMix.individual_spbe },
+    { key: "alocacao_spbe" as const, model: CAIXA_MODELS[1], pct: subMix.alocacao_spbe },
+    { key: "individual_mcmv" as const, model: CAIXA_MODELS[2], pct: subMix.individual_mcmv },
+    { key: "alocacao_mcmv" as const, model: CAIXA_MODELS[3], pct: subMix.alocacao_mcmv },
   ];
 
   for (const entry of entries) {
-    if (entry.pct <= 0) continue;
-
-    let taxaEfetiva = entry.rate;
+    let taxaEfetivaProduto = entry.model.rate;
+    let produtoTetoAplicado = false;
 
     // Aplicar teto se existir
-    if (entry.ceiling !== null && ticketMedio > 0) {
-      const taxaComTeto = (entry.ceiling / ticketMedio) * 100;
-      if (taxaComTeto < entry.rate) {
-        taxaEfetiva = taxaComTeto;
+    if (entry.model.ceiling !== null && ticketMedio > 0) {
+      const valorTeorico = ticketMedio * entry.model.rate;
+      const valorAplicado = Math.min(valorTeorico, entry.model.ceiling);
+      taxaEfetivaProduto = valorAplicado / ticketMedio;
+      
+      if (valorTeorico > entry.model.ceiling) {
         tetoAplicado = true;
+        produtoTetoAplicado = true;
       }
     }
 
-    taxaPonderada += (entry.pct / 100) * taxaEfetiva;
+    const contribuicao = (entry.pct / 100) * taxaEfetivaProduto;
+    taxaPonderada += contribuicao;
+
+    detalhe.push({
+      id: entry.model.id,
+      label: entry.model.label,
+      pct: entry.pct,
+      taxaBase: entry.model.rate,
+      taxaEfetiva: taxaEfetivaProduto,
+      contribuicao,
+      tetoAplicado: produtoTetoAplicado,
+      valorTeto: entry.model.ceiling,
+    });
   }
 
-  return { taxa: taxaPonderada, tetoAplicado };
+  return { taxaEfetiva: taxaPonderada, tetoAplicado, detalhe };
 }
 
 /**
- * Calcula taxa ponderada da Caixa (alias para uso no componente)
+ * Alias para compatibilidade
  */
 export function calcularTaxaPonderadaCaixa(
   subMix: CaixaSubMix,
   ticketMedio: number
 ): { taxaEfetiva: number; tetoAplicado: boolean } {
   const result = calcularTaxaEfetivaCaixa(subMix, ticketMedio);
-  return { taxaEfetiva: result.taxa, tetoAplicado: result.tetoAplicado };
+  return { taxaEfetiva: result.taxaEfetiva, tetoAplicado: result.tetoAplicado };
 }
 
 /**
@@ -166,13 +256,12 @@ export function calcularTaxaPonderadaBanco(
   bankMix: BankMix,
   taxaEfetivaCaixa: number
 ): number {
-  const taxaPonderada =
+  return (
     (bankMix.itau / 100) * BANK_RATES.itau +
     (bankMix.santander / 100) * BANK_RATES.santander +
     (bankMix.bradesco / 100) * BANK_RATES.bradesco +
-    (bankMix.caixa / 100) * taxaEfetivaCaixa;
-
-  return taxaPonderada;
+    (bankMix.caixa / 100) * taxaEfetivaCaixa
+  );
 }
 
 /**
@@ -196,90 +285,223 @@ export function validarSubMixCaixa(subMix: CaixaSubMix): boolean {
 }
 
 /**
- * Determina status de viabilidade
+ * Determina status de viabilidade conforme regras
  */
-function determinarStatus(margem: number): { status: SimuladorResults["status"]; mensagem: string } {
-  if (margem >= MARGEM_MINIMA) {
+function determinarStatus(margemPercent: number): { 
+  status: "viable" | "limit" | "inviable"; 
+  label: string; 
+  color: "green" | "yellow" | "red";
+} {
+  // viable: >= 0.40%
+  if (margemPercent >= CONSTANTS.VIABLE_MARGIN * 100) {
     return {
-      status: "viavel",
-      mensagem: `Projeto viável com margem de ${margem.toFixed(2)}%`,
-    };
-  } else if (margem >= 0.20) {
-    return {
-      status: "limite",
-      mensagem: `Margem no limite (${margem.toFixed(2)}%). Avaliar com CFO.`,
-    };
-  } else {
-    return {
-      status: "inviavel",
-      mensagem: `Margem insuficiente (${margem.toFixed(2)}%). Abaixo do mínimo de ${MARGEM_MINIMA}%.`,
+      status: "viable",
+      label: "Projeto viável",
+      color: "green",
     };
   }
+  // limit: >= 0.30% AND < 0.40%
+  if (margemPercent >= CONSTANTS.MIN_MARGIN * 100) {
+    return {
+      status: "limit",
+      label: "Margem no limite",
+      color: "yellow",
+    };
+  }
+  // inviable: < 0.30%
+  return {
+    status: "inviable",
+    label: "Projeto inviável",
+    color: "red",
+  };
+}
+
+/**
+ * Gera alertas baseado nas condições
+ */
+function gerarAlertas(
+  inputs: SimuladorInputs,
+  margemPercent: number,
+  caixaTetoAplicado: boolean
+): Alert[] {
+  const alerts: Alert[] = [];
+
+  // Alerta: registro sensível
+  if (inputs.registroTipo === "sem_registro" && inputs.comissaoIncorporador >= 0.7) {
+    alerts.push({
+      type: "warning",
+      message: "Projeto sem registro é mais sensível à comissão do incorporador.",
+    });
+  }
+
+  // Alerta: margem abaixo do mínimo
+  if (margemPercent < CONSTANTS.MIN_MARGIN * 100) {
+    alerts.push({
+      type: "error",
+      message: "Margem da Loft não atende o mínimo exigido.",
+    });
+  }
+
+  // Alerta: teto Caixa aplicado
+  if (caixaTetoAplicado) {
+    alerts.push({
+      type: "warning",
+      message: "Um ou mais produtos CAIXA tiveram remuneração limitada ao teto.",
+    });
+  }
+
+  // Alerta: registro internalizado (sucesso)
+  if (inputs.registroTipo === "internalizado") {
+    alerts.push({
+      type: "success",
+      message: "Registro internalizado gera receita incremental e melhora a margem.",
+    });
+  }
+
+  return alerts;
 }
 
 /**
  * Calcula viabilidade completa
  */
 export function calcularViabilidade(inputs: SimuladorInputs): SimuladorResults {
-  const ticketMedio = inputs.unidades > 0 ? inputs.vgv / inputs.unidades : 0;
+  const { unidades, vgv, bankMix, caixaSubMix, comissaoIncorporador, registroTipo, valorRegistroPorUnidade } = inputs;
+  
+  // --- Cálculos Base ---
+  const ticketMedio = unidades > 0 ? vgv / unidades : 0;
 
-  // Taxa efetiva Caixa
-  const { taxa: taxaEfetivaCaixa, tetoAplicado: caixaTetoAplicado } = calcularTaxaEfetivaCaixa(
-    inputs.caixaSubMix,
-    ticketMedio
-  );
+  // --- Taxa Efetiva CAIXA ---
+  const { taxaEfetiva: taxaEfetivaCaixa, tetoAplicado: caixaTetoAplicado, detalhe: caixaDetalhe } = 
+    calcularTaxaEfetivaCaixa(caixaSubMix, ticketMedio);
 
-  // Taxa ponderada do mix bancário
-  const taxaPonderadaBanco = calcularTaxaPonderadaBanco(inputs.bankMix, taxaEfetivaCaixa);
+  // --- Comissão Bancária Ponderada Total ---
+  const taxaPonderadaBanco = calcularTaxaPonderadaBanco(bankMix, taxaEfetivaCaixa);
 
-  // Receita bruta = VGV × taxa ponderada
-  const receitaBrutaTotal = inputs.vgv * (taxaPonderadaBanco / 100);
+  // --- Receitas (em decimal %) ---
+  // receita_bruta_percent = bank_commission - (incorporator_commission / 100)
+  const receitaBrutaPercent = taxaPonderadaBanco - (comissaoIncorporador / 100);
+  
+  // imposto_percent = receita_bruta_percent × 0.101
+  const impostoPercent = receitaBrutaPercent * CONSTANTS.TAX_RATE;
+  
+  // receita_liquida_total_percent = receita_bruta_percent - imposto_percent
+  const receitaLiquidaTotalPercent = receitaBrutaPercent - impostoPercent;
 
-  // Custo = VGV × comissão incorporador
-  const custoComissaoIncorporador = inputs.vgv * (inputs.comissaoIncorporador / 100);
+  // --- Rateio 50/50 ---
+  const receitaLiquidaLoftPercent = receitaLiquidaTotalPercent * CONSTANTS.LOFT_PARTICIPATION;
+  const receitaLiquidaCREPercent = receitaLiquidaTotalPercent * CONSTANTS.PARTNER_PARTICIPATION;
 
-  // Receita líquida
-  const receitaLiquidaTotal = receitaBrutaTotal - custoComissaoIncorporador;
-
-  // Coparticipação 50/50 (oculta)
-  const receitaLoft = receitaLiquidaTotal * COPARTICIPACAO_LOFT;
-  const receitaCRE = receitaLiquidaTotal * (1 - COPARTICIPACAO_LOFT);
-
-  // Registro
+  // --- Registro (se internalizado) ---
   let receitaRegistroTotal = 0;
+  let receitaRegistroTotalPercent = 0;
+  let receitaRegistroLoftPercent = 0;
+  let receitaRegistroCREPercent = 0;
   let receitaRegistroLoft = 0;
   let receitaRegistroCRE = 0;
 
-  if (inputs.registroTipo === "internalizado") {
-    receitaRegistroTotal = inputs.valorRegistroPorUnidade * inputs.unidades;
-    receitaRegistroLoft = receitaRegistroTotal * COPARTICIPACAO_LOFT;
-    receitaRegistroCRE = receitaRegistroTotal * (1 - COPARTICIPACAO_LOFT);
+  if (registroTipo === "internalizado" && vgv > 0) {
+    receitaRegistroTotal = valorRegistroPorUnidade * unidades;
+    receitaRegistroTotalPercent = receitaRegistroTotal / vgv;
+    receitaRegistroLoftPercent = receitaRegistroTotalPercent * CONSTANTS.LOFT_PARTICIPATION;
+    receitaRegistroCREPercent = receitaRegistroTotalPercent * CONSTANTS.PARTNER_PARTICIPATION;
+    receitaRegistroLoft = receitaRegistroTotal * CONSTANTS.LOFT_PARTICIPATION;
+    receitaRegistroCRE = receitaRegistroTotal * CONSTANTS.PARTNER_PARTICIPATION;
   }
 
-  // Margem Loft = (Receita Loft + Registro Loft) / VGV × 100
-  const margemLoft = inputs.vgv > 0 ? ((receitaLoft + receitaRegistroLoft) / inputs.vgv) * 100 : 0;
+  // --- Receita Total Loft com Registro ---
+  const receitaLoftComRegistroPercent = receitaLiquidaLoftPercent + receitaRegistroLoftPercent;
 
-  // Status
-  const { status, mensagem } = determinarStatus(margemLoft);
+  // --- Custos Operacionais ---
+  const custosOperacionaisPercent = CONSTANTS.OPERATIONAL_COSTS;
+
+  // --- Margem Final Loft ---
+  // margem_final_percent = receita_loft_com_registro_percent - 0.0024
+  const margemFinalPercent = receitaLoftComRegistroPercent - custosOperacionaisPercent;
+
+  // --- Valores em R$ ---
+  const receitaBrutaCurrency = vgv * receitaBrutaPercent;
+  const impostoCurrency = vgv * impostoPercent;
+  const receitaLiquidaTotalCurrency = vgv * receitaLiquidaTotalPercent;
+  const receitaLiquidaLoftCurrency = vgv * receitaLiquidaLoftPercent;
+  const receitaLiquidaCRECurrency = vgv * receitaLiquidaCREPercent;
+  const custosOperacionaisCurrency = vgv * custosOperacionaisPercent;
+  const margemFinalCurrency = vgv * margemFinalPercent;
+
+  // --- Status ---
+  // Converter para % (ex: 0.0042 → 0.42%)
+  const margemPercentDisplay = margemFinalPercent * 100;
+  const { status, label: statusLabel, color: statusColor } = determinarStatus(margemPercentDisplay);
+
+  // --- Alertas ---
+  const alerts = gerarAlertas(inputs, margemPercentDisplay, caixaTetoAplicado);
 
   return {
-    taxaPonderadaBanco,
-    taxaEfetivaCaixa,
+    // Base
+    ticketMedio,
+    
+    // Comissão bancária
+    taxaPonderadaBanco: taxaPonderadaBanco * 100,  // Convertido para display (1.75%)
+    taxaEfetivaCaixa: taxaEfetivaCaixa * 100,      // Convertido para display
     caixaTetoAplicado,
-    receitaBrutaTotal,
-    custoComissaoIncorporador,
-    receitaLiquidaTotal,
-    receitaLoft,
-    receitaCRE,
+    caixaDetalhe,
+    
+    // Receitas (em % para display)
+    receitaBrutaPercent: receitaBrutaPercent * 100,
+    impostoPercent: impostoPercent * 100,
+    receitaLiquidaTotalPercent: receitaLiquidaTotalPercent * 100,
+    
+    // Rateio 50/50 (em % para display)
+    receitaLiquidaLoftPercent: receitaLiquidaLoftPercent * 100,
+    receitaLiquidaCREPercent: receitaLiquidaCREPercent * 100,
+    
+    // Registro (em % para display)
+    receitaRegistroTotalPercent: receitaRegistroTotalPercent * 100,
+    receitaRegistroLoftPercent: receitaRegistroLoftPercent * 100,
+    receitaRegistroCREPercent: receitaRegistroCREPercent * 100,
+    
+    // Receita Loft com Registro (em % para display)
+    receitaLoftComRegistroPercent: receitaLoftComRegistroPercent * 100,
+    
+    // Custos Operacionais (em % para display)
+    custosOperacionaisPercent: custosOperacionaisPercent * 100,
+    
+    // Margem Final (em % para display)
+    margemFinalPercent: margemPercentDisplay,
+    
+    // Valores em R$
+    receitaBrutaCurrency,
+    impostoCurrency,
+    receitaLiquidaTotalCurrency,
+    receitaLiquidaLoftCurrency,
+    receitaLiquidaCRECurrency,
     receitaRegistroTotal,
     receitaRegistroLoft,
     receitaRegistroCRE,
-    margemLoft,
-    margemMinima: MARGEM_MINIMA,
+    custosOperacionaisCurrency,
+    margemFinalCurrency,
+    
+    // Status
     status,
-    mensagem,
+    statusLabel,
+    statusColor,
+    
+    // Alertas
+    alerts,
+    
+    // Legado (compatibilidade com componentes existentes)
+    margemLoft: margemPercentDisplay,
+    margemMinima: CONSTANTS.MIN_MARGIN * 100,  // 0.30
+    receitaBrutaTotal: receitaBrutaCurrency,
+    receitaLiquidaTotal: receitaLiquidaTotalCurrency,
+    receitaLoft: receitaLiquidaLoftCurrency,
+    receitaCRE: receitaLiquidaCRECurrency,
+    custoComissaoIncorporador: vgv * (comissaoIncorporador / 100),
   };
 }
+
+// ============================================
+// FORMATAÇÃO
+// ============================================
 
 /**
  * Formata valor em moeda brasileira

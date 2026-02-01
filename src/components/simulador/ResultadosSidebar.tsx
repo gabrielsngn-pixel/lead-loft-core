@@ -1,8 +1,9 @@
 import { AlertTriangle, CheckCircle2, XCircle, Info, FileCheck2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { SimuladorResults, formatCurrency, formatPercent, type RegistroTipo } from "@/lib/simulador";
+import { SimuladorResults, formatCurrency, formatPercent, type RegistroTipo, CONSTANTS } from "@/lib/simulador";
 
 interface ResultadosSidebarProps {
   results: SimuladorResults;
@@ -20,26 +21,23 @@ export function ResultadosSidebar({
   canAprovar = true 
 }: ResultadosSidebarProps) {
   const statusConfig = {
-    viavel: {
+    viable: {
       label: "Viável",
       icon: CheckCircle2,
-      bgColor: "bg-success",
       textColor: "text-success",
       borderColor: "border-success",
       lightBg: "bg-success/10",
     },
-    limite: {
+    limit: {
       label: "Margem no limite",
       icon: AlertTriangle,
-      bgColor: "bg-warning",
       textColor: "text-warning-foreground",
       borderColor: "border-warning",
       lightBg: "bg-warning/80",
     },
-    inviavel: {
+    inviable: {
       label: "Inviável",
       icon: XCircle,
-      bgColor: "bg-destructive",
       textColor: "text-destructive",
       borderColor: "border-destructive",
       lightBg: "bg-destructive/10",
@@ -48,16 +46,6 @@ export function ResultadosSidebar({
 
   const config = statusConfig[results.status];
   const StatusIcon = config.icon;
-
-  // Calculate derived values
-  const receitaBrutaPct = vgv > 0 ? (results.receitaBrutaTotal / vgv) * 100 : 0;
-  const impostosPct = receitaBrutaPct * 0.101;
-  const impostosVal = results.receitaBrutaTotal * 0.101;
-  const receitaLiquidaPct = receitaBrutaPct * 0.899;
-  const receitaLoftPct = receitaLiquidaPct * 0.5;
-  const receitaCREPct = receitaLiquidaPct * 0.5;
-  const custoOperacionalPct = 0.24;
-  const custoOperacionalVal = vgv * 0.0024;
 
   return (
     <div className="space-y-4">
@@ -68,17 +56,19 @@ export function ResultadosSidebar({
             <div className="flex items-center gap-3">
               <StatusIcon className={cn("w-5 h-5", config.textColor)} />
               <div>
-                <p className={cn("font-semibold", config.textColor)}>{config.label}</p>
-                <p className="text-sm text-muted-foreground">{results.mensagem}</p>
+                <p className={cn("font-semibold", config.textColor)}>{results.statusLabel}</p>
+                <p className="text-sm text-muted-foreground">
+                  Margem próxima ao mínimo de {formatPercent(CONSTANTS.MIN_MARGIN * 100)}
+                </p>
               </div>
             </div>
             <div className="text-right">
               <p className={cn("text-3xl font-bold", {
-                "text-success": results.status === "viavel",
-                "text-foreground": results.status === "limite",
-                "text-destructive": results.status === "inviavel",
+                "text-success": results.status === "viable",
+                "text-foreground": results.status === "limit",
+                "text-destructive": results.status === "inviable",
               })}>
-                {formatPercent(results.margemLoft)}
+                {formatPercent(results.margemFinalPercent)}
               </p>
               <p className="text-xs text-muted-foreground">Margem final</p>
             </div>
@@ -125,9 +115,9 @@ export function ResultadosSidebar({
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">Receita bruta</p>
                 <p className="text-xl font-bold">
-                  {formatPercent(receitaBrutaPct)}
+                  {formatPercent(results.receitaBrutaPercent)}
                   <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({formatCurrency(results.receitaBrutaTotal)})
+                    ({formatCurrency(results.receitaBrutaCurrency)})
                   </span>
                 </p>
               </div>
@@ -135,9 +125,9 @@ export function ResultadosSidebar({
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">Impostos (10,1%)</p>
                 <p className="text-xl font-bold">
-                  {formatPercent(impostosPct)}
+                  {formatPercent(results.impostoPercent)}
                   <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({formatCurrency(impostosVal)})
+                    ({formatCurrency(results.impostoCurrency)})
                   </span>
                 </p>
               </div>
@@ -145,9 +135,9 @@ export function ResultadosSidebar({
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">Receita líquida total</p>
                 <p className="text-xl font-bold">
-                  {formatPercent(receitaLiquidaPct)}
+                  {formatPercent(results.receitaLiquidaTotalPercent)}
                   <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({formatCurrency(results.receitaLiquidaTotal)})
+                    ({formatCurrency(results.receitaLiquidaTotalCurrency)})
                   </span>
                 </p>
               </div>
@@ -162,9 +152,9 @@ export function ResultadosSidebar({
               <div className="p-3 bg-success/5 rounded-lg border border-success/20">
                 <p className="text-sm text-muted-foreground">Receita líquida Loft (comissão)</p>
                 <p className="text-xl font-bold text-success">
-                  {formatPercent(receitaLoftPct)}
+                  {formatPercent(results.receitaLiquidaLoftPercent)}
                   <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({formatCurrency(results.receitaLoft)})
+                    ({formatCurrency(results.receitaLiquidaLoftCurrency)})
                   </span>
                 </p>
               </div>
@@ -172,9 +162,9 @@ export function ResultadosSidebar({
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">Receita líquida CRE (comissão)</p>
                 <p className="text-xl font-bold">
-                  {formatPercent(receitaCREPct)}
+                  {formatPercent(results.receitaLiquidaCREPercent)}
                   <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({formatCurrency(results.receitaCRE)})
+                    ({formatCurrency(results.receitaLiquidaCRECurrency)})
                   </span>
                 </p>
               </div>
@@ -188,9 +178,9 @@ export function ResultadosSidebar({
             <div className="p-3 bg-muted/30 rounded-lg">
               <p className="text-sm text-muted-foreground">Custos operacionais (0,24%)</p>
               <p className="text-xl font-bold">
-                {formatPercent(custoOperacionalPct)}
+                {formatPercent(results.custosOperacionaisPercent)}
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({formatCurrency(custoOperacionalVal)})
+                  ({formatCurrency(results.custosOperacionaisCurrency)})
                 </span>
               </p>
             </div>
@@ -205,7 +195,10 @@ export function ResultadosSidebar({
                 <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                   <p className="text-sm text-muted-foreground">Receita Loft (50%)</p>
                   <p className="text-xl font-bold text-primary">
-                    {formatCurrency(results.receitaRegistroLoft)}
+                    {formatPercent(results.receitaRegistroLoftPercent)}
+                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                      ({formatCurrency(results.receitaRegistroLoft)})
+                    </span>
                   </p>
                 </div>
               </div>
@@ -216,21 +209,42 @@ export function ResultadosSidebar({
           <div className="p-4 bg-success/10 rounded-lg border border-success/20 mt-4">
             <p className="text-sm text-muted-foreground">Margem final Loft</p>
             <p className={cn("text-2xl font-bold", {
-              "text-success": results.status === "viavel",
-              "text-warning-foreground": results.status === "limite",
-              "text-destructive": results.status === "inviavel",
+              "text-success": results.status === "viable",
+              "text-warning-foreground": results.status === "limit",
+              "text-destructive": results.status === "inviable",
             })}>
-              {formatPercent(results.margemLoft)}
+              {formatPercent(results.margemFinalPercent)}
               <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({formatCurrency((results.margemLoft / 100) * vgv)})
+                ({formatCurrency(results.margemFinalCurrency)})
               </span>
             </p>
           </div>
         </CardContent>
       </Card>
 
+      {/* Alertas */}
+      {results.alerts.length > 0 && (
+        <div className="space-y-2">
+          {results.alerts.map((alert, idx) => (
+            <Alert 
+              key={idx} 
+              className={cn({
+                "bg-success/10 border-success/30": alert.type === "success",
+                "bg-warning/10 border-warning/30": alert.type === "warning",
+                "bg-destructive/10 border-destructive/30": alert.type === "error",
+              })}
+            >
+              {alert.type === "success" && <CheckCircle2 className="h-4 w-4 text-success" />}
+              {alert.type === "warning" && <AlertTriangle className="h-4 w-4 text-warning" />}
+              {alert.type === "error" && <XCircle className="h-4 w-4 text-destructive" />}
+              <AlertDescription className="text-sm">{alert.message}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
+
       {/* Botão Aprovar */}
-      {results.status !== "inviavel" && onAprovar && (
+      {results.status !== "inviable" && onAprovar && (
         <Button 
           onClick={onAprovar}
           disabled={!canAprovar}
@@ -247,7 +261,7 @@ export function ResultadosSidebar({
           <div className="flex items-start gap-2">
             <Sparkles className="w-4 h-4 text-primary mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Margem mínima exigida: {formatPercent(results.margemMinima)}.</p>
+              <p className="text-sm font-medium">Margem mínima exigida: {formatPercent(CONSTANTS.MIN_MARGIN * 100)}.</p>
               <p className="text-sm text-muted-foreground">
                 Projetos abaixo desse patamar não são aprovados.
               </p>

@@ -219,9 +219,9 @@ const Viabilidade = () => {
         .from("viabilidades")
         .update({
           vgv_estimado: inputs.vgv,
-          margem_estimada: results.margemLoft,
-          resultado: results.status === "viavel" ? "viavel" : results.status === "limite" ? "condicional" : "inviavel",
-          recomendacao: results.status === "viavel" ? "simples" : results.status === "limite" ? "media" : "nao",
+          margem_estimada: results.margemFinalPercent,
+          resultado: results.status === "viable" ? "viavel" : results.status === "limit" ? "condicional" : "inviavel",
+          recomendacao: results.status === "viable" ? "simples" : results.status === "limit" ? "media" : "nao",
           status: "em_analise",
           analisado_por: user.id,
           analisado_por_nome: profile?.nome,
@@ -233,7 +233,7 @@ const Viabilidade = () => {
 
       toast({
         title: "Simulação salva!",
-        description: `Margem de ${formatPercent(results.margemLoft)} registrada.`,
+        description: `Margem de ${formatPercent(results.margemFinalPercent)} registrada.`,
       });
 
       fetchViabilidades();
