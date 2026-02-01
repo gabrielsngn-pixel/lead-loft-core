@@ -137,6 +137,187 @@ export type Database = {
         }
         Relationships: []
       }
+      repository_documents: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_tamanho: number | null
+          arquivo_url: string | null
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          contato_id: string | null
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          descricao: string | null
+          id: string
+          lead_id: string | null
+          negocio_id: string | null
+          status: string
+          tags: string[] | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          versao: string
+          versao_anterior_id: string | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_tamanho?: number | null
+          arquivo_url?: string | null
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          contato_id?: string | null
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          negocio_id?: string | null
+          status?: string
+          tags?: string[] | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+          versao?: string
+          versao_anterior_id?: string | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_tamanho?: number | null
+          arquivo_url?: string | null
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          contato_id?: string | null
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          negocio_id?: string | null
+          status?: string
+          tags?: string[] | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          versao?: string
+          versao_anterior_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repository_documents_versao_anterior_id_fkey"
+            columns: ["versao_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "repository_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      viabilidades: {
+        Row: {
+          analisado_por: string | null
+          analisado_por_nome: string | null
+          cidade: string | null
+          cnpj: string | null
+          contato_id: string | null
+          created_at: string
+          custo_obra: number | null
+          custo_terreno: number | null
+          data_analise: string | null
+          data_solicitacao: string
+          documento_id: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          lead_id: string | null
+          margem_estimada: number | null
+          negocio_id: string | null
+          nome_empreendimento: string
+          observacoes: string | null
+          payback_meses: number | null
+          recomendacao: string | null
+          resultado: string | null
+          solicitado_por: string
+          solicitado_por_nome: string
+          status: string
+          tir_estimada: number | null
+          updated_at: string
+          vgv_estimado: number | null
+          viability_compass_id: string | null
+        }
+        Insert: {
+          analisado_por?: string | null
+          analisado_por_nome?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          contato_id?: string | null
+          created_at?: string
+          custo_obra?: number | null
+          custo_terreno?: number | null
+          data_analise?: string | null
+          data_solicitacao?: string
+          documento_id?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          lead_id?: string | null
+          margem_estimada?: number | null
+          negocio_id?: string | null
+          nome_empreendimento: string
+          observacoes?: string | null
+          payback_meses?: number | null
+          recomendacao?: string | null
+          resultado?: string | null
+          solicitado_por: string
+          solicitado_por_nome: string
+          status?: string
+          tir_estimada?: number | null
+          updated_at?: string
+          vgv_estimado?: number | null
+          viability_compass_id?: string | null
+        }
+        Update: {
+          analisado_por?: string | null
+          analisado_por_nome?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          contato_id?: string | null
+          created_at?: string
+          custo_obra?: number | null
+          custo_terreno?: number | null
+          data_analise?: string | null
+          data_solicitacao?: string
+          documento_id?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          lead_id?: string | null
+          margem_estimada?: number | null
+          negocio_id?: string | null
+          nome_empreendimento?: string
+          observacoes?: string | null
+          payback_meses?: number | null
+          recomendacao?: string | null
+          resultado?: string | null
+          solicitado_por?: string
+          solicitado_por_nome?: string
+          status?: string
+          tir_estimada?: number | null
+          updated_at?: string
+          vgv_estimado?: number | null
+          viability_compass_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viabilidades_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "repository_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -148,6 +329,7 @@ export type Database = {
       }
       is_approved: { Args: { check_user_id: string }; Returns: boolean }
       is_gestor: { Args: { check_user_id: string }; Returns: boolean }
+      is_master: { Args: { check_user_id: string }; Returns: boolean }
     }
     Enums: {
       user_role: "pending" | "sdr" | "consultor" | "gestor" | "master"
