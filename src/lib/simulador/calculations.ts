@@ -149,6 +149,17 @@ export function calcularTaxaEfetivaCaixa(
 }
 
 /**
+ * Calcula taxa ponderada da Caixa (alias para uso no componente)
+ */
+export function calcularTaxaPonderadaCaixa(
+  subMix: CaixaSubMix,
+  ticketMedio: number
+): { taxaEfetiva: number; tetoAplicado: boolean } {
+  const result = calcularTaxaEfetivaCaixa(subMix, ticketMedio);
+  return { taxaEfetiva: result.taxa, tetoAplicado: result.tetoAplicado };
+}
+
+/**
  * Calcula taxa ponderada do mix bancário
  */
 export function calcularTaxaPonderadaBanco(
