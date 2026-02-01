@@ -15,6 +15,8 @@ import {
   MessageSquareText,
   Shield,
   LogOut,
+  Calculator,
+  FolderOpen,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -42,6 +44,11 @@ const mainMenuItems = [
   { title: "Central de Materiais", url: "/materiais", icon: BookOpen },
   { title: "Reuniões & Atas", url: "/reunioes", icon: ClipboardList },
   { title: "Script de Atendimento", url: "/script", icon: MessageSquareText },
+];
+
+const viabilidadeMenuItems = [
+  { title: "Viabilidade", url: "/viabilidade", icon: Calculator },
+  { title: "Repositório Central", url: "/repositorio", icon: FolderOpen },
 ];
 
 const settingsItems = [
@@ -127,7 +134,40 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Admin Menu - Only for Gestors */}
+        {/* Viabilidade & Repositório */}
+        <SidebarGroup>
+          {!collapsed && (
+            <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs font-medium uppercase tracking-wider px-3 mb-2">
+              Viabilidade
+            </SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1">
+              {viabilidadeMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                        "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                        collapsed && "justify-center px-2"
+                      )}
+                      activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/25"
+                    >
+                      <item.icon className={cn("w-5 h-5 flex-shrink-0", collapsed && "w-5 h-5")} />
+                      {!collapsed && (
+                        <span className="text-sm font-medium">{item.title}</span>
+                      )}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Admin Menu - Only for Gestors and Masters */}
         {isGestor && (
           <SidebarGroup>
             {!collapsed && (

@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireApproval?: boolean;
-  allowedRoles?: Array<"sdr" | "consultor" | "gestor">;
+  allowedRoles?: Array<"sdr" | "consultor" | "gestor" | "master">;
 }
 
 export function ProtectedRoute({
@@ -33,9 +33,12 @@ export function ProtectedRoute({
     return <Navigate to="/acesso-pendente" replace />;
   }
 
-  // Check role permissions
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role as "sdr" | "consultor" | "gestor")) {
-    return <Navigate to="/" replace />;
+  // Check role permissions - Master always has access
+  if (allowedRoles && profile) {
+    const userRole = profile.role as "sdr" | "consultor" | "gestor" | "master";
+    if (userRole !== "master" && !allowedRoles.includes(userRole)) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;
