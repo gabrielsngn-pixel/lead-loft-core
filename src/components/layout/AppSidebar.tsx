@@ -48,7 +48,6 @@ const mainMenuItems = [
 
 const viabilidadeMenuItems = [
   { title: "Viabilidade", url: "/viabilidade", icon: Calculator },
-  { title: "Repositório Central", url: "/repositorio", icon: FolderOpen },
 ];
 
 const settingsItems = [
