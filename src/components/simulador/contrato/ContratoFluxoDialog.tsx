@@ -116,15 +116,17 @@ export function ContratoFluxoDialog({
     numeroContrato,
   };
 
-  // Validação dos dados obrigatórios
-  const isValidDados = 
-    dadosIncorporadora.razaoSocial.trim() !== "" &&
-    dadosIncorporadora.cnpj.trim() !== "" &&
-    dadosIncorporadora.endereco.trim() !== "" &&
-    dadosIncorporadora.cidade.trim() !== "" &&
-    dadosIncorporadora.estado.trim() !== "" &&
-    dadosIncorporadora.representanteLegal.trim() !== "" &&
-    dadosIncorporadora.cpfRepresentante.trim() !== "";
+  // Validação dos dados obrigatórios com lista de campos faltantes
+  const camposFaltantes: string[] = [];
+  if (!dadosIncorporadora.razaoSocial.trim()) camposFaltantes.push("Razão Social");
+  if (!dadosIncorporadora.cnpj.trim()) camposFaltantes.push("CNPJ");
+  if (!dadosIncorporadora.endereco.trim()) camposFaltantes.push("Endereço");
+  if (!dadosIncorporadora.cidade.trim()) camposFaltantes.push("Cidade");
+  if (!dadosIncorporadora.estado.trim()) camposFaltantes.push("UF");
+  if (!dadosIncorporadora.representanteLegal.trim()) camposFaltantes.push("Nome do Representante");
+  if (!dadosIncorporadora.cpfRepresentante.trim()) camposFaltantes.push("CPF do Representante");
+  
+  const isValidDados = camposFaltantes.length === 0;
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
@@ -132,8 +134,8 @@ export function ContratoFluxoDialog({
     if (currentStep === "dados") {
       if (!isValidDados) {
         toast({
-          title: "Campos obrigatórios",
-          description: "Preencha todos os campos obrigatórios antes de continuar.",
+          title: "Campos obrigatórios não preenchidos",
+          description: `Faltam: ${camposFaltantes.join(", ")}`,
           variant: "destructive",
         });
         return;
