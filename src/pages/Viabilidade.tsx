@@ -80,6 +80,7 @@ import {
   ComissaoRegistro,
   ResultadosSidebar,
 } from "@/components/simulador";
+import { ContratoFluxoDialog } from "@/components/simulador/contrato";
 
 const Viabilidade = () => {
   const { toast } = useToast();
@@ -92,6 +93,7 @@ const Viabilidade = () => {
   const [activeTab, setActiveTab] = useState<"lista" | "simulador">("lista");
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contratoDialogOpen, setContratoDialogOpen] = useState(false);
 
   // Viabilidade selecionada para simulação
   const [selectedViabilidade, setSelectedViabilidade] = useState<any | null>(null);
@@ -246,6 +248,41 @@ const Viabilidade = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAprovarSimulacao = () => {
+    if (!isValidMix) {
+      toast({
+        title: "Mix inválido",
+        description: "Corrija o mix bancário antes de aprovar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setContratoDialogOpen(true);
+  };
+
+  const handleContratoGerado = async (contrato: any) => {
+    // Atualizar status da viabilidade para "aprovado" quando contrato é gerado
+    if (selectedViabilidade) {
+      try {
+        await supabase
+          .from("viabilidades")
+          .update({
+            status: "aprovado",
+            resultado: results.status === "viable" ? "viavel" : "condicional",
+          })
+          .eq("id", selectedViabilidade.id);
+        
+        fetchViabilidades();
+        toast({
+          title: "Contrato gerado!",
+          description: `Contrato ${contrato.numeroContrato} foi gerado com sucesso.`,
+        });
+      } catch (error) {
+        console.error("Error updating viabilidade:", error);
+      }
     }
   };
 
@@ -595,7 +632,7 @@ const Viabilidade = () => {
                 registroTipo={inputs.registroTipo}
                 vgv={inputs.vgv}
                 canAprovar={isValidMix && selectedViabilidade !== null}
-                onAprovar={handleSaveSimulation}
+                onAprovar={handleAprovarSimulacao}
               />
             </div>
           </div>
@@ -691,6 +728,27 @@ const Viabilidade = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Contrato Fluxo Dialog */}
+      <ContratoFluxoDialog
+        open={contratoDialogOpen}
+        onOpenChange={setContratoDialogOpen}
+        results={results}
+        vgv={inputs.vgv}
+        unidades={inputs.unidades}
+        ticketMedio={ticketMedio}
+        comissaoIncorporador={inputs.comissaoIncorporador}
+        valorRegistroPorUnidade={inputs.valorRegistroPorUnidade}
+        registroTipo={inputs.registroTipo}
+        viabilidadeData={selectedViabilidade ? {
+          cnpj: selectedViabilidade.cnpj,
+          endereco: selectedViabilidade.endereco,
+          cidade: selectedViabilidade.cidade,
+          estado: selectedViabilidade.estado,
+          nome_empreendimento: selectedViabilidade.nome_empreendimento,
+        } : undefined}
+        onContratoGerado={handleContratoGerado}
+      />
     </AppLayout>
   );
 };
