@@ -92,6 +92,7 @@ const roleConfig: Record<string, { label: string; color: string }> = {
   sdr: { label: "SDR", color: "bg-blue-100 text-blue-800" },
   consultor: { label: "Consultor", color: "bg-green-100 text-green-800" },
   gestor: { label: "Gestor", color: "bg-purple-100 text-purple-800" },
+  master: { label: "Master", color: "bg-red-100 text-red-800" },
 };
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -102,7 +103,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 
 const GestaoUsuarios = () => {
   const { toast } = useToast();
-  const { profile, user } = useAuth();
+  const { profile, user, isMaster } = useAuth();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [logs, setLogs] = useState<AdminLog[]>([]);
@@ -235,11 +236,13 @@ const GestaoUsuarios = () => {
 
     try {
       // Update profile role
+      const roleUpdate: any = {
+        role: selectedRole as "sdr" | "consultor" | "gestor" | "master",
+      };
+      
       await supabase
         .from("profiles")
-        .update({
-          role: selectedRole as "sdr" | "consultor" | "gestor",
-        })
+        .update(roleUpdate)
         .eq("user_id", selectedUserProfile.user_id);
 
       // Log the action
@@ -280,13 +283,18 @@ const GestaoUsuarios = () => {
 
     try {
       // Update profile role
+      const roleUpdate: any = {
+        role: selectedRole as "sdr" | "consultor" | "gestor" | "master",
+        approved_at: new Date().toISOString(),
+        approved_by: user.id,
+        rejected_at: null,
+        rejected_by: null,
+        rejection_reason: null,
+      };
+      
       await supabase
         .from("profiles")
-        .update({
-          role: selectedRole as "sdr" | "consultor" | "gestor",
-          approved_at: new Date().toISOString(),
-          approved_by: user.id,
-        })
+        .update(roleUpdate)
         .eq("user_id", selectedRequest.user_id);
 
       // Update access request (only if it exists - i.e., has a valid id)
@@ -780,6 +788,7 @@ const GestaoUsuarios = () => {
                   <SelectItem value="sdr">SDR</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                   <SelectItem value="gestor">Gestor</SelectItem>
+                  {isMaster && <SelectItem value="master">Master</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -850,6 +859,7 @@ const GestaoUsuarios = () => {
                   <SelectItem value="sdr">SDR</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                   <SelectItem value="gestor">Gestor</SelectItem>
+                  {isMaster && <SelectItem value="master">Master</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

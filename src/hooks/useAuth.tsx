@@ -2,7 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from "react
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type UserRole = "pending" | "sdr" | "consultor" | "gestor";
+type UserRole = "pending" | "sdr" | "consultor" | "gestor" | "master";
 
 interface UserProfile {
   id: string;
@@ -27,6 +27,7 @@ interface AuthContextType {
   isGestor: boolean;
   isConsultor: boolean;
   isSDR: boolean;
+  isMaster: boolean;
   refreshProfile: () => Promise<void>;
 }
 
@@ -133,9 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isApproved = profile?.role !== "pending" && profile?.role !== undefined;
-  const isGestor = profile?.role === "gestor";
-  const isConsultor = profile?.role === "consultor";
-  const isSDR = profile?.role === "sdr";
+  const isMaster = profile?.role === "master";
+  const isGestor = profile?.role === "gestor" || isMaster;
+  const isConsultor = profile?.role === "consultor" || isGestor;
+  const isSDR = profile?.role === "sdr" || isConsultor;
 
   return (
     <AuthContext.Provider
@@ -151,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isGestor,
         isConsultor,
         isSDR,
+        isMaster,
         refreshProfile,
       }}
     >

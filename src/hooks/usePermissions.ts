@@ -5,47 +5,63 @@ import {
   actionPermissions, 
   FieldPermission 
 } from "@/types/permissions";
-
-// Simulated current user - in production this would come from auth context
-const CURRENT_USER = {
-  id: "1",
-  nome: "João Silva",
-  email: "joao.silva@loft.com.br",
-  role: "consultor" as UserRole,
-};
+import { useAuth } from "@/hooks/useAuth";
 
 export function usePermissions() {
-  const currentUser = CURRENT_USER;
+  const { profile, isMaster, isGestor, isConsultor, isSDR } = useAuth();
+
+  const currentUser = useMemo(() => {
+    if (!profile) {
+      return {
+        id: "",
+        nome: "",
+        email: "",
+        role: "sdr" as UserRole,
+      };
+    }
+    return {
+      id: profile.user_id,
+      nome: profile.nome,
+      email: profile.email,
+      role: profile.role as UserRole,
+    };
+  }, [profile]);
 
   const canEditField = useCallback((fieldName: string): boolean => {
+    // Master can edit everything
+    if (isMaster) return true;
+    
     const permission = leadFieldPermissions.find(p => p.field === fieldName);
     if (!permission) return false;
     return permission.editableBy.includes(currentUser.role);
-  }, [currentUser.role]);
+  }, [currentUser.role, isMaster]);
 
   const getFieldPermission = useCallback((fieldName: string): FieldPermission | undefined => {
     return leadFieldPermissions.find(p => p.field === fieldName);
   }, []);
 
   const canPerformAction = useCallback((action: keyof typeof actionPermissions): boolean => {
+    // Master can do everything
+    if (isMaster) return true;
+    
     return actionPermissions[action].includes(currentUser.role);
-  }, [currentUser.role]);
-
-  const isGestor = useMemo(() => currentUser.role === "gestor", [currentUser.role]);
-  const isConsultor = useMemo(() => currentUser.role === "consultor", [currentUser.role]);
-  const isSDR = useMemo(() => currentUser.role === "sdr", [currentUser.role]);
+  }, [currentUser.role, isMaster]);
 
   const editableFields = useMemo(() => {
+    if (isMaster) {
+      return leadFieldPermissions.map(p => p.field);
+    }
     return leadFieldPermissions
       .filter(p => p.editableBy.includes(currentUser.role))
       .map(p => p.field);
-  }, [currentUser.role]);
+  }, [currentUser.role, isMaster]);
 
   const protectedFields = useMemo(() => {
+    if (isMaster) return [];
     return leadFieldPermissions
       .filter(p => p.isProtected && !p.editableBy.includes(currentUser.role))
       .map(p => p.field);
-  }, [currentUser.role]);
+  }, [currentUser.role, isMaster]);
 
   return {
     currentUser,
@@ -55,6 +71,7 @@ export function usePermissions() {
     isGestor,
     isConsultor,
     isSDR,
+    isMaster,
     editableFields,
     protectedFields,
   };
