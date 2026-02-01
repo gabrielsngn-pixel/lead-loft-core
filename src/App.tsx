@@ -17,7 +17,6 @@ import Script from "./pages/Script";
 import Configuracoes from "./pages/Configuracoes";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
 import Viabilidade from "./pages/Viabilidade";
-import Repositorio from "./pages/Repositorio";
 import Auth from "./pages/Auth";
 import AcessoPendente from "./pages/AcessoPendente";
 import NotFound from "./pages/NotFound";
@@ -99,13 +98,6 @@ const App = () => (
             <Route path="/viabilidade" element={
               <ProtectedRoute>
                 <Viabilidade />
-              </ProtectedRoute>
-            } />
-
-            {/* Repositório central */}
-            <Route path="/repositorio" element={
-              <ProtectedRoute>
-                <Repositorio />
               </ProtectedRoute>
             } />
 
