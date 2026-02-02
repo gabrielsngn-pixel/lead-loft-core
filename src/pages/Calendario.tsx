@@ -41,11 +41,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
-import { mockActivities, mockUsers } from "@/data/mockData";
+import { mockUsers } from "@/data/mockData";
 import { Activity, ActivityCategory } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useActivities } from "@/hooks/useActivities";
 import { 
   Plus, 
   Phone, 
@@ -60,6 +61,7 @@ import {
   Clock,
   Edit,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { 
   format, 
@@ -125,11 +127,13 @@ const exportColumns = [
 const Calendario = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { activities, loading, createActivity, updateActivity, deleteActivity } = useActivities();
+  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [consultorFilter, setConsultorFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("geral");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -205,30 +209,27 @@ const Calendario = () => {
     setEditDialogOpen(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingActivity) return;
 
-    setActivities((prev) =>
-      prev.map((a) =>
-        a.id === editingActivity.id
-          ? { 
-              ...a, 
-              titulo: editForm.titulo,
-              tipo: editForm.tipo,
-              categoria: editForm.categoria,
-              descricao: editForm.descricao,
-              responsavelNome: editForm.responsavelNome,
-            }
-          : a
-      )
-    );
-
-    toast({
-      title: "Atividade atualizada",
-      description: `"${editForm.titulo}" foi atualizada com sucesso.`,
+    setIsSaving(true);
+    const result = await updateActivity(editingActivity.id, {
+      titulo: editForm.titulo,
+      tipo: editForm.tipo,
+      categoria: editForm.categoria,
+      descricao: editForm.descricao,
+      responsavelNome: editForm.responsavelNome,
     });
-    setEditDialogOpen(false);
-    setEditingActivity(null);
+    setIsSaving(false);
+
+    if (result) {
+      toast({
+        title: "Atividade atualizada",
+        description: `"${editForm.titulo}" foi atualizada com sucesso.`,
+      });
+      setEditDialogOpen(false);
+      setEditingActivity(null);
+    }
   };
 
   // New activity handlers - Visão Geral (auto-assign current user)
@@ -259,7 +260,7 @@ const Calendario = () => {
     setNewActivityDialogOpen(true);
   };
 
-  const handleSaveNewActivity = () => {
+  const handleSaveNewActivity = async () => {
     if (!newActivityForm.titulo.trim()) {
       toast({
         title: "Erro",
@@ -269,8 +270,8 @@ const Calendario = () => {
       return;
     }
 
-    const newActivity: Activity = {
-      id: `act-${Date.now()}`,
+    setIsSaving(true);
+    const result = await createActivity({
       titulo: newActivityForm.titulo,
       tipo: newActivityForm.tipo,
       categoria: newActivityForm.categoria,
@@ -279,15 +280,16 @@ const Calendario = () => {
       responsavelNome: newActivityForm.responsavelNome,
       dataAgendada: newActivityForm.dataAgendada,
       concluida: false,
-    };
-
-    setActivities((prev) => [...prev, newActivity]);
-
-    toast({
-      title: "Atividade criada",
-      description: `"${newActivityForm.titulo}" foi adicionada com sucesso.`,
     });
-    setNewActivityDialogOpen(false);
+    setIsSaving(false);
+
+    if (result) {
+      toast({
+        title: "Atividade criada",
+        description: `"${newActivityForm.titulo}" foi adicionada com sucesso.`,
+      });
+      setNewActivityDialogOpen(false);
+    }
   };
 
   // Delete handlers
@@ -296,16 +298,21 @@ const Calendario = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!activityToDelete) return;
 
-    setActivities((prev) => prev.filter((a) => a.id !== activityToDelete.id));
-    toast({
-      title: "Atividade excluída",
-      description: `"${activityToDelete.titulo}" foi removida.`,
-    });
-    setDeleteDialogOpen(false);
-    setActivityToDelete(null);
+    setIsSaving(true);
+    const success = await deleteActivity(activityToDelete.id);
+    setIsSaving(false);
+
+    if (success) {
+      toast({
+        title: "Atividade excluída",
+        description: `"${activityToDelete.titulo}" foi removida.`,
+      });
+      setDeleteDialogOpen(false);
+      setActivityToDelete(null);
+    }
   };
 
   // Group activities by category
@@ -677,6 +684,19 @@ const Calendario = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <AppLayout title="Calendário Unificado" subtitle="Gerencie atividades e compromissos">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Carregando atividades...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Calendário Unificado" subtitle="Gerencie atividades e compromissos">
       {/* Filters and Actions */}
@@ -840,8 +860,11 @@ const Calendario = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
+              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar Alterações
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -856,8 +879,9 @@ const Calendario = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel disabled={isSaving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90" disabled={isSaving}>
+              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -955,8 +979,11 @@ const Calendario = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewActivityDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveNewActivity}>Criar Atividade</Button>
+            <Button variant="outline" onClick={() => setNewActivityDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSaveNewActivity} disabled={isSaving}>
+              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Criar Atividade
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
