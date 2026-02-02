@@ -95,12 +95,12 @@ export function UseMaterialDialog({
               <Building2 className="w-4 h-4" />
               Vincular a Contato (opcional)
             </Label>
-            <Select value={leadId} onValueChange={setLeadId}>
+            <Select value={leadId || "none"} onValueChange={(v) => setLeadId(v === "none" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um contato" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {activeLeads.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
                     {lead.nomeFantasia || lead.razaoSocial}
@@ -116,12 +116,12 @@ export function UseMaterialDialog({
               <Briefcase className="w-4 h-4" />
               Vincular a Negociação (opcional)
             </Label>
-            <Select value={negociacaoId} onValueChange={setNegociacaoId}>
+            <Select value={negociacaoId || "none"} onValueChange={(v) => setNegociacaoId(v === "none" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma negociação" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="none">Nenhuma</SelectItem>
                 {availableNegotiations.map((neg) => (
                   <SelectItem key={neg.id} value={neg.id}>
                     {neg.titulo} - {neg.lead.nomeFantasia || neg.lead.razaoSocial}
