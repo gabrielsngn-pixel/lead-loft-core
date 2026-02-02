@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MaterialCategory, MaterialType, MaterialAudience } from "@/types/materials";
 import { useMaterials } from "@/hooks/useMaterials";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -69,10 +70,46 @@ export function UploadMaterialDialog({
   const [recomendado, setRecomendado] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
   const { toast } = useToast();
   const { createMaterial } = useMaterials();
 
   const isLinkType = tipo === "link" || tipo === "video";
+
+  const uploadFileToStorage = async (file: File): Promise<string | null> => {
+    try {
+      setUploadProgress("Enviando arquivo...");
+      
+      // Create a unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${categoria}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('materials')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('materials')
+        .getPublicUrl(data.path);
+
+      setUploadProgress("");
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      setUploadProgress("");
+      throw error;
+    }
+  };
 
   const handleSubmit = async () => {
     if (!titulo.trim()) {
@@ -93,18 +130,36 @@ export function UploadMaterialDialog({
       return;
     }
 
-    // For now, allow creating without file (URL-based materials)
-    // File upload to storage can be added later
+    if (!isLinkType && !file) {
+      toast({
+        title: "Erro",
+        description: "Selecione um arquivo para upload.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSaving(true);
     try {
+      let fileUrl = url;
+
+      // Upload file to storage if it's not a link type
+      if (!isLinkType && file) {
+        const uploadedUrl = await uploadFileToStorage(file);
+        if (uploadedUrl) {
+          fileUrl = uploadedUrl;
+        } else {
+          throw new Error("Falha ao fazer upload do arquivo");
+        }
+      }
+
       const result = await createMaterial({
         titulo,
         descricao: descricao || undefined,
         categoria,
         tipo,
         publico_alvo: publicoAlvo,
-        url: url || undefined,
+        url: fileUrl || undefined,
         arquivo_nome: file?.name,
         arquivo_tamanho: file?.size,
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
@@ -119,17 +174,39 @@ export function UploadMaterialDialog({
         setTags("");
         setRecomendado(false);
         setFile(null);
+        toast({
+          title: "Material adicionado",
+          description: `"${titulo}" foi adicionado à biblioteca com sucesso.`,
+        });
         onSuccess?.();
         onOpenChange(false);
       }
+    } catch (error: any) {
+      console.error("Error creating material:", error);
+      toast({
+        title: "Erro ao adicionar material",
+        description: error.message || "Ocorreu um erro ao salvar o material.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
+      setUploadProgress("");
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      // Check file size (max 20MB)
+      if (selectedFile.size > 20 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O tamanho máximo permitido é 20MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setFile(selectedFile);
       // Auto-detect type from extension
       const ext = selectedFile.name.split(".").pop()?.toLowerCase();
@@ -302,11 +379,16 @@ export function UploadMaterialDialog({
           </Button>
           <Button onClick={handleSubmit} className="btn-cta" disabled={saving}>
             {saving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {uploadProgress || "Salvando..."}
+              </>
             ) : (
-              <Upload className="w-4 h-4 mr-2" />
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                Adicionar Material
+              </>
             )}
-            {saving ? "Salvando..." : "Adicionar Material"}
           </Button>
         </DialogFooter>
       </DialogContent>
