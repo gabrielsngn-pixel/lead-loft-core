@@ -80,7 +80,7 @@ import {
   ComissaoRegistro,
   ResultadosSidebar,
 } from "@/components/simulador";
-import { ContratoFluxoDialog } from "@/components/simulador/contrato";
+import { ContratoLoftDialog } from "@/components/contrato/ContratoLoft";
 
 const Viabilidade = () => {
   const { toast } = useToast();
@@ -729,23 +729,23 @@ const Viabilidade = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Contrato Fluxo Dialog */}
-      <ContratoFluxoDialog
+      {/* Contrato Loft Dialog */}
+      <ContratoLoftDialog
         open={contratoDialogOpen}
         onOpenChange={setContratoDialogOpen}
-        results={results}
-        vgv={inputs.vgv}
-        unidades={inputs.unidades}
-        ticketMedio={ticketMedio}
-        comissaoIncorporador={inputs.comissaoIncorporador}
-        valorRegistroPorUnidade={inputs.valorRegistroPorUnidade}
-        registroTipo={inputs.registroTipo}
-        viabilidadeData={selectedViabilidade ? {
-          cnpj: selectedViabilidade.cnpj,
-          endereco: selectedViabilidade.endereco,
-          cidade: selectedViabilidade.cidade,
-          estado: selectedViabilidade.estado,
-          nome_empreendimento: selectedViabilidade.nome_empreendimento,
+        dadosProjeto={{
+          vgv: inputs.vgv,
+          unidades: inputs.unidades,
+          ticketMedio: ticketMedio,
+          comissaoIncorporador: inputs.comissaoIncorporador,
+          valorRegistroPorUnidade: inputs.valorRegistroPorUnidade,
+          registroTipo: inputs.registroTipo,
+        }}
+        dadosPreenchidos={selectedViabilidade ? {
+          cnpj: selectedViabilidade.cnpj || "",
+          endereco: selectedViabilidade.endereco || "",
+          cidade: selectedViabilidade.cidade || "",
+          estado: selectedViabilidade.estado || "",
         } : undefined}
         onContratoGerado={handleContratoGerado}
       />
