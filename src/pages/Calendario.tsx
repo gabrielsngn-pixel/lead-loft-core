@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,10 +22,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
 import { mockActivities, mockUsers } from "@/data/mockData";
 import { Activity, ActivityCategory } from "@/types/crm";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
   Phone, 
@@ -35,7 +57,6 @@ import {
   Calendar as CalendarIcon,
   List,
   Clock,
-  Download,
   Edit,
   Trash2,
 } from "lucide-react";
@@ -48,9 +69,6 @@ import {
   isSameDay, 
   addMonths, 
   subMonths,
-  startOfWeek,
-  endOfWeek,
-  isWithinInterval,
   addDays,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -87,10 +105,10 @@ const categoryLabels: Record<ActivityCategory, string> = {
 };
 
 const categoryColors: Record<ActivityCategory, string> = {
-  comercial: "bg-primary/10 text-primary",
-  trade_marketing: "bg-secondary/10 text-secondary",
-  tecnologia: "bg-blue-100 text-blue-600",
-  cre: "bg-amber-100 text-amber-700",
+  comercial: "bg-primary/10 text-primary border-primary/20",
+  trade_marketing: "bg-secondary/10 text-secondary border-secondary/20",
+  tecnologia: "bg-blue-100 text-blue-600 border-blue-200",
+  cre: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
 const exportColumns = [
@@ -104,11 +122,26 @@ const exportColumns = [
 ];
 
 const Calendario = () => {
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activities] = useState<Activity[]>(mockActivities);
+  const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [consultorFilter, setConsultorFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("consultor");
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editForm, setEditForm] = useState({
+    titulo: "",
+    tipo: "tarefa" as Activity["tipo"],
+    categoria: "comercial" as ActivityCategory,
+    descricao: "",
+  });
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -143,6 +176,64 @@ const Calendario = () => {
     start: new Date(),
     end: addDays(new Date(), 13),
   });
+
+  // Edit handlers
+  const handleEditClick = (activity: Activity) => {
+    setEditingActivity(activity);
+    setEditForm({
+      titulo: activity.titulo,
+      tipo: activity.tipo,
+      categoria: activity.categoria,
+      descricao: activity.descricao || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingActivity) return;
+
+    setActivities((prev) =>
+      prev.map((a) =>
+        a.id === editingActivity.id
+          ? { ...a, ...editForm }
+          : a
+      )
+    );
+
+    toast({
+      title: "Atividade atualizada",
+      description: `"${editForm.titulo}" foi atualizada com sucesso.`,
+    });
+    setEditDialogOpen(false);
+    setEditingActivity(null);
+  };
+
+  // Delete handlers
+  const handleDeleteClick = (activity: Activity) => {
+    setActivityToDelete(activity);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!activityToDelete) return;
+
+    setActivities((prev) => prev.filter((a) => a.id !== activityToDelete.id));
+    toast({
+      title: "Atividade excluída",
+      description: `"${activityToDelete.titulo}" foi removida.`,
+    });
+    setDeleteDialogOpen(false);
+    setActivityToDelete(null);
+  };
+
+  // Group activities by category
+  const activitiesByCategory = filteredActivities.reduce((acc, activity) => {
+    if (!acc[activity.categoria]) {
+      acc[activity.categoria] = [];
+    }
+    acc[activity.categoria].push(activity);
+    return acc;
+  }, {} as Record<ActivityCategory, Activity[]>);
 
   const renderCalendarView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -219,7 +310,7 @@ const Calendario = () => {
                   </span>
                   {dayActivities.length > 0 && (
                     <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-                      {dayActivities.slice(0, 3).map((activity, i) => (
+                      {dayActivities.slice(0, 3).map((activity) => (
                         <div
                           key={activity.id}
                           className={cn(
@@ -389,77 +480,110 @@ const Calendario = () => {
   );
 
   const renderTableView = () => (
-    <div className="stat-card p-0 overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/30">
-            <TableHead className="font-semibold">Data</TableHead>
-            <TableHead className="font-semibold">Tipo</TableHead>
-            <TableHead className="font-semibold">Categoria</TableHead>
-            <TableHead className="font-semibold">Título</TableHead>
-            <TableHead className="font-semibold">Responsável</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Comentário</TableHead>
-            <TableHead className="font-semibold text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredActivities
-            .sort((a, b) => a.dataAgendada.getTime() - b.dataAgendada.getTime())
-            .map((activity) => {
-              const Icon = activityIcons[activity.tipo];
-              return (
-                <TableRow key={activity.id} className="table-row-hover">
-                  <TableCell className="font-medium">
-                    {format(activity.dataAgendada, "dd/MM/yyyy HH:mm")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "flex items-center justify-center w-7 h-7 rounded-lg border",
-                        activityColors[activity.tipo]
-                      )}>
-                        <Icon className="w-3 h-3" />
-                      </div>
-                      <span className="text-sm">{activityLabels[activity.tipo]}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={cn("text-xs", categoryColors[activity.categoria])}>
-                      {categoryLabels[activity.categoria]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{activity.titulo}</TableCell>
-                  <TableCell className="text-sm">{activity.responsavelNome || "—"}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={activity.concluida ? "secondary" : "outline"}
-                      className={cn(
-                        "text-xs",
-                        activity.concluida && "bg-success/10 text-success"
-                      )}
-                    >
-                      {activity.concluida ? "Concluída" : "Pendente"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                    {activity.descricao || "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Excluir">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+    <div className="space-y-6">
+      {/* Agrupado por categoria */}
+      {(Object.entries(categoryLabels) as [ActivityCategory, string][]).map(([category, label]) => {
+        const categoryActivities = activitiesByCategory[category] || [];
+        if (categoryActivities.length === 0) return null;
+
+        return (
+          <div key={category} className="stat-card p-0 overflow-hidden">
+            {/* Cabeçalho da categoria */}
+            <div className={cn("px-4 py-3 border-b", categoryColors[category])}>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">{label}</h3>
+                <Badge variant="secondary">{categoryActivities.length} atividades</Badge>
+              </div>
+            </div>
+
+            {/* Tabela de atividades da categoria */}
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="font-semibold">Data</TableHead>
+                  <TableHead className="font-semibold">Tipo</TableHead>
+                  <TableHead className="font-semibold">Título</TableHead>
+                  <TableHead className="font-semibold">Responsável</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Comentário</TableHead>
+                  <TableHead className="font-semibold text-right">Ações</TableHead>
                 </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
+              </TableHeader>
+              <TableBody>
+                {categoryActivities
+                  .sort((a, b) => a.dataAgendada.getTime() - b.dataAgendada.getTime())
+                  .map((activity) => {
+                    const Icon = activityIcons[activity.tipo];
+                    return (
+                      <TableRow key={activity.id} className="table-row-hover">
+                        <TableCell className="font-medium">
+                          {format(activity.dataAgendada, "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "flex items-center justify-center w-7 h-7 rounded-lg border",
+                              activityColors[activity.tipo]
+                            )}>
+                              <Icon className="w-3 h-3" />
+                            </div>
+                            <span className="text-sm">{activityLabels[activity.tipo]}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{activity.titulo}</TableCell>
+                        <TableCell className="text-sm">{activity.responsavelNome || "—"}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={activity.concluida ? "secondary" : "outline"}
+                            className={cn(
+                              "text-xs",
+                              activity.concluida && "bg-success/10 text-success"
+                            )}
+                          >
+                            {activity.concluida ? "Concluída" : "Pendente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                          {activity.descricao || "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8" 
+                              title="Editar"
+                              onClick={() => handleEditClick(activity)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive hover:text-destructive" 
+                              title="Excluir"
+                              onClick={() => handleDeleteClick(activity)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </div>
+        );
+      })}
+
+      {/* Caso não haja atividades */}
+      {Object.values(activitiesByCategory).every((arr) => arr.length === 0) && (
+        <div className="stat-card text-center py-12">
+          <CheckSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+          <p className="text-muted-foreground">Nenhuma atividade encontrada</p>
+        </div>
+      )}
     </div>
   );
 
@@ -559,6 +683,95 @@ const Calendario = () => {
           ))}
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Atividade</DialogTitle>
+            <DialogDescription>Atualize os dados da atividade selecionada.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input
+                value={editForm.titulo}
+                onChange={(e) => setEditForm((p) => ({ ...p, titulo: e.target.value }))}
+                placeholder="Título da atividade"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select
+                  value={editForm.tipo}
+                  onValueChange={(v) => setEditForm((p) => ({ ...p, tipo: v as Activity["tipo"] }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(activityLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select
+                  value={editForm.categoria}
+                  onValueChange={(v) => setEditForm((p) => ({ ...p, categoria: v as ActivityCategory }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(categoryLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Comentário</Label>
+              <Textarea
+                value={editForm.descricao}
+                onChange={(e) => setEditForm((p) => ({ ...p, descricao: e.target.value }))}
+                placeholder="Descrição ou comentários..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a atividade <strong>"{activityToDelete?.titulo}"</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };

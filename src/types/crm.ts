@@ -35,17 +35,31 @@ export interface Lead {
   };
 }
 
+export type NegotiationStage = "proposta_aprovada" | "proposta_enviada" | "em_negociacao" | "proposta_ganha" | "proposta_cancelada";
+
 export interface Negotiation {
   id: string;
   leadId: string;
   lead: Lead;
   titulo: string;
   valor: number;
-  etapa: "qualificacao" | "proposta" | "negociacao" | "fechamento";
+  etapa: NegotiationStage;
   probabilidade: number;
   dataPrevisaoFechamento?: Date;
   dataCriacao: Date;
   dataAtualizacao: Date;
+  // Indicadores do simulador
+  viabilidadeId?: string;
+  margemEstimada?: number;
+  comissaoIncorporador?: number;
+  registroValor?: number;
+  registroTipo?: string;
+  receitaRegistroLoftPercent?: number;
+  despesasOperacionais?: number;
+  unidades?: number;
+  ticketMedio?: number;
+  vgvTotal?: number;
+  comissaoBancariaPonderada?: number;
 }
 
 export interface Activity {

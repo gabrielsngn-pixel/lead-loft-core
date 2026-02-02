@@ -180,47 +180,80 @@ export type Database = {
         Row: {
           atualizado_por: string | null
           atualizado_por_nome: string | null
+          comissao_bancaria_ponderada: number | null
+          comissao_incorporador: number | null
           created_at: string
           criado_por: string
           criado_por_nome: string
           data_previsao_fechamento: string | null
+          despesas_operacionais: number | null
           etapa: string
           id: string
           lead_id: string
+          margem_estimada: number | null
           probabilidade: number
+          receita_registro_loft_percent: number | null
+          registro_tipo: string | null
+          registro_valor: number | null
+          ticket_medio: number | null
           titulo: string
+          unidades: number | null
           updated_at: string
           valor: number
+          vgv_total: number | null
+          viabilidade_id: string | null
         }
         Insert: {
           atualizado_por?: string | null
           atualizado_por_nome?: string | null
+          comissao_bancaria_ponderada?: number | null
+          comissao_incorporador?: number | null
           created_at?: string
           criado_por: string
           criado_por_nome: string
           data_previsao_fechamento?: string | null
+          despesas_operacionais?: number | null
           etapa?: string
           id?: string
           lead_id: string
+          margem_estimada?: number | null
           probabilidade?: number
+          receita_registro_loft_percent?: number | null
+          registro_tipo?: string | null
+          registro_valor?: number | null
+          ticket_medio?: number | null
           titulo: string
+          unidades?: number | null
           updated_at?: string
           valor?: number
+          vgv_total?: number | null
+          viabilidade_id?: string | null
         }
         Update: {
           atualizado_por?: string | null
           atualizado_por_nome?: string | null
+          comissao_bancaria_ponderada?: number | null
+          comissao_incorporador?: number | null
           created_at?: string
           criado_por?: string
           criado_por_nome?: string
           data_previsao_fechamento?: string | null
+          despesas_operacionais?: number | null
           etapa?: string
           id?: string
           lead_id?: string
+          margem_estimada?: number | null
           probabilidade?: number
+          receita_registro_loft_percent?: number | null
+          registro_tipo?: string | null
+          registro_valor?: number | null
+          ticket_medio?: number | null
           titulo?: string
+          unidades?: number | null
           updated_at?: string
           valor?: number
+          vgv_total?: number | null
+          viabilidade_id?: string | null
         }
         Relationships: [
           {
@@ -228,6 +261,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negotiations_viabilidade_id_fkey"
+            columns: ["viabilidade_id"]
+            isOneToOne: false
+            referencedRelation: "viabilidades"
             referencedColumns: ["id"]
           },
         ]
