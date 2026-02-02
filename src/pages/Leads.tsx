@@ -116,6 +116,12 @@ const Leads = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
+  const [cidadeFilter, setCidadeFilter] = useState<string>("all");
+
+  // Get unique cities for filter dropdown
+  const uniqueCities = Array.from(
+    new Set(leads.filter((l) => !l.responsavelId).map((l) => l.cidade))
+  ).sort();
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -180,8 +186,9 @@ const Leads = () => {
 
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     const matchesTipo = tipoFilter === "all" || lead.tipoEmpresa === tipoFilter;
+    const matchesCidade = cidadeFilter === "all" || lead.cidade === cidadeFilter;
 
-    return matchesSearch && matchesStatus && matchesTipo;
+    return matchesSearch && matchesStatus && matchesTipo && matchesCidade;
   });
 
   const handleImport = (_data: any[]) => {
@@ -251,6 +258,17 @@ const Leads = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={cidadeFilter} onValueChange={setCidadeFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Cidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Cidades</SelectItem>
+                {uniqueCities.map((cidade) => (
+                  <SelectItem key={cidade} value={cidade}>{cidade}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Badge variant="secondary" className="ml-auto">
               {filteredLeads.length} leads
             </Badge>
@@ -270,6 +288,7 @@ const Leads = () => {
               <TableRow className="bg-muted/30">
                 <TableHead className="font-semibold">Empresa</TableHead>
                 <TableHead className="font-semibold">Tipo</TableHead>
+                <TableHead className="font-semibold">Cidade</TableHead>
                 <TableHead className="font-semibold">CNPJ</TableHead>
                 <TableHead className="font-semibold">Contato</TableHead>
                 <TableHead className="font-semibold">Origem</TableHead>
@@ -297,11 +316,12 @@ const Leads = () => {
                         </div>
                         <div>
                           <p className="font-medium">{lead.nomeFantasia || lead.razaoSocial}</p>
-                          <p className="text-sm text-muted-foreground">{lead.cidade}/{lead.estado}</p>
+                          <p className="text-sm text-muted-foreground">{lead.estado}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">{companyTypeConfig[lead.tipoEmpresa]?.label ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{lead.cidade}</TableCell>
                     <TableCell className="font-mono text-sm">{lead.cnpj}</TableCell>
                     <TableCell>
                       <div className="text-sm">
