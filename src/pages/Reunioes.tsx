@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,29 +8,41 @@ import { MeetingsList } from "@/components/meetings/MeetingsList";
 import { MeetingViewDialog } from "@/components/meetings/MeetingViewDialog";
 import { GenerateFromScheduleDialog } from "@/components/meetings/GenerateFromScheduleDialog";
 import { MeetingMinutes } from "@/types/meetings";
-import { mockMeetingMinutes } from "@/data/mockMeetings";
-import { toast } from "@/hooks/use-toast";
+import { useMeetings } from "@/hooks/useMeetings";
 
 export default function Reunioes() {
-  const [meetings, setMeetings] = useState<MeetingMinutes[]>(mockMeetingMinutes);
+  const { meetings, loading, createMeeting, deleteMeeting, archiveMeeting } = useMeetings();
   const [activeTab, setActiveTab] = useState<"lista" | "nova">("lista");
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingMinutes | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [prefilledData, setPrefilledData] = useState<Partial<MeetingMinutes> | undefined>();
 
-  const handleSaveMinutes = (data: Partial<MeetingMinutes>) => {
-    const newMeeting = data as MeetingMinutes;
-    setMeetings((prev) => {
-      const existing = prev.findIndex((m) => m.id === newMeeting.id);
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = newMeeting;
-        return updated;
-      }
-      return [newMeeting, ...prev];
+  const handleSaveMinutes = async (data: Partial<MeetingMinutes>) => {
+    const result = await createMeeting({
+      leadId: data.leadId,
+      negociacaoId: data.negociacaoId,
+      empresa: data.empresa || "",
+      cnpj: data.cnpj || "",
+      tipoReuniao: data.tipoReuniao || "apresentacao",
+      dataReuniao: data.dataReuniao || new Date(),
+      horaInicio: data.horaInicio,
+      horaFim: data.horaFim,
+      consultorNome: data.consultorNome || "",
+      participantes: data.participantes || [],
+      objetivos: data.objetivos,
+      pauta: data.pauta,
+      discussao: data.discussao,
+      decisoes: data.decisoes,
+      proximosPassos: data.proximosPassos,
+      observacoes: data.observacoes,
+      status: data.status || "realizada",
+      vinculadaContato: !!data.leadId,
     });
-    setActiveTab("lista");
-    setPrefilledData(undefined);
+
+    if (result) {
+      setActiveTab("lista");
+      setPrefilledData(undefined);
+    }
   };
 
   const handleViewMeeting = (meeting: MeetingMinutes) => {
@@ -38,14 +50,12 @@ export default function Reunioes() {
     setViewDialogOpen(true);
   };
 
-  const handleArchiveMeeting = (meetingId: string) => {
-    setMeetings((prev) =>
-      prev.map((m) => (m.id === meetingId ? { ...m, arquivada: true } : m))
-    );
-    toast({
-      title: "Ata arquivada",
-      description: "A ata foi movida para o arquivo.",
-    });
+  const handleArchiveMeeting = async (meetingId: string) => {
+    await archiveMeeting(meetingId);
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    await deleteMeeting(meetingId);
   };
 
   const handleGenerateFromSchedule = (data: Partial<MeetingMinutes>) => {
@@ -57,6 +67,16 @@ export default function Reunioes() {
     setPrefilledData(undefined);
     setActiveTab("nova");
   };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -96,6 +116,7 @@ export default function Reunioes() {
               meetings={meetings}
               onView={handleViewMeeting}
               onArchive={handleArchiveMeeting}
+              onDelete={handleDeleteMeeting}
             />
           </TabsContent>
 

@@ -16,8 +16,11 @@ import {
   FileSpreadsheet,
   Download,
   ExternalLink,
-  X,
+  Loader2,
 } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const typeIcons = {
   pdf: FileText,
@@ -41,9 +44,91 @@ export function MaterialViewerDialog({
   onOpenChange,
   onDownload,
 }: MaterialViewerDialogProps) {
+  const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
+
   if (!material) return null;
 
   const TypeIcon = typeIcons[material.tipo];
+
+  const handleDownload = async () => {
+    if (!material.url || material.url === "#") {
+      toast({
+        title: "Download não disponível",
+        description: "Este material não possui arquivo para download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      // Check if it's a Supabase storage URL
+      if (material.url.includes("supabase") && material.url.includes("/storage/")) {
+        // Extract the path from the URL
+        const urlParts = material.url.split("/storage/v1/object/public/");
+        if (urlParts.length > 1) {
+          const pathWithBucket = urlParts[1];
+          const [bucket, ...pathParts] = pathWithBucket.split("/");
+          const filePath = pathParts.join("/");
+
+          // Generate a signed URL for secure download
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from(bucket)
+            .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+          if (signedUrlError) {
+            throw signedUrlError;
+          }
+
+          if (signedUrlData?.signedUrl) {
+            // Open the signed URL for download
+            const link = document.createElement("a");
+            link.href = signedUrlData.signedUrl;
+            link.download = material.arquivoNome || material.titulo;
+            link.target = "_blank";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            toast({
+              title: "Download iniciado",
+              description: `Baixando "${material.arquivoNome || material.titulo}"`,
+            });
+            return;
+          }
+        }
+      }
+
+      // For external URLs or non-Supabase storage, try to open/download directly
+      const link = document.createElement("a");
+      link.href = material.url;
+      link.download = material.arquivoNome || material.titulo;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Download iniciado",
+        description: `Baixando "${material.arquivoNome || material.titulo}"`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading material:", error);
+      toast({
+        title: "Erro ao baixar",
+        description: error.message || "Não foi possível baixar o arquivo.",
+        variant: "destructive",
+      });
+      
+      // Fallback: try to open the URL directly
+      if (material.url) {
+        window.open(material.url, "_blank");
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const renderContent = () => {
     // For videos (YouTube, Vimeo, etc.)
@@ -130,8 +215,12 @@ export function MaterialViewerDialog({
               Abrir em Nova Aba
             </Button>
           )}
-          <Button variant="outline" onClick={() => onDownload?.(material)}>
-            <Download className="w-4 h-4 mr-2" />
+          <Button variant="outline" onClick={handleDownload} disabled={downloading}>
+            {downloading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
             Baixar Arquivo
           </Button>
         </div>
@@ -171,8 +260,12 @@ export function MaterialViewerDialog({
           </div>
           <div className="flex gap-2">
             {material.tipo !== "link" && material.tipo !== "video" && (
-              <Button variant="outline" size="sm" onClick={() => onDownload?.(material)}>
-                <Download className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
                 Baixar
               </Button>
             )}

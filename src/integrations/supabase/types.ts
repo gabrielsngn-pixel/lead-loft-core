@@ -419,6 +419,152 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_history: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          meeting_id: string
+          usuario_id: string
+          usuario_nome: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          usuario_id: string
+          usuario_nome: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          usuario_id?: string
+          usuario_nome?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_history_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          arquivada: boolean
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          cnpj: string
+          consultor_id: string | null
+          consultor_nome: string
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          data_reuniao: string
+          decisoes: string | null
+          discussao: string | null
+          empresa: string
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          lead_id: string | null
+          negociacao_id: string | null
+          objetivos: string | null
+          observacoes: string | null
+          participantes: string[] | null
+          pauta: string | null
+          proximos_passos: string | null
+          status: string
+          tipo_reuniao: string
+          updated_at: string
+          vinculada_contato: boolean
+        }
+        Insert: {
+          arquivada?: boolean
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cnpj: string
+          consultor_id?: string | null
+          consultor_nome: string
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          data_reuniao: string
+          decisoes?: string | null
+          discussao?: string | null
+          empresa: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          lead_id?: string | null
+          negociacao_id?: string | null
+          objetivos?: string | null
+          observacoes?: string | null
+          participantes?: string[] | null
+          pauta?: string | null
+          proximos_passos?: string | null
+          status?: string
+          tipo_reuniao?: string
+          updated_at?: string
+          vinculada_contato?: boolean
+        }
+        Update: {
+          arquivada?: boolean
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cnpj?: string
+          consultor_id?: string | null
+          consultor_nome?: string
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          data_reuniao?: string
+          decisoes?: string | null
+          discussao?: string | null
+          empresa?: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          lead_id?: string | null
+          negociacao_id?: string | null
+          objetivos?: string | null
+          observacoes?: string | null
+          participantes?: string[] | null
+          pauta?: string | null
+          proximos_passos?: string | null
+          status?: string
+          tipo_reuniao?: string
+          updated_at?: string
+          vinculada_contato?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_negociacao_id_fkey"
+            columns: ["negociacao_id"]
+            isOneToOne: false
+            referencedRelation: "negotiations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       negotiations: {
         Row: {
           atualizado_por: string | null
