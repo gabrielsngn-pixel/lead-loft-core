@@ -11,10 +11,6 @@ import {
   Calendar, 
   DollarSign, 
   MoreHorizontal, 
-  Send,
-  CheckCircle,
-  XCircle,
-  Clock,
   Download,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -25,7 +21,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
 
 type NegotiationStage = "qualificacao" | "proposta" | "negociacao" | "fechamento";
 
@@ -36,15 +31,8 @@ const stageConfig: Record<NegotiationStage, { label: string; color: string; bgCo
   fechamento: { label: "Fechamento", color: "text-success", bgColor: "bg-success/5 border-success/20" },
 };
 
-const viabilityConfig = {
-  sim: { label: "Viável", icon: CheckCircle, className: "text-success bg-success/10" },
-  nao: { label: "Inviável", icon: XCircle, className: "text-destructive bg-destructive/10" },
-  pendente: { label: "Pendente", icon: Clock, className: "text-muted-foreground bg-muted" },
-};
-
 const Negociacoes = () => {
   const [negotiations] = useState<Negotiation[]>(mockNegotiations);
-  const { toast } = useToast();
 
   const stages: NegotiationStage[] = ["qualificacao", "proposta", "negociacao", "fechamento"];
 
@@ -61,13 +49,6 @@ const Negociacoes = () => {
 
   const getTotalByStage = (stage: NegotiationStage) => {
     return getNegotiationsByStage(stage).reduce((sum, n) => sum + n.valor, 0);
-  };
-
-  const handleSendViability = (negotiation: Negotiation) => {
-    toast({
-      title: "Viabilidade enviada",
-      description: `Solicitação de viabilidade enviada para ${negotiation.lead.nomeFantasia || negotiation.lead.razaoSocial} (CNPJ: ${negotiation.lead.cnpj})`,
-    });
   };
 
   const handleExport = () => {
@@ -157,9 +138,6 @@ const Negociacoes = () => {
             {/* Cards */}
             <div className="space-y-3">
               {getNegotiationsByStage(stage).map((negotiation, cardIndex) => {
-                const viability = negotiation.lead.viabilidade?.status || "pendente";
-                const ViabilityIcon = viabilityConfig[viability].icon;
-                
                 return (
                   <div
                     key={negotiation.id}
@@ -198,22 +176,6 @@ const Negociacoes = () => {
                       {negotiation.titulo}
                     </p>
 
-                    {/* Viability Badge */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs flex items-center gap-1", viabilityConfig[viability].className)}
-                      >
-                        <ViabilityIcon className="w-3 h-3" />
-                        {viabilityConfig[viability].label}
-                      </Badge>
-                      {negotiation.lead.viabilidade?.margem && (
-                        <span className="text-xs text-muted-foreground">
-                          Margem: {negotiation.lead.viabilidade.margem}%
-                        </span>
-                      )}
-                    </div>
-
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <DollarSign className="w-4 h-4" />
@@ -234,19 +196,6 @@ const Negociacoes = () => {
                         </span>
                       </div>
                     )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 text-xs"
-                        onClick={() => handleSendViability(negotiation)}
-                      >
-                        <Send className="w-3 h-3 mr-1" />
-                        Viabilidade
-                      </Button>
-                    </div>
                   </div>
                 );
               })}

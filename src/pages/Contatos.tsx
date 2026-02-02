@@ -24,6 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { mockLeads, mockUsers } from "@/data/mockData";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -34,7 +44,6 @@ import {
   Search,
   MoreHorizontal,
   Eye,
-  Send,
   Calendar,
   ClipboardList,
   Building2,
@@ -42,15 +51,14 @@ import {
   PiggyBank,
   Share2,
   HelpCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
   Download,
   Upload,
   Filter,
   ArrowUpDown,
   Edit,
   Shield,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -77,12 +85,6 @@ const companyTypeConfig: Record<CompanyType, { label: string; icon: typeof Build
   outro: { label: "Outro", icon: HelpCircle },
 };
 
-const viabilityConfig = {
-  sim: { label: "Sim", icon: CheckCircle, className: "text-success" },
-  nao: { label: "Não", icon: XCircle, className: "text-destructive" },
-  pendente: { label: "Pendente", icon: Clock, className: "text-muted-foreground" },
-};
-
 const Contatos = () => {
   const { currentUser } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,6 +97,8 @@ const Contatos = () => {
   const [contacts, setContacts] = useState<Lead[]>(mockLeads);
   const [editingContact, setEditingContact] = useState<Lead | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<Lead | null>(null);
   
   // Filter only leads that have a responsible person (active contacts)
   const activeContacts = contacts.filter(lead => lead.responsavelId);
@@ -175,6 +179,19 @@ const Contatos = () => {
     setEditingContact(null);
   };
 
+  const handleDeleteClick = (contact: Lead) => {
+    setContactToDelete(contact);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (contactToDelete) {
+      setContacts(prev => prev.filter(c => c.id !== contactToDelete.id));
+      setDeleteDialogOpen(false);
+      setContactToDelete(null);
+    }
+  };
+
   return (
     <AppLayout title="Contatos Ativos" subtitle="Lista de leads sob sua responsabilidade">
       {/* Role Badge */}
@@ -207,6 +224,10 @@ const Contatos = () => {
               <Button variant="outline" size="sm">
                 <Upload className="w-4 h-4 mr-2" />
                 Importar
+              </Button>
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Contato
               </Button>
             </div>
           </div>
@@ -298,15 +319,12 @@ const Contatos = () => {
                 </div>
               </TableHead>
               <TableHead className="font-semibold">Próxima Reunião</TableHead>
-              <TableHead className="font-semibold">Viabilidade</TableHead>
               <TableHead className="font-semibold text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedContacts.map((contact, index) => {
               const TypeIcon = companyTypeConfig[contact.tipoEmpresa].icon;
-              const viability = contact.viabilidade?.status || "pendente";
-              const ViabilityIcon = viabilityConfig[viability].icon;
               
               return (
                 <TableRow 
@@ -355,19 +373,8 @@ const Contatos = () => {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <ViabilityIcon className={cn("w-4 h-4", viabilityConfig[viability].className)} />
-                      <span className={cn("text-sm", viabilityConfig[viability].className)}>
-                        {viabilityConfig[viability].label}
-                      </span>
-                    </div>
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Enviar Viabilidade">
-                        <Send className="w-4 h-4 text-primary" />
-                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade">
                         <ClipboardList className="w-4 h-4" />
                       </Button>
@@ -388,6 +395,13 @@ const Contatos = () => {
                           <DropdownMenuItem onClick={() => handleEditContact(contact)}>
                             <Edit className="w-4 h-4 mr-2" />
                             Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(contact)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -419,6 +433,29 @@ const Contatos = () => {
         onOpenChange={setEditDialogOpen}
         onSave={handleSaveContact}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o contato{" "}
+              <strong>{contactToDelete?.nomeContato || contactToDelete?.nomeFantasia || contactToDelete?.razaoSocial}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };

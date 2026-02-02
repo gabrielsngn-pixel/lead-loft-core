@@ -36,6 +36,8 @@ import {
   List,
   Clock,
   Download,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { 
   format, 
@@ -78,15 +80,17 @@ const activityLabels = {
 };
 
 const categoryLabels: Record<ActivityCategory, string> = {
-  loft: "Loft",
-  tech: "Tech",
-  interna: "Interna",
+  comercial: "Comercial",
+  trade_marketing: "Trade e Marketing",
+  tecnologia: "Tecnologia",
+  cre: "CRE",
 };
 
 const categoryColors: Record<ActivityCategory, string> = {
-  loft: "bg-primary/10 text-primary",
-  tech: "bg-secondary/10 text-secondary",
-  interna: "bg-muted text-muted-foreground",
+  comercial: "bg-primary/10 text-primary",
+  trade_marketing: "bg-secondary/10 text-secondary",
+  tecnologia: "bg-blue-100 text-blue-600",
+  cre: "bg-amber-100 text-amber-700",
 };
 
 const exportColumns = [
@@ -396,6 +400,7 @@ const Calendario = () => {
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Comentário</TableHead>
+            <TableHead className="font-semibold text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -439,6 +444,16 @@ const Calendario = () => {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                     {activity.descricao || "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Excluir">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

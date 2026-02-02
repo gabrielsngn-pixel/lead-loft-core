@@ -54,7 +54,6 @@ import {
   PiggyBank,
   Share2,
   HelpCircle,
-  Send,
   Shield,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -107,13 +106,12 @@ const exportColumns = [
   { key: "status", label: "Status" },
   { key: "prioridade", label: "Prioridade" },
   { key: "tipoEmpresa", label: "Tipo Empresa" },
-  { key: "valorEstimado", label: "Valor Estimado" },
 ];
 
 const Leads = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentUser, canPerformAction, isGestor } = usePermissions();
+  const { currentUser } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
@@ -135,14 +133,6 @@ const Leads = () => {
   };
 
   const handleDeleteClick = (lead: Lead) => {
-    if (!isGestor) {
-      toast({
-        title: "Ação não permitida",
-        description: "Apenas gestores podem excluir leads.",
-        variant: "destructive",
-      });
-      return;
-    }
     setLeadToDelete(lead);
     setDeleteDialogOpen(true);
   };
@@ -171,14 +161,6 @@ const Leads = () => {
 
     return matchesSearch && matchesStatus && matchesTipo;
   });
-
-  const formatCurrency = (value?: number) => {
-    if (!value) return "-";
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
 
   const handleImport = (data: any[]) => {
     // Check for duplicates by CNPJ
@@ -298,10 +280,10 @@ const Leads = () => {
               <TableHead className="font-semibold">CNPJ</TableHead>
               <TableHead className="font-semibold">Contato</TableHead>
               <TableHead className="font-semibold">Origem</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-semibold">Status Inicial</TableHead>
+              <TableHead className="font-semibold">Status Atual</TableHead>
               <TableHead className="font-semibold">Prioridade</TableHead>
               <TableHead className="font-semibold">Responsável</TableHead>
-              <TableHead className="font-semibold text-right">Valor Est.</TableHead>
               <TableHead className="font-semibold text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -346,6 +328,11 @@ const Leads = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <Badge className="badge-status badge-new">
+                      Novo
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge className={cn("badge-status", statusConfig[lead.status].className)}>
                       {statusConfig[lead.status].label}
                     </Badge>
@@ -360,14 +347,8 @@ const Leads = () => {
                       <span className="text-muted-foreground text-sm">Não atribuído</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(lead.valorEstimado)}
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Enviar Viabilidade">
-                        <Send className="w-4 h-4 text-primary" />
-                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -388,15 +369,11 @@ const Leads = () => {
                             Apropriar
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            className={cn(
-                              "text-destructive",
-                              !isGestor && "opacity-50 cursor-not-allowed"
-                            )}
+                            className="text-destructive"
                             onClick={() => handleDeleteClick(lead)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Excluir
-                            {!isGestor && <Shield className="w-3 h-3 ml-auto" />}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
