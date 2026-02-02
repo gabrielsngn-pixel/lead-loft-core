@@ -7,25 +7,24 @@ import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
 import { ActivitiesByConsultorChart } from "@/components/dashboard/ActivitiesByConsultorChart";
 import { UpcomingMeetings } from "@/components/dashboard/UpcomingMeetings";
 import { InactiveLeadsAlert } from "@/components/dashboard/InactiveLeadsAlert";
-import {
-  mockLeads,
-  mockActivities,
-  mockNegotiations,
-  mockDashboardStats,
-  mockUsers,
-} from "@/data/mockData";
+import { useLeads } from "@/hooks/useLeads";
+import { useNegotiations } from "@/hooks/useNegotiations";
+import { mockActivities, mockUsers } from "@/data/mockData";
 import {
   Users,
   UserPlus,
   Handshake,
   DollarSign,
   TrendingUp,
-  CalendarCheck,
   UserCheck,
   Calendar,
+  Loader2,
 } from "lucide-react";
 
 const Dashboard = () => {
+  const { leads, loading: leadsLoading } = useLeads();
+  const { negotiations, loading: negotiationsLoading } = useNegotiations();
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -35,33 +34,64 @@ const Dashboard = () => {
     }).format(value);
   };
 
-  // Get active contacts (leads with responsible person)
-  const activeContacts = mockLeads.filter(lead => lead.responsavelId);
+  // Calculate real stats from data
+  const repositorioLeads = leads.filter(l => !l.responsavelId).length;
+  const activeContacts = leads.filter(lead => lead.responsavelId);
+  const leadsNovos = leads.filter(l => l.status === "novo").length;
+  const negociacoesAtivas = negotiations.length;
+  const valorPipeline = negotiations.reduce((sum, n) => sum + n.valor, 0);
+  const receitaPotencial = negotiations.reduce((sum, n) => sum + (n.valor * n.probabilidade / 100), 0);
+  
+  // Calculate conversion rate (ganho / total that have been through the process)
+  const leadsGanhos = leads.filter(l => l.status === "ganho").length;
+  const leadsProcessados = leads.filter(l => l.status === "ganho" || l.status === "perdido").length;
+  const taxaConversao = leadsProcessados > 0 ? (leadsGanhos / leadsProcessados) * 100 : 0;
+
+  // Count meetings in next 7 days (still from mock for now - activities not yet persisted)
+  const today = new Date();
+  const next7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const reunioesProximos7Dias = mockActivities.filter(a => 
+    a.tipo === "reuniao" && 
+    !a.concluida && 
+    a.dataAgendada >= today && 
+    a.dataAgendada <= next7Days
+  ).length;
+
+  const isLoading = leadsLoading || negotiationsLoading;
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Dashboard Executivo" subtitle="Visão gerencial do CRM">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Dashboard Executivo" subtitle="Visão gerencial do CRM">
       {/* Stats Grid - Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
-          title="Total de Leads"
-          value={mockDashboardStats.totalLeads}
+          title="Repositório de Leads"
+          value={repositorioLeads}
           icon={<Users className="w-6 h-6" />}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title="Contatos Ativos"
-          value={mockDashboardStats.contatosAtivos}
+          value={activeContacts.length}
           icon={<UserCheck className="w-6 h-6" />}
           variant="primary"
         />
         <StatCard
           title="Negociações Ativas"
-          value={mockDashboardStats.negociacoesAtivas}
+          value={negociacoesAtivas}
           icon={<Handshake className="w-6 h-6" />}
         />
         <StatCard
           title="Receita Potencial"
-          value={formatCurrency(mockDashboardStats.receitaPotencial)}
+          value={formatCurrency(receitaPotencial)}
           icon={<DollarSign className="w-6 h-6" />}
           variant="secondary"
         />
@@ -71,23 +101,22 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Leads Novos"
-          value={mockDashboardStats.leadsNovos}
+          value={leadsNovos}
           icon={<UserPlus className="w-6 h-6" />}
         />
         <StatCard
           title="Valor Pipeline"
-          value={formatCurrency(mockDashboardStats.valorPipeline)}
+          value={formatCurrency(valorPipeline)}
           icon={<DollarSign className="w-6 h-6" />}
         />
         <StatCard
           title="Taxa Conversão"
-          value={`${mockDashboardStats.taxaConversao}%`}
+          value={`${taxaConversao.toFixed(1)}%`}
           icon={<TrendingUp className="w-6 h-6" />}
-          trend={{ value: 3.2, isPositive: true }}
         />
         <StatCard
           title="Reuniões Próx. 7 dias"
-          value={mockDashboardStats.reunioesProximos7Dias}
+          value={reunioesProximos7Dias}
           icon={<Calendar className="w-6 h-6" />}
         />
       </div>
@@ -103,18 +132,18 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Left Column - Pipeline */}
         <div className="lg:col-span-2">
-          <PipelineChart negotiations={mockNegotiations} />
+          <PipelineChart negotiations={negotiations} />
         </div>
 
         {/* Right Column - Inactive Leads Alert */}
         <div>
-          <InactiveLeadsAlert leads={mockLeads} daysThreshold={7} />
+          <InactiveLeadsAlert leads={activeContacts} daysThreshold={7} />
         </div>
       </div>
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentLeads leads={mockLeads} />
+        <RecentLeads leads={leads} />
         <UpcomingActivities activities={mockActivities} />
       </div>
     </AppLayout>
