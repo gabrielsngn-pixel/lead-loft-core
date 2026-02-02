@@ -89,6 +89,7 @@ export function UploadMaterialDialog({
         .from('materials')
         .upload(filePath, file, {
           cacheControl: '3600',
+          contentType: file.type || "application/octet-stream",
           upsert: false,
         });
 

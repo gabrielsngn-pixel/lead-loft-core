@@ -21,6 +21,8 @@ import {
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { parseStorageObjectUrl } from "@/components/materials/viewer/parseStorageObjectUrl";
+import { usePdfObjectUrl } from "@/components/materials/viewer/usePdfObjectUrl";
 
 const typeIcons = {
   pdf: FileText,
@@ -47,6 +49,12 @@ export function MaterialViewerDialog({
   const [downloading, setDownloading] = useState(false);
   const { toast } = useToast();
 
+  const {
+    url: pdfPreviewUrl,
+    loading: pdfLoading,
+    error: pdfError,
+  } = usePdfObjectUrl(material, open);
+
   if (!material) return null;
 
   const TypeIcon = typeIcons[material.tipo];
@@ -63,41 +71,33 @@ export function MaterialViewerDialog({
 
     setDownloading(true);
     try {
-      // Check if it's a Supabase storage URL
-      if (material.url.includes("supabase") && material.url.includes("/storage/")) {
-        // Extract the path from the URL
-        const urlParts = material.url.split("/storage/v1/object/public/");
-        if (urlParts.length > 1) {
-          const pathWithBucket = urlParts[1];
-          const [bucket, ...pathParts] = pathWithBucket.split("/");
-          const filePath = pathParts.join("/");
+      onDownload?.(material);
 
-          // Generate a signed URL for secure download
-          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-            .from(bucket)
-            .createSignedUrl(filePath, 3600); // 1 hour expiry
+      // Prefer Storage download -> blob URL (more reliable across browsers)
+      const storageRef = parseStorageObjectUrl(material.url);
+      if (storageRef) {
+        const { data, error } = await supabase.storage
+          .from(storageRef.bucket)
+          .download(storageRef.path);
 
-          if (signedUrlError) {
-            throw signedUrlError;
-          }
+        if (error) throw error;
+        if (!data) throw new Error("Arquivo não encontrado.");
 
-          if (signedUrlData?.signedUrl) {
-            // Open the signed URL for download
-            const link = document.createElement("a");
-            link.href = signedUrlData.signedUrl;
-            link.download = material.arquivoNome || material.titulo;
-            link.target = "_blank";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        const objectUrl = URL.createObjectURL(data);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = material.arquivoNome || material.titulo;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        // Revoke shortly after triggering download
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
 
-            toast({
-              title: "Download iniciado",
-              description: `Baixando "${material.arquivoNome || material.titulo}"`,
-            });
-            return;
-          }
-        }
+        toast({
+          title: "Download iniciado",
+          description: `Baixando "${material.arquivoNome || material.titulo}"`,
+        });
+        return;
       }
 
       // For external URLs or non-Supabase storage, try to open/download directly
@@ -173,10 +173,44 @@ export function MaterialViewerDialog({
 
     // For PDFs
     if (material.tipo === "pdf" && material.url && material.url !== "#") {
+      if (pdfLoading) {
+        return (
+          <div className="w-full h-[60vh] rounded-lg overflow-hidden flex items-center justify-center bg-muted/30">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        );
+      }
+
+      if (pdfError) {
+        return (
+          <div className="flex flex-col items-center justify-center py-12 px-6 bg-muted/30 rounded-lg">
+            <FileText className="w-16 h-16 text-muted-foreground mb-4" />
+            <p className="text-center text-muted-foreground mb-4">
+              Não foi possível carregar a visualização do PDF. Você pode abrir em nova aba ou baixar o arquivo.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => window.open(material.url, "_blank")}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Abrir em Nova Aba
+              </Button>
+              <Button variant="outline" onClick={handleDownload} disabled={downloading}>
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Baixar
+              </Button>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="w-full h-[60vh] rounded-lg overflow-hidden">
           <iframe
-            src={material.url}
+            src={pdfPreviewUrl || material.url}
             className="w-full h-full"
             title={material.titulo}
           />
