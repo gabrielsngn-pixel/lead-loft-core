@@ -167,7 +167,11 @@ const Leads = () => {
     }
   };
 
+  // Repositório de Leads: apenas leads SEM responsável (não apropriados)
   const filteredLeads = leads.filter((lead) => {
+    // Lead com responsável vai para Contatos Ativos, não aparece aqui
+    if (lead.responsavelId) return false;
+
     const matchesSearch =
       lead.razaoSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.nomeFantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
