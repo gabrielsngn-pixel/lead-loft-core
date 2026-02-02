@@ -478,18 +478,34 @@ const Negociacoes = () => {
               </div>
 
               {/* Contract Download Button */}
-              <div className="border-t pt-4">
-                <Button
-                  onClick={() => {
-                    setDetailsDialogOpen(false);
-                    setContratoDialogOpen(true);
-                  }}
-                  className="w-full gap-2"
-                  variant="outline"
-                >
-                  <FileText className="w-4 h-4" />
-                  Gerar Contrato PDF
-                </Button>
+              <div className="border-t pt-4 space-y-2">
+                {selectedNegotiation.contratoUrl ? (
+                  <Button
+                    onClick={() => window.open(selectedNegotiation.contratoUrl, "_blank")}
+                    className="w-full gap-2"
+                    variant="default"
+                  >
+                    <Download className="w-4 h-4" />
+                    Baixar Contrato PDF
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setDetailsDialogOpen(false);
+                      setContratoDialogOpen(true);
+                    }}
+                    className="w-full gap-2"
+                    variant="outline"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Gerar Contrato PDF
+                  </Button>
+                )}
+                {selectedNegotiation.contratoNumero && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Contrato #{selectedNegotiation.contratoNumero}
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -351,7 +351,7 @@ const Viabilidade = () => {
           })
           .eq("id", selectedViabilidade.id);
 
-        // Criar negociação automaticamente com indicadores do simulador
+        // Criar negociação automaticamente com indicadores do simulador e contrato
         if (selectedViabilidade.empresa_id) {
           const registroValorTotal = inputs.registroTipo === "internalizado" 
             ? inputs.valorRegistroPorUnidade * inputs.unidades 
@@ -374,6 +374,9 @@ const Viabilidade = () => {
             ticketMedio: ticketMedio,
             vgvTotal: inputs.vgv,
             comissaoBancariaPonderada: results.taxaPonderadaBanco,
+            // Dados do contrato gerado
+            contratoUrl: contrato.contratoUrl,
+            contratoNumero: contrato.numeroContrato,
           });
         }
         

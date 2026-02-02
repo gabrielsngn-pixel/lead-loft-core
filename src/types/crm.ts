@@ -60,6 +60,9 @@ export interface Negotiation {
   ticketMedio?: number;
   vgvTotal?: number;
   comissaoBancariaPonderada?: number;
+  // Contrato gerado
+  contratoUrl?: string;
+  contratoNumero?: string;
 }
 
 export interface Activity {

@@ -21,6 +21,11 @@ import {
   Printer,
 } from "lucide-react";
 import {
+  generateContractHtml,
+  uploadContractToStorage,
+  type ContractData,
+} from "@/lib/contractPdfGenerator";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -67,6 +72,7 @@ export interface ContratoData {
   dadosProjeto: DadosProjeto;
   dataAssinatura: string;
   numeroContrato: string;
+  contratoUrl?: string;
 }
 
 type FluxoStep = "dados" | "revisao" | "exportar";
@@ -558,6 +564,32 @@ export function ContratoLoftDialog({
       const printContent = contratoRef.current.innerHTML;
       const nomeArquivo = dados.razaoSocial.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
 
+      // Gerar HTML completo e fazer upload para o Storage
+      const contractHtmlData: ContractData = {
+        razaoSocial: dados.razaoSocial,
+        nomeFantasia: dados.nomeFantasia,
+        cnpj: dados.cnpj,
+        endereco: dados.endereco,
+        cidade: dados.cidade,
+        estado: dados.estado,
+        representanteLegal: dados.representanteLegal,
+        cpfRepresentante: dados.cpfRepresentante,
+        vgvTotal: projetoDados.vgvTotal,
+        unidades: projetoDados.unidades,
+        ticketMedio: projetoDados.ticketMedio,
+        comissaoIncorporador: projetoDados.comissaoIncorporador,
+        valorRegistroPorUnidade: projetoDados.valorRegistroPorUnidade,
+        receitaRegistroTotal: projetoDados.receitaRegistroTotal,
+        hasRegistro: projetoDados.hasRegistro,
+        nomeEmpreendimento: projetoDados.nomeEmpreendimento,
+        numeroContrato,
+        dataAssinatura: new Date().toISOString(),
+      };
+
+      const contractHtml = generateContractHtml(contractHtmlData);
+      const contratoUrl = await uploadContractToStorage(contractHtml, numeroContrato);
+
+      // Também abrir janela de impressão para download do PDF
       const printWindow = window.open("", "_blank");
       if (!printWindow) throw new Error("Não foi possível abrir a janela de impressão");
 
@@ -650,11 +682,17 @@ export function ContratoLoftDialog({
       }, 500);
 
       toast({
-        title: "PDF em geração",
-        description: "Use 'Salvar como PDF' na janela de impressão.",
+        title: "Contrato salvo!",
+        description: contratoUrl 
+          ? "O contrato foi salvo e está disponível para download na negociação." 
+          : "Use 'Salvar como PDF' na janela de impressão.",
       });
 
-      onContratoGerado?.(contratoData);
+      // Retornar dados do contrato incluindo a URL
+      onContratoGerado?.({ 
+        ...contratoData, 
+        contratoUrl: contratoUrl || undefined 
+      });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       toast({
