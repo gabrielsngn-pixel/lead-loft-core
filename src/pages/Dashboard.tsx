@@ -9,7 +9,8 @@ import { UpcomingMeetings } from "@/components/dashboard/UpcomingMeetings";
 import { InactiveLeadsAlert } from "@/components/dashboard/InactiveLeadsAlert";
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
-import { mockActivities, mockUsers } from "@/data/mockData";
+import { useActivities } from "@/hooks/useActivities";
+import { mockUsers } from "@/data/mockData";
 import {
   Users,
   UserPlus,
@@ -24,6 +25,7 @@ import {
 const Dashboard = () => {
   const { leads, loading: leadsLoading } = useLeads();
   const { negotiations, loading: negotiationsLoading } = useNegotiations();
+  const { activities, loading: activitiesLoading } = useActivities();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -47,17 +49,23 @@ const Dashboard = () => {
   const leadsProcessados = leads.filter(l => l.status === "ganho" || l.status === "perdido").length;
   const taxaConversao = leadsProcessados > 0 ? (leadsGanhos / leadsProcessados) * 100 : 0;
 
-  // Count meetings in next 7 days (still from mock for now - activities not yet persisted)
+  // Count meetings in next 7 days from real activities
   const today = new Date();
   const next7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const reunioesProximos7Dias = mockActivities.filter(a => 
+  const reunioesProximos7Dias = activities.filter(a => 
     a.tipo === "reuniao" && 
     !a.concluida && 
     a.dataAgendada >= today && 
     a.dataAgendada <= next7Days
   ).length;
 
-  const isLoading = leadsLoading || negotiationsLoading;
+  // Get upcoming activities (not completed, future dates)
+  const upcomingActivities = activities
+    .filter(a => !a.concluida && a.dataAgendada >= today)
+    .sort((a, b) => a.dataAgendada.getTime() - b.dataAgendada.getTime())
+    .slice(0, 5);
+
+  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading;
 
   if (isLoading) {
     return (
@@ -121,11 +129,10 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <StatusPieChart leads={activeContacts} />
-        <ActivitiesByConsultorChart activities={mockActivities} users={mockUsers} />
-        <UpcomingMeetings activities={mockActivities} />
+        <ActivitiesByConsultorChart activities={activities} users={mockUsers} />
+        <UpcomingMeetings activities={activities} />
       </div>
 
       {/* Main Content Grid */}
@@ -141,10 +148,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentLeads leads={leads} />
-        <UpcomingActivities activities={mockActivities} />
+        <UpcomingActivities activities={upcomingActivities} />
       </div>
     </AppLayout>
   );
