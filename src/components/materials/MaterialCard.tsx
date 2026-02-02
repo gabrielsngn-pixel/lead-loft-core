@@ -29,6 +29,7 @@ import {
   Users,
   GraduationCap,
   Briefcase,
+  Trash2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -79,6 +80,7 @@ interface MaterialCardProps {
   onView?: (material: Material) => void;
   onDownload?: (material: Material) => void;
   onViewHistory?: (material: Material) => void;
+  onDelete?: (material: Material) => void;
   isAdmin?: boolean;
   onArchive?: (material: Material) => void;
   onToggleRecommended?: (material: Material) => void;
@@ -90,6 +92,7 @@ export function MaterialCard({
   onView,
   onDownload,
   onViewHistory,
+  onDelete,
   isAdmin = false,
   onArchive,
   onToggleRecommended,
@@ -161,9 +164,9 @@ export function MaterialCard({
               <History className="w-4 h-4 mr-2" />
               Histórico de Versões
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {isAdmin && (
               <>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onToggleRecommended?.(material)}>
                   {material.recomendado ? (
                     <>
@@ -183,6 +186,13 @@ export function MaterialCard({
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuItem 
+              onClick={() => onDelete?.(material)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Material
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
