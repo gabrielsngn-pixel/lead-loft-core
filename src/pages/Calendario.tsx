@@ -45,6 +45,7 @@ import { mockActivities, mockUsers } from "@/data/mockData";
 import { Activity, ActivityCategory } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Plus, 
   Phone, 
@@ -123,6 +124,7 @@ const exportColumns = [
 
 const Calendario = () => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
@@ -137,7 +139,7 @@ const Calendario = () => {
     tipo: "tarefa" as Activity["tipo"],
     categoria: "comercial" as ActivityCategory,
     descricao: "",
-    responsavelId: "",
+    responsavelNome: "",
   });
 
   // Delete dialog state
@@ -146,12 +148,13 @@ const Calendario = () => {
 
   // New activity dialog state
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
+  const [newActivityFromPlanilha, setNewActivityFromPlanilha] = useState(false);
   const [newActivityForm, setNewActivityForm] = useState({
     titulo: "",
     tipo: "tarefa" as Activity["tipo"],
     categoria: "comercial" as ActivityCategory,
     descricao: "",
-    responsavelId: "",
+    responsavelNome: "",
     dataAgendada: new Date(),
   });
 
@@ -197,7 +200,7 @@ const Calendario = () => {
       tipo: activity.tipo,
       categoria: activity.categoria,
       descricao: activity.descricao || "",
-      responsavelId: activity.responsavelId || "",
+      responsavelNome: activity.responsavelNome || "",
     });
     setEditDialogOpen(true);
   };
@@ -205,7 +208,6 @@ const Calendario = () => {
   const handleSaveEdit = () => {
     if (!editingActivity) return;
 
-    const responsavel = mockUsers.find(u => u.id === editForm.responsavelId);
     setActivities((prev) =>
       prev.map((a) =>
         a.id === editingActivity.id
@@ -215,8 +217,7 @@ const Calendario = () => {
               tipo: editForm.tipo,
               categoria: editForm.categoria,
               descricao: editForm.descricao,
-              responsavelId: editForm.responsavelId,
-              responsavelNome: responsavel?.nome,
+              responsavelNome: editForm.responsavelNome,
             }
           : a
       )
@@ -230,15 +231,30 @@ const Calendario = () => {
     setEditingActivity(null);
   };
 
-  // New activity handlers
-  const handleNewActivityClick = () => {
+  // New activity handlers - Visão Geral (auto-assign current user)
+  const handleNewActivityClickGeral = () => {
+    setNewActivityFromPlanilha(false);
     setNewActivityForm({
       titulo: "",
       tipo: "tarefa",
       categoria: "comercial",
       descricao: "",
-      responsavelId: "",
+      responsavelNome: profile?.nome || "",
       dataAgendada: selectedDate,
+    });
+    setNewActivityDialogOpen(true);
+  };
+
+  // New activity handlers - Planilha (manual input)
+  const handleNewActivityClickPlanilha = () => {
+    setNewActivityFromPlanilha(true);
+    setNewActivityForm({
+      titulo: "",
+      tipo: "tarefa",
+      categoria: "comercial",
+      descricao: "",
+      responsavelNome: "",
+      dataAgendada: new Date(),
     });
     setNewActivityDialogOpen(true);
   };
@@ -253,15 +269,14 @@ const Calendario = () => {
       return;
     }
 
-    const responsavel = mockUsers.find(u => u.id === newActivityForm.responsavelId);
     const newActivity: Activity = {
       id: `act-${Date.now()}`,
       titulo: newActivityForm.titulo,
       tipo: newActivityForm.tipo,
       categoria: newActivityForm.categoria,
       descricao: newActivityForm.descricao,
-      responsavelId: newActivityForm.responsavelId,
-      responsavelNome: responsavel?.nome,
+      responsavelId: profile?.user_id || "",
+      responsavelNome: newActivityForm.responsavelNome,
       dataAgendada: newActivityForm.dataAgendada,
       concluida: false,
     };
@@ -407,7 +422,7 @@ const Calendario = () => {
                 {selectedActivities.length} atividade{selectedActivities.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button size="sm" onClick={handleNewActivityClick}>
+            <Button size="sm" onClick={handleNewActivityClickGeral}>
               <Plus className="w-4 h-4 mr-1" />
               Nova
             </Button>
@@ -550,7 +565,7 @@ const Calendario = () => {
     <div className="space-y-6">
       {/* Header with New Activity button */}
       <div className="flex justify-end">
-        <Button onClick={handleNewActivityClick}>
+        <Button onClick={handleNewActivityClickPlanilha}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Atividade
         </Button>
@@ -806,19 +821,11 @@ const Calendario = () => {
 
             <div className="space-y-2">
               <Label>Responsável</Label>
-              <Select
-                value={editForm.responsavelId}
-                onValueChange={(v) => setEditForm((p) => ({ ...p, responsavelId: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockUsers.map(user => (
-                    <SelectItem key={user.id} value={user.id}>{user.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={editForm.responsavelNome}
+                onChange={(e) => setEditForm((p) => ({ ...p, responsavelNome: e.target.value }))}
+                placeholder="Digite o nome do responsável"
+              />
             </div>
 
             <div className="space-y-2">
@@ -912,19 +919,19 @@ const Calendario = () => {
 
             <div className="space-y-2">
               <Label>Responsável</Label>
-              <Select
-                value={newActivityForm.responsavelId}
-                onValueChange={(v) => setNewActivityForm((p) => ({ ...p, responsavelId: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockUsers.map(user => (
-                    <SelectItem key={user.id} value={user.id}>{user.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {newActivityFromPlanilha ? (
+                <Input
+                  value={newActivityForm.responsavelNome}
+                  onChange={(e) => setNewActivityForm((p) => ({ ...p, responsavelNome: e.target.value }))}
+                  placeholder="Digite o nome do responsável"
+                />
+              ) : (
+                <Input
+                  value={newActivityForm.responsavelNome}
+                  disabled
+                  className="bg-muted"
+                />
+              )}
             </div>
 
             <div className="space-y-2">
