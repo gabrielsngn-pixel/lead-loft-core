@@ -16,6 +16,10 @@ import {
   RefreshCw,
   CheckCircle2,
   ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  AlertCircle,
+  Calendar,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -59,8 +63,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useLeads } from "@/hooks/useLeads";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -82,10 +90,31 @@ import {
 } from "@/components/simulador";
 import { ContratoLoftDialog } from "@/components/contrato/ContratoLoft";
 
+interface ViabilidadeRow {
+  id: string;
+  nome_empreendimento: string;
+  cnpj: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  estado: string | null;
+  status: string;
+  resultado: string | null;
+  margem_estimada: number | null;
+  comissao_incorporador: number | null;
+  data_habitese: string | null;
+  projeto_atrasado: boolean;
+  empresa_id: string | null;
+  empresa_nome: string | null;
+  simulation_data: unknown;
+  created_at: string;
+  vgv_estimado: number | null;
+}
+
 const Viabilidade = () => {
   const { toast } = useToast();
   const { profile, user, isMaster } = useAuth();
-  const [viabilidades, setViabilidades] = useState<any[]>([]);
+  const { leads } = useLeads();
+  const [viabilidades, setViabilidades] = useState<ViabilidadeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -94,15 +123,21 @@ const Viabilidade = () => {
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [contratoDialogOpen, setContratoDialogOpen] = useState(false);
+  const [expandedEmpresas, setExpandedEmpresas] = useState<Set<string>>(new Set());
 
   // Viabilidade selecionada para simulação
-  const [selectedViabilidade, setSelectedViabilidade] = useState<any | null>(null);
+  const [selectedViabilidade, setSelectedViabilidade] = useState<ViabilidadeRow | null>(null);
 
   // Simulador inputs
   const [inputs, setInputs] = useState<SimuladorInputs>(defaultInputs);
 
+  // Novos campos do simulador
+  const [dataHabitese, setDataHabitese] = useState<Date | undefined>(undefined);
+  const [projetoAtrasado, setProjetoAtrasado] = useState(false);
+
   // Form para nova viabilidade
   const [formData, setFormData] = useState({
+    empresa_id: "",
     nome_empreendimento: "",
     cnpj: "",
     endereco: "",
@@ -110,6 +145,11 @@ const Viabilidade = () => {
     estado: "",
     observacoes: "",
   });
+
+  // Contatos Ativos (leads com responsavel_id)
+  const contatosAtivos = useMemo(() => {
+    return leads.filter((lead) => lead.responsavelId);
+  }, [leads]);
 
   // Resultados calculados em tempo real
   const results = useMemo(() => calcularViabilidade(inputs), [inputs]);
@@ -131,7 +171,7 @@ const Viabilidade = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setViabilidades(data || []);
+      setViabilidades((data || []) as ViabilidadeRow[]);
     } catch (error) {
       console.error("Error fetching viabilidades:", error);
       toast({
@@ -146,6 +186,14 @@ const Viabilidade = () => {
 
   const handleCreate = async () => {
     if (!user || !profile) return;
+    if (!formData.empresa_id) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Selecione uma empresa (Contato Ativo).",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!formData.nome_empreendimento.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -155,14 +203,18 @@ const Viabilidade = () => {
       return;
     }
 
+    const empresaSelecionada = contatosAtivos.find((c) => c.id === formData.empresa_id);
+
     setProcessing(true);
     try {
       const { error } = await supabase.from("viabilidades").insert({
         nome_empreendimento: formData.nome_empreendimento,
-        cnpj: formData.cnpj || null,
+        empresa_id: formData.empresa_id,
+        empresa_nome: empresaSelecionada?.razaoSocial || empresaSelecionada?.nomeFantasia || "",
+        cnpj: empresaSelecionada?.cnpj || formData.cnpj || null,
         endereco: formData.endereco || null,
-        cidade: formData.cidade || null,
-        estado: formData.estado || null,
+        cidade: formData.cidade || empresaSelecionada?.cidade || null,
+        estado: formData.estado || empresaSelecionada?.estado || null,
         observacoes: formData.observacoes || null,
         solicitado_por: user.id,
         solicitado_por_nome: profile.nome,
@@ -178,6 +230,7 @@ const Viabilidade = () => {
 
       setCreateDialogOpen(false);
       setFormData({
+        empresa_id: "",
         nome_empreendimento: "",
         cnpj: "",
         endereco: "",
@@ -198,9 +251,26 @@ const Viabilidade = () => {
     }
   };
 
-  const handleOpenSimulador = (viabilidade: any) => {
+  const handleOpenSimulador = (viabilidade: ViabilidadeRow) => {
     setSelectedViabilidade(viabilidade);
-    setInputs(defaultInputs);
+    
+    // Carregar simulação salva ou usar defaults
+    if (viabilidade.simulation_data && typeof viabilidade.simulation_data === 'object') {
+      setInputs(viabilidade.simulation_data as SimuladorInputs);
+    } else {
+      setInputs(defaultInputs);
+    }
+    
+    // Carregar data de habite-se
+    if (viabilidade.data_habitese) {
+      setDataHabitese(new Date(viabilidade.data_habitese));
+    } else {
+      setDataHabitese(undefined);
+    }
+    
+    // Carregar status de atraso
+    setProjetoAtrasado(viabilidade.projeto_atrasado || false);
+    
     setActiveTab("simulador");
   };
 
@@ -222,12 +292,16 @@ const Viabilidade = () => {
         .update({
           vgv_estimado: inputs.vgv,
           margem_estimada: results.margemFinalPercent,
+          comissao_incorporador: inputs.comissaoIncorporador,
           resultado: results.status === "viable" ? "viavel" : results.status === "limit" ? "condicional" : "inviavel",
           recomendacao: results.status === "viable" ? "simples" : results.status === "limit" ? "media" : "nao",
           status: "em_analise",
           analisado_por: user.id,
           analisado_por_nome: profile?.nome,
           data_analise: new Date().toISOString(),
+          data_habitese: dataHabitese?.toISOString() || null,
+          projeto_atrasado: projetoAtrasado,
+          simulation_data: JSON.parse(JSON.stringify(inputs)),
         })
         .eq("id", selectedViabilidade.id);
 
@@ -264,7 +338,6 @@ const Viabilidade = () => {
   };
 
   const handleContratoGerado = async (contrato: any) => {
-    // Atualizar status da viabilidade para "aprovado" quando contrato é gerado
     if (selectedViabilidade) {
       try {
         await supabase
@@ -315,15 +388,67 @@ const Viabilidade = () => {
     const matchesSearch =
       v.nome_empreendimento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.cnpj?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.cidade?.toLowerCase().includes(searchTerm.toLowerCase());
+      v.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.empresa_nome?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || v.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Agrupar por empresa
+  const groupedViabilidades = useMemo(() => {
+    const grouped: Record<string, { empresa: string; empresaId: string | null; projetos: ViabilidadeRow[] }> = {};
+    
+    filteredViabilidades.forEach((v) => {
+      const key = v.empresa_id || "sem_empresa";
+      const empresaNome = v.empresa_nome || "Sem empresa vinculada";
+      
+      if (!grouped[key]) {
+        grouped[key] = {
+          empresa: empresaNome,
+          empresaId: v.empresa_id,
+          projetos: [],
+        };
+      }
+      grouped[key].projetos.push(v);
+    });
+    
+    return Object.entries(grouped).sort(([, a], [, b]) => a.empresa.localeCompare(b.empresa));
+  }, [filteredViabilidades]);
+
+  const toggleEmpresa = (empresaId: string) => {
+    setExpandedEmpresas((prev) => {
+      const next = new Set(prev);
+      if (next.has(empresaId)) {
+        next.delete(empresaId);
+      } else {
+        next.add(empresaId);
+      }
+      return next;
+    });
+  };
+
+  // Expandir todas por padrão
+  useEffect(() => {
+    const allKeys = groupedViabilidades.map(([key]) => key);
+    setExpandedEmpresas(new Set(allKeys));
+  }, [groupedViabilidades.length]);
 
   const stats = {
     total: viabilidades.length,
     pendentes: viabilidades.filter((v) => v.status === "pendente").length,
     aprovadas: viabilidades.filter((v) => v.resultado === "viavel").length,
+  };
+
+  // Atualizar campos quando empresa é selecionada
+  const handleEmpresaChange = (empresaId: string) => {
+    const empresa = contatosAtivos.find((c) => c.id === empresaId);
+    setFormData({
+      ...formData,
+      empresa_id: empresaId,
+      cnpj: empresa?.cnpj || "",
+      cidade: empresa?.cidade || "",
+      estado: empresa?.estado || "",
+    });
   };
 
   return (
@@ -402,7 +527,7 @@ const Viabilidade = () => {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome, CNPJ ou cidade..."
+                placeholder="Buscar por nome, empresa, CNPJ ou cidade..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -422,109 +547,159 @@ const Viabilidade = () => {
             </Select>
           </div>
 
-          {/* Table */}
+          {/* Table agrupada por empresa */}
           <Card>
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
+                  <TableHead className="font-semibold w-8"></TableHead>
                   <TableHead className="font-semibold">Empreendimento</TableHead>
                   <TableHead className="font-semibold">Localização</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Margem</TableHead>
                   <TableHead className="font-semibold">Comissão</TableHead>
+                  <TableHead className="font-semibold">Habite-se</TableHead>
+                  <TableHead className="font-semibold">Atrasado</TableHead>
                   <TableHead className="font-semibold">Data</TableHead>
                   <TableHead className="font-semibold text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredViabilidades.map((viabilidade) => (
-                  <TableRow key={viabilidade.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10">
+                {groupedViabilidades.map(([key, group]) => (
+                  <>
+                    {/* Linha do grupo (empresa) */}
+                    <TableRow 
+                      key={`empresa-${key}`} 
+                      className="bg-muted/50 cursor-pointer hover:bg-muted/70"
+                      onClick={() => toggleEmpresa(key)}
+                    >
+                      <TableCell colSpan={10}>
+                        <div className="flex items-center gap-2 font-medium">
+                          {expandedEmpresas.has(key) ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
                           <Building2 className="w-4 h-4 text-primary" />
+                          <span>{group.empresa}</span>
+                          <Badge variant="secondary" className="ml-2">
+                            {group.projetos.length} projeto{group.projetos.length !== 1 ? "s" : ""}
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="font-medium">{viabilidade.nome_empreendimento}</p>
-                          <p className="text-sm text-muted-foreground">{viabilidade.cnpj || "—"}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="w-3 h-3" />
-                        {viabilidade.cidade && viabilidade.estado
-                          ? `${viabilidade.cidade}, ${viabilidade.estado}`
-                          : "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{viabilidade.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {viabilidade.margem_estimada !== null ? (
-                        <span className={cn("font-medium", {
-                          "text-success": viabilidade.resultado === "viavel",
-                          "text-warning-foreground": viabilidade.resultado === "condicional",
-                          "text-destructive": viabilidade.resultado === "inviavel",
-                        })}>
-                          {viabilidade.margem_estimada.toFixed(2)}%
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {typeof (viabilidade as any).comissao_incorporador === "number" ? (
-                        <span className="font-medium">
-                          {(viabilidade as any).comissao_incorporador.toFixed(2)}%
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(viabilidade.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          className="gap-1 bg-primary hover:bg-primary/90"
-                          onClick={() => handleOpenSimulador(viabilidade)}
-                        >
-                          <Play className="w-3 h-3" />
-                          Simular
-                        </Button>
-                        {isMaster && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. O projeto será permanentemente removido.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(viabilidade.id)}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                >
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Linhas dos projetos */}
+                    {expandedEmpresas.has(key) && group.projetos.map((viabilidade) => (
+                      <TableRow key={viabilidade.id} className="hover:bg-muted/50">
+                        <TableCell></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3 pl-4">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+                              <FileText className="w-3 h-3 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{viabilidade.nome_empreendimento}</p>
+                              <p className="text-sm text-muted-foreground">{viabilidade.cnpj || "—"}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <MapPin className="w-3 h-3" />
+                            {viabilidade.cidade && viabilidade.estado
+                              ? `${viabilidade.cidade}, ${viabilidade.estado}`
+                              : "—"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{viabilidade.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {viabilidade.margem_estimada !== null ? (
+                            <span className={cn("font-medium", {
+                              "text-success": viabilidade.resultado === "viavel",
+                              "text-warning-foreground": viabilidade.resultado === "condicional",
+                              "text-destructive": viabilidade.resultado === "inviavel",
+                            })}>
+                              {viabilidade.margem_estimada.toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {viabilidade.comissao_incorporador !== null ? (
+                            <span className="font-medium">
+                              {viabilidade.comissao_incorporador.toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {viabilidade.data_habitese ? (
+                            <span className="text-sm">
+                              {format(new Date(viabilidade.data_habitese), "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {viabilidade.projeto_atrasado ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Sim
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Não</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(viabilidade.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              className="gap-1 bg-primary hover:bg-primary/90"
+                              onClick={() => handleOpenSimulador(viabilidade)}
+                            >
+                              <Play className="w-3 h-3" />
+                              Simular
+                            </Button>
+                            {isMaster && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não pode ser desfeita. O projeto será permanentemente removido.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(viabilidade.id)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </>
                 ))}
               </TableBody>
             </Table>
@@ -570,9 +745,9 @@ const Viabilidade = () => {
                     <div>
                       <p className="font-medium">{selectedViabilidade.nome_empreendimento}</p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedViabilidade.cidade && selectedViabilidade.estado
+                        {selectedViabilidade.empresa_nome || (selectedViabilidade.cidade && selectedViabilidade.estado
                           ? `${selectedViabilidade.cidade}, ${selectedViabilidade.estado}`
-                          : "Simulação em andamento"}
+                          : "Simulação em andamento")}
                       </p>
                     </div>
                   </div>
@@ -580,7 +755,11 @@ const Viabilidade = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setInputs(defaultInputs)}
+                      onClick={() => {
+                        setInputs(defaultInputs);
+                        setDataHabitese(undefined);
+                        setProjetoAtrasado(false);
+                      }}
                       className="gap-1"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -609,6 +788,49 @@ const Viabilidade = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Coluna Esquerda - Inputs */}
             <div className="space-y-4">
+              {/* Novos campos: Data Habite-se e Projeto Atrasado */}
+              <Card className="border shadow-sm">
+                <CardContent className="py-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-medium">Data de Habite-se</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[200px] justify-start text-left font-normal",
+                            !dataHabitese && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {dataHabitese ? format(dataHabitese, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={dataHabitese}
+                          onSelect={setDataHabitese}
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="font-medium">Projeto Atrasado</Label>
+                      <p className="text-sm text-muted-foreground">O projeto está com atraso no cronograma?</p>
+                    </div>
+                    <Switch
+                      checked={projetoAtrasado}
+                      onCheckedChange={setProjetoAtrasado}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               <EstruturaProjeto
                 unidades={inputs.unidades}
                 vgv={inputs.vgv}
@@ -674,6 +896,32 @@ const Viabilidade = () => {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* Empresa (primeiro campo) */}
+            <div className="space-y-2">
+              <Label>Empresa (Contato Ativo) *</Label>
+              <Select value={formData.empresa_id} onValueChange={handleEmpresaChange}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione uma empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contatosAtivos.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Nenhum contato ativo encontrado
+                    </SelectItem>
+                  ) : (
+                    contatosAtivos.map((contato) => (
+                      <SelectItem key={contato.id} value={contato.id}>
+                        {contato.nomeFantasia || contato.razaoSocial} - {contato.cnpj}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Apenas empresas cadastradas em Contatos Ativos podem ser vinculadas
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Nome do Empreendimento *</Label>
               <Input
@@ -688,6 +936,7 @@ const Viabilidade = () => {
                 placeholder="00.000.000/0000-00"
                 value={formData.cnpj}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                disabled={!!formData.empresa_id}
               />
             </div>
             <div className="space-y-2">

@@ -363,13 +363,17 @@ export type Database = {
           analisado_por_nome: string | null
           cidade: string | null
           cnpj: string | null
+          comissao_incorporador: number | null
           contato_id: string | null
           created_at: string
           custo_obra: number | null
           custo_terreno: number | null
           data_analise: string | null
+          data_habitese: string | null
           data_solicitacao: string
           documento_id: string | null
+          empresa_id: string | null
+          empresa_nome: string | null
           endereco: string | null
           estado: string | null
           id: string
@@ -379,8 +383,10 @@ export type Database = {
           nome_empreendimento: string
           observacoes: string | null
           payback_meses: number | null
+          projeto_atrasado: boolean | null
           recomendacao: string | null
           resultado: string | null
+          simulation_data: Json | null
           solicitado_por: string
           solicitado_por_nome: string
           status: string
@@ -394,13 +400,17 @@ export type Database = {
           analisado_por_nome?: string | null
           cidade?: string | null
           cnpj?: string | null
+          comissao_incorporador?: number | null
           contato_id?: string | null
           created_at?: string
           custo_obra?: number | null
           custo_terreno?: number | null
           data_analise?: string | null
+          data_habitese?: string | null
           data_solicitacao?: string
           documento_id?: string | null
+          empresa_id?: string | null
+          empresa_nome?: string | null
           endereco?: string | null
           estado?: string | null
           id?: string
@@ -410,8 +420,10 @@ export type Database = {
           nome_empreendimento: string
           observacoes?: string | null
           payback_meses?: number | null
+          projeto_atrasado?: boolean | null
           recomendacao?: string | null
           resultado?: string | null
+          simulation_data?: Json | null
           solicitado_por: string
           solicitado_por_nome: string
           status?: string
@@ -425,13 +437,17 @@ export type Database = {
           analisado_por_nome?: string | null
           cidade?: string | null
           cnpj?: string | null
+          comissao_incorporador?: number | null
           contato_id?: string | null
           created_at?: string
           custo_obra?: number | null
           custo_terreno?: number | null
           data_analise?: string | null
+          data_habitese?: string | null
           data_solicitacao?: string
           documento_id?: string | null
+          empresa_id?: string | null
+          empresa_nome?: string | null
           endereco?: string | null
           estado?: string | null
           id?: string
@@ -441,8 +457,10 @@ export type Database = {
           nome_empreendimento?: string
           observacoes?: string | null
           payback_meses?: number | null
+          projeto_atrasado?: boolean | null
           recomendacao?: string | null
           resultado?: string | null
+          simulation_data?: Json | null
           solicitado_por?: string
           solicitado_por_nome?: string
           status?: string
@@ -457,6 +475,13 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "repository_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "viabilidades_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
