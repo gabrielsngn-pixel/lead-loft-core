@@ -15,10 +15,12 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { LeadSource } from "@/types/crm";
-import { ArrowLeft, Save, Building2, User, MapPin, FileText } from "lucide-react";
+import { useLeads } from "@/hooks/useLeads";
+import { ArrowLeft, Save, Building2, User, MapPin, FileText, Loader2 } from "lucide-react";
 
 const NovoLead = () => {
   const navigate = useNavigate();
+  const { createLead } = useLeads();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     cnpj: "",
@@ -49,45 +51,53 @@ const NovoLead = () => {
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 10) {
-      return numbers
-        .replace(/^(\d{2})(\d)/, "($1) $2")
-        .replace(/(\d{4})(\d)/, "$1-$2");
+      return numbers.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
     }
-    return numbers
-      .replace(/^(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .slice(0, 15);
+    return numbers.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 15);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await createLead({
+        cnpj: formData.cnpj,
+        razaoSocial: formData.razaoSocial,
+        nomeFantasia: formData.nomeFantasia || undefined,
+        email: formData.email,
+        telefone: formData.telefone,
+        cidade: formData.cidade,
+        estado: formData.estado,
+        origem: formData.origem,
+        observacoes: formData.observacoes || undefined,
+      });
 
-    toast({
-      title: "Lead cadastrado com sucesso!",
-      description: `${formData.nomeFantasia || formData.razaoSocial} foi adicionado à sua base.`,
-    });
-
-    setIsLoading(false);
-    navigate("/leads");
+      toast({
+        title: "Lead cadastrado com sucesso!",
+        description: `${formData.nomeFantasia || formData.razaoSocial} foi adicionado à sua base.`,
+      });
+      navigate("/leads");
+    } catch (err: any) {
+      toast({
+        title: "Erro ao criar lead",
+        description: err?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const estados = [
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
     "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-    "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    "RS", "RO", "RR", "SC", "SP", "SE", "TO",
   ];
 
   return (
     <AppLayout title="Novo Lead" subtitle="Cadastre um novo lead na base">
-      <Button
-        variant="ghost"
-        className="mb-6"
-        onClick={() => navigate("/leads")}
-      >
+      <Button variant="ghost" className="mb-6" onClick={() => navigate("/leads")}>
         <ArrowLeft className="w-4 h-4 mr-2" />
         Voltar para Leads
       </Button>
@@ -204,18 +214,13 @@ const NovoLead = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estado">Estado *</Label>
-                <Select
-                  value={formData.estado}
-                  onValueChange={(value) => handleChange("estado", value)}
-                >
+                <Select value={formData.estado} onValueChange={(value) => handleChange("estado", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o estado" />
                   </SelectTrigger>
                   <SelectContent>
                     {estados.map((uf) => (
-                      <SelectItem key={uf} value={uf}>
-                        {uf}
-                      </SelectItem>
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -239,10 +244,7 @@ const NovoLead = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="origem">Origem *</Label>
-                <Select
-                  value={formData.origem}
-                  onValueChange={(value) => handleChange("origem", value)}
-                >
+                <Select value={formData.origem} onValueChange={(value) => handleChange("origem", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Como chegou até nós?" />
                   </SelectTrigger>
@@ -272,17 +274,13 @@ const NovoLead = () => {
 
         {/* Submit Button */}
         <div className="flex justify-end gap-4 mt-8">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/leads")}
-          >
+          <Button type="button" variant="outline" onClick={() => navigate("/leads")}>
             Cancelar
           </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <>
-                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Salvando...
               </>
             ) : (

@@ -89,6 +89,149 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          cidade: string
+          cnpj: string
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          data_criacao: string
+          data_ultima_interacao: string
+          email: string
+          estado: string
+          id: string
+          nome_contato: string | null
+          nome_fantasia: string | null
+          observacoes: string | null
+          origem: string
+          prioridade: string
+          proxima_atividade: string | null
+          proxima_reuniao: string | null
+          razao_social: string
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: string
+          telefone: string
+          tipo_empresa: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cidade: string
+          cnpj: string
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          data_criacao?: string
+          data_ultima_interacao?: string
+          email: string
+          estado: string
+          id?: string
+          nome_contato?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          origem?: string
+          prioridade?: string
+          proxima_atividade?: string | null
+          proxima_reuniao?: string | null
+          razao_social: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          telefone: string
+          tipo_empresa?: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cidade?: string
+          cnpj?: string
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          data_criacao?: string
+          data_ultima_interacao?: string
+          email?: string
+          estado?: string
+          id?: string
+          nome_contato?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          origem?: string
+          prioridade?: string
+          proxima_atividade?: string | null
+          proxima_reuniao?: string | null
+          razao_social?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          telefone?: string
+          tipo_empresa?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      negotiations: {
+        Row: {
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          data_previsao_fechamento: string | null
+          etapa: string
+          id: string
+          lead_id: string
+          probabilidade: number
+          titulo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          data_previsao_fechamento?: string | null
+          etapa?: string
+          id?: string
+          lead_id: string
+          probabilidade?: number
+          titulo: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          data_previsao_fechamento?: string | null
+          etapa?: string
+          id?: string
+          lead_id?: string
+          probabilidade?: number
+          titulo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negotiations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved_at: string | null

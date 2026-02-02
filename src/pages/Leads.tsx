@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
-import { mockLeads } from "@/data/mockData";
+import { useLeads } from "@/hooks/useLeads";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -55,9 +55,8 @@ import {
   Share2,
   HelpCircle,
   Shield,
+  Loader2,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { roleLabels } from "@/types/permissions";
@@ -84,7 +83,7 @@ const companyTypeConfig: Record<CompanyType, { label: string; icon: typeof Build
   outro: { label: "Outro", icon: HelpCircle },
 };
 
-const origemLabels = {
+const origemLabels: Record<string, string> = {
   site: "Site",
   indicacao: "Indicação",
   evento: "Evento",
@@ -112,10 +111,11 @@ const Leads = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { currentUser } = usePermissions();
+  const { leads, loading, updateLead, deleteLead, claimLead } = useLeads();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -126,10 +126,15 @@ const Leads = () => {
     setEditDialogOpen(true);
   };
 
-  const handleSaveLead = (updatedLead: Lead) => {
-    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
-    setEditDialogOpen(false);
-    setEditingLead(null);
+  const handleSaveLead = async (updatedLead: Lead) => {
+    try {
+      await updateLead(updatedLead);
+      setEditDialogOpen(false);
+      setEditingLead(null);
+      toast({ title: "Lead atualizado com sucesso" });
+    } catch {
+      toast({ title: "Erro ao atualizar lead", variant: "destructive" });
+    }
   };
 
   const handleDeleteClick = (lead: Lead) => {
@@ -137,15 +142,28 @@ const Leads = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (leadToDelete) {
-      setLeads(prev => prev.filter(l => l.id !== leadToDelete.id));
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return;
+    try {
+      await deleteLead(leadToDelete.id);
       toast({
         title: "Lead excluído",
         description: `${leadToDelete.nomeFantasia || leadToDelete.razaoSocial} foi removido.`,
       });
+    } catch {
+      toast({ title: "Erro ao excluir lead", variant: "destructive" });
+    } finally {
       setDeleteDialogOpen(false);
       setLeadToDelete(null);
+    }
+  };
+
+  const handleClaimLead = async (lead: Lead) => {
+    try {
+      await claimLead(lead);
+      toast({ title: "Você é agora responsável por este lead" });
+    } catch {
+      toast({ title: "Erro ao apropriar lead", variant: "destructive" });
     }
   };
 
@@ -162,43 +180,9 @@ const Leads = () => {
     return matchesSearch && matchesStatus && matchesTipo;
   });
 
-  const handleImport = (data: any[]) => {
-    // Check for duplicates by CNPJ
-    const existingCNPJs = new Set(leads.map(l => l.cnpj.replace(/[^\d]/g, "")));
-    const newLeads = data.filter(row => {
-      const cnpj = row.cnpj?.replace(/[^\d]/g, "");
-      return cnpj && !existingCNPJs.has(cnpj);
-    });
-
-    if (newLeads.length < data.length) {
-      toast({
-        title: "Alguns leads foram ignorados",
-        description: `${data.length - newLeads.length} leads duplicados (mesmo CNPJ) não foram importados.`,
-        variant: "destructive",
-      });
-    }
-
-    // Add new leads with generated IDs
-    const leadsToAdd: Lead[] = newLeads.map((row, index) => ({
-      id: `imported-${Date.now()}-${index}`,
-      cnpj: row.cnpj || "",
-      razaoSocial: row.razaoSocial || "",
-      nomeFantasia: row.nomeFantasia,
-      nomeContato: row.nomeContato,
-      email: row.email || "",
-      telefone: row.telefone || "",
-      cidade: row.cidade || "",
-      estado: row.estado || "",
-      origem: row.origem || "outro",
-      status: row.status || "novo",
-      prioridade: row.prioridade || "media",
-      tipoEmpresa: row.tipoEmpresa || "outro",
-      valorEstimado: row.valorEstimado ? Number(row.valorEstimado) : undefined,
-      dataCriacao: new Date(),
-      dataUltimaInteracao: new Date(),
-    }));
-
-    setLeads(prev => [...prev, ...leadsToAdd]);
+  const handleImport = (_data: any[]) => {
+    // import via backend será tratado futuramente
+    toast({ title: "Importação não implementada (backend)", variant: "destructive" });
   };
 
   return (
@@ -272,145 +256,123 @@ const Leads = () => {
 
       {/* Leads Table */}
       <div className="stat-card p-0 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/30">
-              <TableHead className="font-semibold">Empresa</TableHead>
-              <TableHead className="font-semibold">Tipo</TableHead>
-              <TableHead className="font-semibold">CNPJ</TableHead>
-              <TableHead className="font-semibold">Contato</TableHead>
-              <TableHead className="font-semibold">Origem</TableHead>
-              <TableHead className="font-semibold">Status Inicial</TableHead>
-              <TableHead className="font-semibold">Status Atual</TableHead>
-              <TableHead className="font-semibold">Prioridade</TableHead>
-              <TableHead className="font-semibold">Comentários</TableHead>
-              <TableHead className="font-semibold text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLeads.map((lead, index) => {
-              const TypeIcon = companyTypeConfig[lead.tipoEmpresa].icon;
-              return (
-                <TableRow
-                  key={lead.id}
-                  className="table-row-hover animate-fade-in cursor-pointer"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                  onClick={() => handleEditLead(lead)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/10">
-                        <TypeIcon className="w-4 h-4 text-secondary" />
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30">
+                <TableHead className="font-semibold">Empresa</TableHead>
+                <TableHead className="font-semibold">Tipo</TableHead>
+                <TableHead className="font-semibold">CNPJ</TableHead>
+                <TableHead className="font-semibold">Contato</TableHead>
+                <TableHead className="font-semibold">Origem</TableHead>
+                <TableHead className="font-semibold">Status Inicial</TableHead>
+                <TableHead className="font-semibold">Status Atual</TableHead>
+                <TableHead className="font-semibold">Prioridade</TableHead>
+                <TableHead className="font-semibold">Comentários</TableHead>
+                <TableHead className="font-semibold text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLeads.map((lead, index) => {
+                const TypeIcon = companyTypeConfig[lead.tipoEmpresa]?.icon ?? HelpCircle;
+                return (
+                  <TableRow
+                    key={lead.id}
+                    className="table-row-hover animate-fade-in cursor-pointer"
+                    style={{ animationDelay: `${index * 30}ms` }}
+                    onClick={() => handleEditLead(lead)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/10">
+                          <TypeIcon className="w-4 h-4 text-secondary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{lead.nomeFantasia || lead.razaoSocial}</p>
+                          <p className="text-sm text-muted-foreground">{lead.cidade}/{lead.estado}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">
-                          {lead.nomeFantasia || lead.razaoSocial}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {lead.cidade}/{lead.estado}
-                        </p>
+                    </TableCell>
+                    <TableCell className="text-sm">{companyTypeConfig[lead.tipoEmpresa]?.label ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-sm">{lead.cnpj}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <p>{lead.nomeContato || lead.email}</p>
+                        <p className="text-muted-foreground">{lead.telefone}</p>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {companyTypeConfig[lead.tipoEmpresa].label}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{lead.cnpj}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p>{lead.nomeContato || lead.email}</p>
-                      <p className="text-muted-foreground">{lead.telefone}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="font-normal">
-                      {origemLabels[lead.origem]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="badge-status badge-new">
-                      Novo
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={cn("badge-status", statusConfig[lead.status].className)}>
-                      {statusConfig[lead.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={cn("badge-status", priorityConfig[lead.prioridade].className)}>
-                      {priorityConfig[lead.prioridade].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {lead.observacoes ? (
-                      <span className="text-sm" title={lead.observacoes}>
-                        {lead.observacoes.length > 48
-                          ? `${lead.observacoes.slice(0, 48)}…`
-                          : lead.observacoes}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditLead(lead)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Visualizar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditLead(lead)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            Apropriar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteClick(lead)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-normal">{origemLabels[lead.origem] ?? lead.origem}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="badge-status badge-new">Novo</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn("badge-status", statusConfig[lead.status]?.className)}>{statusConfig[lead.status]?.label ?? lead.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn("badge-status", priorityConfig[lead.prioridade]?.className)}>{priorityConfig[lead.prioridade]?.label ?? lead.prioridade}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {lead.observacoes ? (
+                        <span className="text-sm" title={lead.observacoes}>
+                          {lead.observacoes.length > 48 ? `${lead.observacoes.slice(0, 48)}…` : lead.observacoes}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditLead(lead)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Visualizar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditLead(lead)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleClaimLead(lead)}>
+                              <UserPlus className="w-4 h-4 mr-2" />
+                              Apropriar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(lead)}>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
 
-        {filteredLeads.length === 0 && (
+        {!loading && filteredLeads.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Building2 className="w-12 h-12 text-muted-foreground/50 mb-4" />
-            <p className="text-lg font-medium text-muted-foreground">
-              Nenhum lead encontrado
-            </p>
-            <p className="text-sm text-muted-foreground/70">
-              Tente ajustar seus filtros de busca
-            </p>
+            <p className="text-lg font-medium text-muted-foreground">Nenhum lead encontrado</p>
+            <p className="text-sm text-muted-foreground/70">Tente ajustar seus filtros de busca</p>
           </div>
         )}
       </div>
 
       {/* Edit Dialog */}
-      <EditLeadDialog
-        lead={editingLead}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onSave={handleSaveLead}
-      />
+      <EditLeadDialog lead={editingLead} open={editDialogOpen} onOpenChange={setEditDialogOpen} onSave={handleSaveLead} />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -418,19 +380,12 @@ const Leads = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o lead{" "}
-              <strong>{leadToDelete?.nomeFantasia || leadToDelete?.razaoSocial}</strong>?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o lead <strong>{leadToDelete?.nomeFantasia || leadToDelete?.razaoSocial}</strong>? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
