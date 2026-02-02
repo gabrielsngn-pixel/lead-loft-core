@@ -59,6 +59,7 @@ export interface DadosProjeto {
   valorRegistroPorUnidade: number;
   receitaRegistroTotal: number;
   hasRegistro: boolean;
+  nomeEmpreendimento: string;
 }
 
 export interface ContratoData {
@@ -189,6 +190,14 @@ function ContratoDocumento({ data }: ContratoDocumentoProps) {
 
       <p className="text-justify mb-8">
         Têm entre si, justo e acordado, celebrar o presente Contrato de Prestação de Serviços de Intermediação de 
+        Crédito Imobiliário, Repasse e Registro, referente ao empreendimento "<strong>{dadosProjeto.nomeEmpreendimento}</strong>", que se regerá pelas cláusulas e condições seguintes, bem como 
+        pelas disposições legais aplicáveis.
+      </p>
+
+      {/* CLÁUSULA PRIMEIRA */}
+      <h2 className="font-bold mb-3" style={{ color: "#FF774A" }}>CLÁUSULA PRIMEIRA – DO OBJETO</h2>
+      <p className="text-justify mb-2">
+        <strong>1.1.</strong> O presente contrato tem como objeto a prestação, pela <strong>LOFT INTERMEDIADORA LTDA</strong>, dos serviços de:
         Crédito Imobiliário, Repasse e Registro, que se regerá pelas cláusulas e condições seguintes, bem como 
         pelas disposições legais aplicáveis.
       </p>
@@ -230,13 +239,17 @@ function ContratoDocumento({ data }: ContratoDocumentoProps) {
       {/* CLÁUSULA TERCEIRA */}
       <h2 className="font-bold mb-3" style={{ color: "#FF774A" }}>CLÁUSULA TERCEIRA – DAS CONDIÇÕES COMERCIAIS</h2>
       <p className="text-justify mb-4">
-        <strong>3.1.</strong> As condições comerciais acordadas para o empreendimento objeto deste contrato são as seguintes:
+        <strong>3.1.</strong> As condições comerciais acordadas para o empreendimento "<strong>{dadosProjeto.nomeEmpreendimento}</strong>" são as seguintes:
       </p>
       
       {/* TABELA DE CONDIÇÕES */}
       <div className="mb-4" style={{ borderLeft: "3px solid #FF774A", backgroundColor: "#fafafa" }}>
         <table className="w-full">
           <tbody>
+            <tr style={{ borderBottom: "1px solid #eee" }}>
+              <td className="p-3">Empreendimento:</td>
+              <td className="p-3 text-right font-bold">{dadosProjeto.nomeEmpreendimento}</td>
+            </tr>
             <tr style={{ borderBottom: "1px solid #eee" }}>
               <td className="p-3">Valor Geral de Vendas (VGV):</td>
               <td className="p-3 text-right font-bold">{formatCurrency(dadosProjeto.vgvTotal)}</td>
@@ -446,6 +459,7 @@ export interface ContratoLoftDialogProps {
     comissaoIncorporador: number;
     valorRegistroPorUnidade: number;
     registroTipo: string;
+    nomeEmpreendimento: string;
   };
   dadosPreenchidos?: Partial<DadosIncorporadora>;
   onContratoGerado?: (contrato: ContratoData) => void;
@@ -487,6 +501,7 @@ export function ContratoLoftDialog({
     valorRegistroPorUnidade: dadosProjeto.valorRegistroPorUnidade,
     receitaRegistroTotal: dadosProjeto.valorRegistroPorUnidade * dadosProjeto.unidades,
     hasRegistro: dadosProjeto.registroTipo === "internalizado",
+    nomeEmpreendimento: dadosProjeto.nomeEmpreendimento,
   };
 
   // Dados consolidados

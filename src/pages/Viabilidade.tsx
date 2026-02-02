@@ -999,8 +999,11 @@ const Viabilidade = () => {
           comissaoIncorporador: inputs.comissaoIncorporador,
           valorRegistroPorUnidade: inputs.valorRegistroPorUnidade,
           registroTipo: inputs.registroTipo,
+          nomeEmpreendimento: selectedViabilidade?.nome_empreendimento || "",
         }}
         dadosPreenchidos={selectedViabilidade ? {
+          razaoSocial: selectedViabilidade.empresa_nome || "",
+          nomeFantasia: contatosAtivos.find(c => c.id === selectedViabilidade.empresa_id)?.nomeFantasia || "",
           cnpj: selectedViabilidade.cnpj || "",
           endereco: selectedViabilidade.endereco || "",
           cidade: selectedViabilidade.cidade || "",
