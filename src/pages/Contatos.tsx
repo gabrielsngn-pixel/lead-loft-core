@@ -2,7 +2,9 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -40,6 +42,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { roleLabels } from "@/types/permissions";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import {
   Search,
   MoreHorizontal,
@@ -87,6 +90,7 @@ const companyTypeConfig: Record<CompanyType, { label: string; icon: typeof Build
 
 const Contatos = () => {
   const { currentUser } = usePermissions();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
@@ -99,6 +103,19 @@ const Contatos = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Lead | null>(null);
+
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newContactData, setNewContactData] = useState({
+    razaoSocial: "",
+    nomeFantasia: "",
+    cnpj: "",
+    nomeContato: "",
+    email: "",
+    telefone: "",
+    cidade: "",
+    estado: "",
+    tipoEmpresa: "incorporadora" as CompanyType,
+  });
   
   // Filter only leads that have a responsible person (active contacts)
   const activeContacts = contacts.filter(lead => lead.responsavelId);
@@ -192,6 +209,65 @@ const Contatos = () => {
     }
   };
 
+  const handleCreateContact = () => {
+    if (!currentUser.id) {
+      toast({
+        title: "Perfil carregando",
+        description: "Aguarde o carregamento do seu perfil para criar um contato.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newContactData.razaoSocial.trim() || !newContactData.email.trim() || !newContactData.telefone.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha Razão Social, Email e Telefone.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const now = new Date();
+    const newContact: Lead = {
+      id: `contato-${Date.now()}`,
+      cnpj: newContactData.cnpj,
+      razaoSocial: newContactData.razaoSocial,
+      nomeFantasia: newContactData.nomeFantasia || undefined,
+      nomeContato: newContactData.nomeContato || undefined,
+      email: newContactData.email,
+      telefone: newContactData.telefone,
+      cidade: newContactData.cidade,
+      estado: newContactData.estado,
+      origem: "outro",
+      status: "qualificado" as LeadStatus,
+      prioridade: "media" as Priority,
+      tipoEmpresa: newContactData.tipoEmpresa,
+      responsavelId: currentUser.id,
+      responsavelNome: currentUser.nome,
+      dataCriacao: now,
+      dataUltimaInteracao: now,
+    };
+
+    setContacts((prev) => [newContact, ...prev]);
+    setCreateDialogOpen(false);
+    setNewContactData({
+      razaoSocial: "",
+      nomeFantasia: "",
+      cnpj: "",
+      nomeContato: "",
+      email: "",
+      telefone: "",
+      cidade: "",
+      estado: "",
+      tipoEmpresa: "incorporadora" as CompanyType,
+    });
+    toast({
+      title: "Contato criado",
+      description: "O contato já foi atribuído a você e aparece na lista.",
+    });
+  };
+
   return (
     <AppLayout title="Contatos Ativos" subtitle="Lista de leads sob sua responsabilidade">
       {/* Role Badge */}
@@ -225,7 +301,7 @@ const Contatos = () => {
                 <Upload className="w-4 h-4 mr-2" />
                 Importar
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Contato
               </Button>
@@ -425,6 +501,120 @@ const Contatos = () => {
           </div>
         )}
       </div>
+
+      {/* Create Contact Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Novo Contato</DialogTitle>
+            <DialogDescription>
+              Crie um contato ativo (já atribuído a você) para seguir a jornada comercial.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Razão Social *</Label>
+              <Input
+                value={newContactData.razaoSocial}
+                onChange={(e) => setNewContactData((p) => ({ ...p, razaoSocial: e.target.value }))}
+                placeholder="Razão social da incorporadora"
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Nome Fantasia</Label>
+              <Input
+                value={newContactData.nomeFantasia}
+                onChange={(e) => setNewContactData((p) => ({ ...p, nomeFantasia: e.target.value }))}
+                placeholder="Opcional"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={newContactData.cnpj}
+                onChange={(e) => setNewContactData((p) => ({ ...p, cnpj: e.target.value }))}
+                placeholder="00.000.000/0000-00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select
+                value={newContactData.tipoEmpresa}
+                onValueChange={(v) =>
+                  setNewContactData((p) => ({ ...p, tipoEmpresa: v as CompanyType }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(companyTypeConfig).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>
+                      {cfg.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nome do Contato</Label>
+              <Input
+                value={newContactData.nomeContato}
+                onChange={(e) => setNewContactData((p) => ({ ...p, nomeContato: e.target.value }))}
+                placeholder="Opcional"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input
+                value={newContactData.email}
+                onChange={(e) => setNewContactData((p) => ({ ...p, email: e.target.value }))}
+                placeholder="email@empresa.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Telefone *</Label>
+              <Input
+                value={newContactData.telefone}
+                onChange={(e) => setNewContactData((p) => ({ ...p, telefone: e.target.value }))}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cidade</Label>
+              <Input
+                value={newContactData.cidade}
+                onChange={(e) => setNewContactData((p) => ({ ...p, cidade: e.target.value }))}
+                placeholder="Cidade"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Input
+                value={newContactData.estado}
+                onChange={(e) => setNewContactData((p) => ({ ...p, estado: e.target.value }))}
+                placeholder="UF"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateContact}>Criar contato</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <EditLeadDialog

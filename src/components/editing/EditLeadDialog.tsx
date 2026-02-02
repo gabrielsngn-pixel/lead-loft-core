@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Building2, History, Save, X, Shield, Clock, User } from "lucide-react";
@@ -66,7 +66,7 @@ export function EditLeadDialog({
   onSave,
 }: EditLeadDialogProps) {
   const { toast } = useToast();
-  const { currentUser, canPerformAction, isGestor } = usePermissions();
+  const { currentUser } = usePermissions();
   const { history, logChange } = useChangeHistory("lead", lead?.id || "");
   
   const [editedLead, setEditedLead] = useState<Lead | null>(lead);
@@ -74,7 +74,26 @@ export function EditLeadDialog({
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyFieldFilter, setHistoryFieldFilter] = useState<string | undefined>();
 
-  if (!lead || !editedLead) return null;
+  // Sync internal state whenever a different lead is opened.
+  // This fixes cases where the dialog would not render because `editedLead`
+  // was initialized with `null` and never updated.
+  useEffect(() => {
+    if (open) {
+      setEditedLead(lead);
+      setHasChanges(false);
+    }
+  }, [lead, open]);
+
+  useEffect(() => {
+    if (!open) {
+      setEditedLead(null);
+      setHasChanges(false);
+    }
+  }, [open]);
+
+  if (!lead) return null;
+
+  const currentLead = editedLead ?? lead;
 
   const handleFieldChange = (fieldName: string, value: string) => {
     const fieldPermission = leadFieldPermissions.find(p => p.field === fieldName);
@@ -95,11 +114,11 @@ export function EditLeadDialog({
   };
 
   const handleSave = () => {
-    if (editedLead) {
-      onSave(editedLead);
+    if (currentLead) {
+      onSave(currentLead);
       toast({
         title: "Alterações salvas",
-        description: `${editedLead.nomeFantasia || editedLead.razaoSocial} atualizado com sucesso.`,
+        description: `${currentLead.nomeFantasia || currentLead.razaoSocial} atualizado com sucesso.`,
       });
       setHasChanges(false);
     }
@@ -172,7 +191,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="nomeContato"
                     label="Nome do Contato"
-                    value={editedLead.nomeContato}
+                    value={currentLead.nomeContato}
                     onSave={(v) => handleFieldChange("nomeContato", v)}
                     placeholder="Nome do contato"
                     onHistoryClick={() => handleShowFieldHistory("nomeContato")}
@@ -180,7 +199,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="email"
                     label="Email"
-                    value={editedLead.email}
+                    value={currentLead.email}
                     onSave={(v) => handleFieldChange("email", v)}
                     placeholder="email@empresa.com"
                     onHistoryClick={() => handleShowFieldHistory("email")}
@@ -188,7 +207,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="telefone"
                     label="Telefone"
-                    value={editedLead.telefone}
+                    value={currentLead.telefone}
                     onSave={(v) => handleFieldChange("telefone", v)}
                     placeholder="(00) 00000-0000"
                     onHistoryClick={() => handleShowFieldHistory("telefone")}
@@ -196,7 +215,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="cidade"
                     label="Cidade"
-                    value={editedLead.cidade}
+                    value={currentLead.cidade}
                     onSave={(v) => handleFieldChange("cidade", v)}
                     placeholder="Cidade"
                     onHistoryClick={() => handleShowFieldHistory("cidade")}
@@ -204,7 +223,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="estado"
                     label="Estado"
-                    value={editedLead.estado}
+                    value={currentLead.estado}
                     onSave={(v) => handleFieldChange("estado", v)}
                     placeholder="UF"
                     onHistoryClick={() => handleShowFieldHistory("estado")}
@@ -217,7 +236,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="razaoSocial"
                     label="Razão Social"
-                    value={editedLead.razaoSocial}
+                    value={currentLead.razaoSocial}
                     onSave={(v) => handleFieldChange("razaoSocial", v)}
                     placeholder="Razão Social"
                     onHistoryClick={() => handleShowFieldHistory("razaoSocial")}
@@ -225,7 +244,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="nomeFantasia"
                     label="Nome Fantasia"
-                    value={editedLead.nomeFantasia}
+                    value={currentLead.nomeFantasia}
                     onSave={(v) => handleFieldChange("nomeFantasia", v)}
                     placeholder="Nome Fantasia"
                     onHistoryClick={() => handleShowFieldHistory("nomeFantasia")}
@@ -233,7 +252,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="tipoEmpresa"
                     label="Tipo de Empresa"
-                    value={editedLead.tipoEmpresa}
+                    value={currentLead.tipoEmpresa}
                     onSave={(v) => handleFieldChange("tipoEmpresa", v as CompanyType)}
                     type="select"
                     options={companyTypeOptions}
@@ -242,7 +261,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="origem"
                     label="Origem"
-                    value={editedLead.origem}
+                    value={currentLead.origem}
                     onSave={(v) => handleFieldChange("origem", v as LeadSource)}
                     type="select"
                     options={sourceOptions}
@@ -256,7 +275,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="status"
                     label="Status"
-                    value={editedLead.status}
+                    value={currentLead.status}
                     onSave={(v) => handleFieldChange("status", v as LeadStatus)}
                     type="select"
                     options={statusOptions}
@@ -265,7 +284,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="prioridade"
                     label="Prioridade"
-                    value={editedLead.prioridade}
+                    value={currentLead.prioridade}
                     onSave={(v) => handleFieldChange("prioridade", v as Priority)}
                     type="select"
                     options={priorityOptions}
@@ -274,7 +293,7 @@ export function EditLeadDialog({
                   <EditableField
                     fieldName="valorEstimado"
                     label="Valor Estimado"
-                    value={editedLead.valorEstimado}
+                    value={currentLead.valorEstimado}
                     onSave={(v) => handleFieldChange("valorEstimado", v)}
                     type="number"
                     displayFormatter={(v) => formatCurrency(Number(v))}
@@ -284,7 +303,7 @@ export function EditLeadDialog({
                     <EditableField
                       fieldName="observacoes"
                       label="Observações"
-                      value={editedLead.observacoes}
+                      value={currentLead.observacoes}
                       onSave={(v) => handleFieldChange("observacoes", v)}
                       type="textarea"
                       placeholder="Adicione observações sobre este lead..."
@@ -357,7 +376,7 @@ export function EditLeadDialog({
           <div className="flex items-center justify-between pt-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="w-4 h-4" />
-              Última atualização: {format(editedLead.dataUltimaInteracao, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                Última atualização: {format(currentLead.dataUltimaInteracao, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
