@@ -1,13 +1,24 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Search, Filter, FileText, Calendar, Building2, User, Archive, Eye } from "lucide-react";
+import { Search, FileText, Calendar, Building2, User, Archive, Eye, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { MeetingMinutes, MeetingType, meetingTypeLabels, meetingStatusLabels } from "@/types/meetings";
 import { cn } from "@/lib/utils";
 
@@ -15,9 +26,10 @@ interface MeetingsListProps {
   meetings: MeetingMinutes[];
   onView: (meeting: MeetingMinutes) => void;
   onArchive?: (meetingId: string) => void;
+  onDelete?: (meetingId: string) => void;
 }
 
-export function MeetingsList({ meetings, onView, onArchive }: MeetingsListProps) {
+export function MeetingsList({ meetings, onView, onArchive, onDelete }: MeetingsListProps) {
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<MeetingType | "todos">("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -188,6 +200,36 @@ export function MeetingsList({ meetings, onView, onArchive }: MeetingsListProps)
                           >
                             <Archive className="w-4 h-4" />
                           </Button>
+                        )}
+                        {onDelete && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Ata</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a ata de "{meeting.empresa}"? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => onDelete(meeting.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </div>
                     </TableCell>

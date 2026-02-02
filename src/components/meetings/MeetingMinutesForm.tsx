@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Building2, FileText, Save, FileDown, Users, Calendar, Clock } from "lucide-react";
+import { Building2, FileText, Save, FileDown, Users, Calendar, Clock, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { MeetingMinutes, MeetingType, meetingTypeLabels } from "@/types/meetings";
-import { mockLeads } from "@/data/mockData";
-import { cn } from "@/lib/utils";
+import { useLeads } from "@/hooks/useLeads";
+import { useAuth } from "@/hooks/useAuth";
+import { Lead } from "@/types/crm";
 
 interface MeetingMinutesFormProps {
   initialData?: Partial<MeetingMinutes>;
@@ -22,6 +24,15 @@ interface MeetingMinutesFormProps {
 }
 
 export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: MeetingMinutesFormProps) {
+  const { leads, loading: leadsLoading } = useLeads();
+  const { profile } = useAuth();
+
+  // Filter only active contacts (leads with responsavelId)
+  const activeContacts = leads.filter((lead) => lead.responsavelId);
+
+  const [vinculadoContato, setVinculadoContato] = useState(!!initialData?.leadId);
+  const [saving, setSaving] = useState(false);
+
   const [formData, setFormData] = useState<Partial<MeetingMinutes>>({
     empresa: initialData?.empresa || "",
     cnpj: initialData?.cnpj || "",
@@ -36,12 +47,19 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
     decisoes: initialData?.decisoes || "",
     proximosPassos: initialData?.proximosPassos || "",
     observacoes: initialData?.observacoes || "",
-    consultorNome: initialData?.consultorNome || "João Silva",
+    consultorNome: initialData?.consultorNome || profile?.nome || "",
     leadId: initialData?.leadId,
     negociacaoId: initialData?.negociacaoId,
   });
 
   const [participantInput, setParticipantInput] = useState("");
+
+  // Update consultant name when profile loads
+  useEffect(() => {
+    if (profile && !formData.consultorNome) {
+      setFormData((prev) => ({ ...prev, consultorNome: profile.nome }));
+    }
+  }, [profile]);
 
   const handleChange = (field: keyof MeetingMinutes, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -64,39 +82,74 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
     }));
   };
 
-  const handleLeadSelect = (leadId: string) => {
-    const lead = mockLeads.find((l) => l.id === leadId);
-    if (lead) {
+  const handleContactSelect = (contactId: string) => {
+    const contact = activeContacts.find((c) => c.id === contactId);
+    if (contact) {
       setFormData((prev) => ({
         ...prev,
-        leadId,
-        empresa: lead.nomeFantasia || lead.razaoSocial,
-        cnpj: lead.cnpj,
+        leadId: contactId,
+        empresa: contact.nomeFantasia || contact.razaoSocial,
+        cnpj: contact.cnpj,
+        consultorNome: contact.responsavelNome || profile?.nome || "",
       }));
     }
   };
 
-  const handleSave = () => {
-    if (!formData.empresa || !formData.cnpj || !formData.dataReuniao) {
+  const handleVinculadoChange = (checked: boolean) => {
+    setVinculadoContato(checked);
+    if (!checked) {
+      // Clear contact-related fields when not linking
+      setFormData((prev) => ({
+        ...prev,
+        leadId: undefined,
+        empresa: "",
+        cnpj: "",
+        consultorNome: profile?.nome || "",
+      }));
+    }
+  };
+
+  const handleSave = async () => {
+    if (vinculadoContato && !formData.leadId) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha empresa, CNPJ e data da reunião.",
+        description: "Selecione um contato ativo para vincular a ata.",
         variant: "destructive",
       });
       return;
     }
-    onSave({
-      ...formData,
-      id: initialData?.id || crypto.randomUUID(),
-      status: "realizada",
-      dataArmazenamento: new Date(),
-      arquivada: false,
-      historico: [],
-    });
-    toast({
-      title: "Ata armazenada",
-      description: "A ata foi salva no repositório de reuniões.",
-    });
+
+    if (vinculadoContato && (!formData.empresa || !formData.cnpj)) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha empresa e CNPJ.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.dataReuniao) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha a data da reunião.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      onSave({
+        ...formData,
+        id: initialData?.id || crypto.randomUUID(),
+        status: "realizada",
+        dataArmazenamento: new Date(),
+        arquivada: false,
+        historico: [],
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleExportPdf = () => {
@@ -133,31 +186,71 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
         </CardHeader>
       </Card>
 
-      {/* Company Information */}
+      {/* Contact Linking Toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Link2 className="w-5 h-5 text-primary" />
+            Vinculação a Contato
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Vincular a um contato ativo?</Label>
+              <p className="text-sm text-muted-foreground">
+                Se sim, os dados de empresa, CNPJ e consultor serão preenchidos automaticamente.
+              </p>
+            </div>
+            <Switch
+              checked={vinculadoContato}
+              onCheckedChange={handleVinculadoChange}
+            />
+          </div>
+
+          {vinculadoContato && (
+            <div className="space-y-2">
+              <Label>Selecionar Contato Ativo</Label>
+              {leadsLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Carregando contatos...
+                </div>
+              ) : (
+                <Select onValueChange={handleContactSelect} value={formData.leadId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar contato..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeContacts.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        Nenhum contato ativo encontrado
+                      </SelectItem>
+                    ) : (
+                      activeContacts.map((contact) => (
+                        <SelectItem key={contact.id} value={contact.id}>
+                          {contact.nomeFantasia || contact.razaoSocial} - {contact.responsavelNome}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Company/General Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Building2 className="w-5 h-5 text-primary" />
-            Informações da Empresa
+            {vinculadoContato ? "Informações da Empresa" : "Informações Gerais"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Vincular a Contato</Label>
-              <Select onValueChange={handleLeadSelect} value={formData.leadId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar contato existente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockLeads.map((lead) => (
-                    <SelectItem key={lead.id} value={lead.id}>
-                      {lead.nomeFantasia || lead.razaoSocial}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label>Tipo de Reunião *</Label>
               <Select
@@ -176,28 +269,6 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Empresa *</Label>
-              <Input
-                value={formData.empresa}
-                onChange={(e) => handleChange("empresa", e.target.value)}
-                placeholder="Nome da empresa"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>CNPJ *</Label>
-              <Input
-                value={formData.cnpj}
-                onChange={(e) => handleChange("cnpj", e.target.value)}
-                placeholder="00.000.000/0000-00"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -209,6 +280,30 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
                 onChange={(e) => handleChange("dataReuniao", new Date(e.target.value))}
               />
             </div>
+          </div>
+
+          {vinculadoContato && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Empresa</Label>
+                <Input
+                  value={formData.empresa}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CNPJ</Label>
+                <Input
+                  value={formData.cnpj}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
@@ -267,10 +362,12 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
               </Badge>
             ))}
           </div>
-          <div className="space-y-2">
-            <Label>Consultor Responsável</Label>
-            <Input value={formData.consultorNome} disabled className="bg-muted" />
-          </div>
+          {vinculadoContato && (
+            <div className="space-y-2">
+              <Label>Consultor Responsável</Label>
+              <Input value={formData.consultorNome} disabled className="bg-muted" />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -353,8 +450,12 @@ export function MeetingMinutesForm({ initialData, onSave, onExportPdf }: Meeting
           <FileDown className="w-4 h-4" />
           Exportar PDF
         </Button>
-        <Button onClick={handleSave} className="gap-2 bg-primary hover:bg-primary/90">
-          <Save className="w-4 h-4" />
+        <Button onClick={handleSave} disabled={saving} className="gap-2 bg-primary hover:bg-primary/90">
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
           Armazenar Ata
         </Button>
       </div>
