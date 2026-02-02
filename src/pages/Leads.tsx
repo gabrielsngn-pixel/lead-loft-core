@@ -287,7 +287,6 @@ const Leads = () => {
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="font-semibold">Empresa</TableHead>
-                <TableHead className="font-semibold">Tipo</TableHead>
                 <TableHead className="font-semibold">Cidade</TableHead>
                 <TableHead className="font-semibold">CNPJ</TableHead>
                 <TableHead className="font-semibold">Contato</TableHead>
@@ -320,7 +319,6 @@ const Leads = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{companyTypeConfig[lead.tipoEmpresa]?.label ?? "—"}</TableCell>
                     <TableCell className="text-sm">{lead.cidade}</TableCell>
                     <TableCell className="font-mono text-sm">{lead.cnpj}</TableCell>
                     <TableCell>
