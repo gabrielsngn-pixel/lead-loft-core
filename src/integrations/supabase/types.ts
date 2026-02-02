@@ -251,6 +251,174 @@ export type Database = {
         }
         Relationships: []
       }
+      material_usages: {
+        Row: {
+          contexto: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          lead_name: string | null
+          material_id: string
+          negociacao_id: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          contexto?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          lead_name?: string | null
+          material_id: string
+          negociacao_id?: string | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          contexto?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          lead_name?: string | null
+          material_id?: string
+          negociacao_id?: string | null
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_usages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_usages_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_usages_negociacao_id_fkey"
+            columns: ["negociacao_id"]
+            isOneToOne: false
+            referencedRelation: "negotiations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_versions: {
+        Row: {
+          autor: string
+          created_at: string
+          descricao: string | null
+          id: string
+          material_id: string
+          versao: string
+        }
+        Insert: {
+          autor: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          material_id: string
+          versao: string
+        }
+        Update: {
+          autor?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          material_id?: string
+          versao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_versions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_tamanho: number | null
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          categoria: string
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          descricao: string | null
+          etapa_sugerida: string[] | null
+          id: string
+          publico_alvo: string
+          recomendado: boolean
+          status: string
+          tags: string[] | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          url: string | null
+          usos: number
+          versao: string
+          visualizacoes: number
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_tamanho?: number | null
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          categoria: string
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          descricao?: string | null
+          etapa_sugerida?: string[] | null
+          id?: string
+          publico_alvo?: string
+          recomendado?: boolean
+          status?: string
+          tags?: string[] | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+          url?: string | null
+          usos?: number
+          versao?: string
+          visualizacoes?: number
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_tamanho?: number | null
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          categoria?: string
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          descricao?: string | null
+          etapa_sugerida?: string[] | null
+          id?: string
+          publico_alvo?: string
+          recomendado?: boolean
+          status?: string
+          tags?: string[] | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          url?: string | null
+          usos?: number
+          versao?: string
+          visualizacoes?: number
+        }
+        Relationships: []
+      }
       negotiations: {
         Row: {
           atualizado_por: string | null

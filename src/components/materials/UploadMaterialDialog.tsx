@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MaterialCategory, MaterialType, MaterialAudience } from "@/types/materials";
+import { useMaterials } from "@/hooks/useMaterials";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +22,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Link2, FileUp } from "lucide-react";
+import { Upload, Link2, FileUp, Loader2 } from "lucide-react";
 
 interface UploadMaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultCategory?: MaterialCategory;
+  onSuccess?: () => void;
 }
 
 const categoryLabels: Record<MaterialCategory, string> = {
@@ -55,6 +57,7 @@ export function UploadMaterialDialog({
   open,
   onOpenChange,
   defaultCategory = "treinamento",
+  onSuccess,
 }: UploadMaterialDialogProps) {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -65,11 +68,13 @@ export function UploadMaterialDialog({
   const [tags, setTags] = useState("");
   const [recomendado, setRecomendado] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { createMaterial } = useMaterials();
 
   const isLinkType = tipo === "link" || tipo === "video";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!titulo.trim()) {
       toast({
         title: "Erro",
@@ -88,28 +93,38 @@ export function UploadMaterialDialog({
       return;
     }
 
-    if (!isLinkType && !file) {
-      toast({
-        title: "Erro",
-        description: "Selecione um arquivo para upload.",
-        variant: "destructive",
+    // For now, allow creating without file (URL-based materials)
+    // File upload to storage can be added later
+
+    setSaving(true);
+    try {
+      const result = await createMaterial({
+        titulo,
+        descricao: descricao || undefined,
+        categoria,
+        tipo,
+        publico_alvo: publicoAlvo,
+        url: url || undefined,
+        arquivo_nome: file?.name,
+        arquivo_tamanho: file?.size,
+        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+        recomendado,
       });
-      return;
+
+      if (result) {
+        // Reset form
+        setTitulo("");
+        setDescricao("");
+        setUrl("");
+        setTags("");
+        setRecomendado(false);
+        setFile(null);
+        onSuccess?.();
+        onOpenChange(false);
+      }
+    } finally {
+      setSaving(false);
     }
-
-    toast({
-      title: "Material adicionado",
-      description: `"${titulo}" foi adicionado à biblioteca com sucesso.`,
-    });
-
-    // Reset form
-    setTitulo("");
-    setDescricao("");
-    setUrl("");
-    setTags("");
-    setRecomendado(false);
-    setFile(null);
-    onOpenChange(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -282,12 +297,16 @@ export function UploadMaterialDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="btn-cta">
-            <Upload className="w-4 h-4 mr-2" />
-            Adicionar Material
+          <Button onClick={handleSubmit} className="btn-cta" disabled={saving}>
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            {saving ? "Salvando..." : "Adicionar Material"}
           </Button>
         </DialogFooter>
       </DialogContent>

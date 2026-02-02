@@ -17,7 +17,7 @@ import { MaterialCard } from "@/components/materials/MaterialCard";
 import { VersionHistoryDialog } from "@/components/materials/VersionHistoryDialog";
 import { UploadMaterialDialog } from "@/components/materials/UploadMaterialDialog";
 import { MaterialViewerDialog } from "@/components/materials/MaterialViewerDialog";
-import { mockMaterials } from "@/data/mockMaterials";
+import { useMaterials, DbMaterial } from "@/hooks/useMaterials";
 import { Material, MaterialCategory, MaterialType, MaterialAudience } from "@/types/materials";
 import { cn } from "@/lib/utils";
 import {
@@ -36,8 +36,8 @@ import {
   Image,
   Link2,
   FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 const categoryConfig: Record<MaterialCategory, { label: string; icon: typeof GraduationCap; description: string }> = {
   treinamento: { 
@@ -73,21 +73,58 @@ const audienceLabels: Record<MaterialAudience, string> = {
   todos: "Todos",
 };
 
+// Helper to convert DbMaterial to Material type for components
+const dbToMaterial = (db: DbMaterial): Material => ({
+  id: db.id,
+  titulo: db.titulo,
+  descricao: db.descricao || "",
+  categoria: db.categoria,
+  tipo: db.tipo,
+  status: db.status,
+  publicoAlvo: db.publico_alvo,
+  url: db.url || undefined,
+  arquivoNome: db.arquivo_nome || undefined,
+  arquivoTamanho: db.arquivo_tamanho || undefined,
+  versao: db.versao,
+  historicoVersoes: [],
+  recomendado: db.recomendado,
+  etapaSugerida: db.etapa_sugerida as any,
+  tags: db.tags || [],
+  visualizacoes: db.visualizacoes,
+  usos: db.usos,
+  dataCriacao: new Date(db.created_at),
+  dataAtualizacao: new Date(db.updated_at),
+  criadoPor: db.criado_por_nome,
+  atualizadoPor: db.atualizado_por_nome || db.criado_por_nome,
+});
+
 const Materiais = () => {
   const [activeTab, setActiveTab] = useState<MaterialCategory>("treinamento");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [audienceFilter, setAudienceFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
-  const [materials, setMaterials] = useState<Material[]>(mockMaterials);
+  
+  // Use database hook
+  const {
+    materials: dbMaterials,
+    loading,
+    createMaterial,
+    deleteMaterial,
+    incrementViews,
+    incrementUsage,
+    toggleRecommended,
+    archiveMaterial,
+  } = useMaterials();
+
+  // Convert to Material type
+  const materials = useMemo(() => dbMaterials.map(dbToMaterial), [dbMaterials]);
   
   // Dialog states
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [viewerDialogOpen, setViewerDialogOpen] = useState(false);
-  
-  const { toast } = useToast();
 
   // Filter materials
   const filteredMaterials = useMemo(() => {
@@ -102,7 +139,7 @@ const Materiais = () => {
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const matchesTitle = material.titulo.toLowerCase().includes(search);
-        const matchesDesc = material.descricao.toLowerCase().includes(search);
+        const matchesDesc = (material.descricao || "").toLowerCase().includes(search);
         const matchesTags = material.tags.some(tag => tag.toLowerCase().includes(search));
         if (!matchesTitle && !matchesDesc && !matchesTags) return false;
       }
@@ -137,22 +174,10 @@ const Materiais = () => {
     };
   }, [materials, activeTab]);
 
-  const handleViewMaterial = (material: Material) => {
-    if (material.url) {
-      window.open(material.url, "_blank");
-    } else {
-      toast({
-        title: "Visualizar material",
-        description: `Abrindo "${material.titulo}"...`,
-      });
-    }
-  };
-
   const handleDownloadMaterial = (material: Material) => {
-    toast({
-      title: "Download iniciado",
-      description: `Baixando "${material.arquivoNome || material.titulo}"...`,
-    });
+    if (material.url && material.url !== "#") {
+      window.open(material.url, "_blank");
+    }
   };
 
   const handleViewHistory = (material: Material) => {
@@ -164,18 +189,37 @@ const Materiais = () => {
     // Open material in the viewer dialog
     setSelectedMaterial(material);
     setViewerDialogOpen(true);
-    // TODO: Increment usage count in database
+    // Increment views
+    incrementViews(material.id);
   };
 
-  const handleDeleteMaterial = (material: Material) => {
-    setMaterials(prev => prev.filter(m => m.id !== material.id));
-    toast({
-      title: "Material excluído",
-      description: `"${material.titulo}" foi removido da biblioteca.`,
-    });
+  const handleDeleteMaterial = async (material: Material) => {
+    await deleteMaterial(material.id);
+  };
+
+  const handleToggleRecommended = async (material: Material) => {
+    await toggleRecommended(material.id);
+  };
+
+  const handleArchiveMaterial = async (material: Material) => {
+    await archiveMaterial(material.id);
+  };
+
+  const handleMaterialCreated = () => {
+    setUploadDialogOpen(false);
   };
 
   const CategoryIcon = categoryConfig[activeTab].icon;
+
+  if (loading) {
+    return (
+      <AppLayout title="Central de Materiais" subtitle="Biblioteca de recursos para o time comercial">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Central de Materiais" subtitle="Biblioteca de recursos para o time comercial">
@@ -338,6 +382,8 @@ const Materiais = () => {
                       onDownload={handleDownloadMaterial}
                       onViewHistory={handleViewHistory}
                       onDelete={handleDeleteMaterial}
+                      onToggleRecommended={handleToggleRecommended}
+                      onArchive={handleArchiveMaterial}
                       isAdmin={true} // In real app, check user role
                     />
                   </div>
@@ -380,6 +426,7 @@ const Materiais = () => {
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
         defaultCategory={activeTab}
+        onSuccess={handleMaterialCreated}
       />
     </AppLayout>
   );
