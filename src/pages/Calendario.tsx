@@ -127,7 +127,7 @@ const Calendario = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [consultorFilter, setConsultorFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<string>("consultor");
+  const [activeTab, setActiveTab] = useState<string>("geral");
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -137,11 +137,23 @@ const Calendario = () => {
     tipo: "tarefa" as Activity["tipo"],
     categoria: "comercial" as ActivityCategory,
     descricao: "",
+    responsavelId: "",
   });
 
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
+
+  // New activity dialog state
+  const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
+  const [newActivityForm, setNewActivityForm] = useState({
+    titulo: "",
+    tipo: "tarefa" as Activity["tipo"],
+    categoria: "comercial" as ActivityCategory,
+    descricao: "",
+    responsavelId: "",
+    dataAgendada: new Date(),
+  });
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -185,6 +197,7 @@ const Calendario = () => {
       tipo: activity.tipo,
       categoria: activity.categoria,
       descricao: activity.descricao || "",
+      responsavelId: activity.responsavelId || "",
     });
     setEditDialogOpen(true);
   };
@@ -192,10 +205,19 @@ const Calendario = () => {
   const handleSaveEdit = () => {
     if (!editingActivity) return;
 
+    const responsavel = mockUsers.find(u => u.id === editForm.responsavelId);
     setActivities((prev) =>
       prev.map((a) =>
         a.id === editingActivity.id
-          ? { ...a, ...editForm }
+          ? { 
+              ...a, 
+              titulo: editForm.titulo,
+              tipo: editForm.tipo,
+              categoria: editForm.categoria,
+              descricao: editForm.descricao,
+              responsavelId: editForm.responsavelId,
+              responsavelNome: responsavel?.nome,
+            }
           : a
       )
     );
@@ -206,6 +228,51 @@ const Calendario = () => {
     });
     setEditDialogOpen(false);
     setEditingActivity(null);
+  };
+
+  // New activity handlers
+  const handleNewActivityClick = () => {
+    setNewActivityForm({
+      titulo: "",
+      tipo: "tarefa",
+      categoria: "comercial",
+      descricao: "",
+      responsavelId: "",
+      dataAgendada: selectedDate,
+    });
+    setNewActivityDialogOpen(true);
+  };
+
+  const handleSaveNewActivity = () => {
+    if (!newActivityForm.titulo.trim()) {
+      toast({
+        title: "Erro",
+        description: "O título é obrigatório.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const responsavel = mockUsers.find(u => u.id === newActivityForm.responsavelId);
+    const newActivity: Activity = {
+      id: `act-${Date.now()}`,
+      titulo: newActivityForm.titulo,
+      tipo: newActivityForm.tipo,
+      categoria: newActivityForm.categoria,
+      descricao: newActivityForm.descricao,
+      responsavelId: newActivityForm.responsavelId,
+      responsavelNome: responsavel?.nome,
+      dataAgendada: newActivityForm.dataAgendada,
+      concluida: false,
+    };
+
+    setActivities((prev) => [...prev, newActivity]);
+
+    toast({
+      title: "Atividade criada",
+      description: `"${newActivityForm.titulo}" foi adicionada com sucesso.`,
+    });
+    setNewActivityDialogOpen(false);
   };
 
   // Delete handlers
@@ -340,7 +407,7 @@ const Calendario = () => {
                 {selectedActivities.length} atividade{selectedActivities.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button size="sm">
+            <Button size="sm" onClick={handleNewActivityClick}>
               <Plus className="w-4 h-4 mr-1" />
               Nova
             </Button>
@@ -481,6 +548,14 @@ const Calendario = () => {
 
   const renderTableView = () => (
     <div className="space-y-6">
+      {/* Header with New Activity button */}
+      <div className="flex justify-end">
+        <Button onClick={handleNewActivityClick}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nova Atividade
+        </Button>
+      </div>
+
       {/* Agrupado por categoria */}
       {(Object.entries(categoryLabels) as [ActivityCategory, string][]).map(([category, label]) => {
         const categoryActivities = activitiesByCategory[category] || [];
@@ -619,11 +694,7 @@ const Calendario = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-4">
-          <TabsTrigger value="consultor" className="flex items-center gap-1">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Por Consultor</span>
-          </TabsTrigger>
+        <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="geral" className="flex items-center gap-1">
             <CalendarIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Visão Geral</span>
@@ -637,10 +708,6 @@ const Calendario = () => {
             <span className="hidden sm:inline">Planilha</span>
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="consultor" className="space-y-6">
-          {renderCalendarView()}
-        </TabsContent>
 
         <TabsContent value="geral" className="space-y-6">
           {renderCalendarView()}
@@ -738,6 +805,23 @@ const Calendario = () => {
             </div>
 
             <div className="space-y-2">
+              <Label>Responsável</Label>
+              <Select
+                value={editForm.responsavelId}
+                onValueChange={(v) => setEditForm((p) => ({ ...p, responsavelId: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockUsers.map(user => (
+                    <SelectItem key={user.id} value={user.id}>{user.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Comentário</Label>
               <Textarea
                 value={editForm.descricao}
@@ -772,6 +856,103 @@ const Calendario = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* New Activity Dialog */}
+      <Dialog open={newActivityDialogOpen} onOpenChange={setNewActivityDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Atividade</DialogTitle>
+            <DialogDescription>Adicione uma nova atividade ao calendário.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input
+                value={newActivityForm.titulo}
+                onChange={(e) => setNewActivityForm((p) => ({ ...p, titulo: e.target.value }))}
+                placeholder="Título da atividade"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select
+                  value={newActivityForm.tipo}
+                  onValueChange={(v) => setNewActivityForm((p) => ({ ...p, tipo: v as Activity["tipo"] }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(activityLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select
+                  value={newActivityForm.categoria}
+                  onValueChange={(v) => setNewActivityForm((p) => ({ ...p, categoria: v as ActivityCategory }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(categoryLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              <Select
+                value={newActivityForm.responsavelId}
+                onValueChange={(v) => setNewActivityForm((p) => ({ ...p, responsavelId: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockUsers.map(user => (
+                    <SelectItem key={user.id} value={user.id}>{user.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <Input
+                type="datetime-local"
+                value={format(newActivityForm.dataAgendada, "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => setNewActivityForm((p) => ({ ...p, dataAgendada: new Date(e.target.value) }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Comentário</Label>
+              <Textarea
+                value={newActivityForm.descricao}
+                onChange={(e) => setNewActivityForm((p) => ({ ...p, descricao: e.target.value }))}
+                placeholder="Descrição ou comentários..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewActivityDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveNewActivity}>Criar Atividade</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
