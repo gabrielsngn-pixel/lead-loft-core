@@ -32,23 +32,23 @@ export const leadFieldPermissions: FieldPermission[] = [
   { field: "cidade", label: "Cidade", editableBy: ["sdr", "consultor", "gestor", "master"] },
   { field: "estado", label: "Estado", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
-  // Business fields - consultors, gestors and masters
-  { field: "nomeFantasia", label: "Nome Fantasia", editableBy: ["consultor", "gestor", "master"] },
-  { field: "razaoSocial", label: "Razão Social", editableBy: ["consultor", "gestor", "master"] },
-  { field: "tipoEmpresa", label: "Tipo de Empresa", editableBy: ["consultor", "gestor", "master"] },
-  { field: "origem", label: "Origem", editableBy: ["consultor", "gestor", "master"] },
+  // Business fields - editable by all (governança fica apenas nos campos protegidos)
+  { field: "nomeFantasia", label: "Nome Fantasia", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "razaoSocial", label: "Razão Social", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "tipoEmpresa", label: "Tipo de Empresa", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "origem", label: "Origem", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
-  // Status and priority - consultors, gestors and masters
-  { field: "status", label: "Status", editableBy: ["consultor", "gestor", "master"] },
-  { field: "prioridade", label: "Prioridade", editableBy: ["consultor", "gestor", "master"] },
+  // Status and priority - editable by all
+  { field: "status", label: "Status", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "prioridade", label: "Prioridade", editableBy: ["sdr", "consultor", "gestor", "master"] },
   { field: "observacoes", label: "Observações", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
-  // Dates - consultors, gestors and masters
-  { field: "proximaAtividade", label: "Próxima Atividade", editableBy: ["consultor", "gestor", "master"] },
-  { field: "proximaReuniao", label: "Próxima Reunião", editableBy: ["consultor", "gestor", "master"] },
+  // Dates - editable by all
+  { field: "proximaAtividade", label: "Próxima Atividade", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "proximaReuniao", label: "Próxima Reunião", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
-  // Values - gestors and masters
-  { field: "valorEstimado", label: "Valor Estimado", editableBy: ["consultor", "gestor", "master"] },
+  // Values - editable by all (se o campo estiver em uso em alguma tela)
+  { field: "valorEstimado", label: "Valor Estimado", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
   // Protected fields - gestor and master
   { field: "cnpj", label: "CNPJ", editableBy: ["gestor", "master"], isProtected: true },

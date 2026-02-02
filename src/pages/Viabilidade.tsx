@@ -431,6 +431,7 @@ const Viabilidade = () => {
                   <TableHead className="font-semibold">Localização</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Margem</TableHead>
+                  <TableHead className="font-semibold">Comissão</TableHead>
                   <TableHead className="font-semibold">Data</TableHead>
                   <TableHead className="font-semibold text-right">Ações</TableHead>
                 </TableRow>
@@ -468,6 +469,15 @@ const Viabilidade = () => {
                           "text-destructive": viabilidade.resultado === "inviavel",
                         })}>
                           {viabilidade.margem_estimada.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {typeof (viabilidade as any).comissao_incorporador === "number" ? (
+                        <span className="font-medium">
+                          {(viabilidade as any).comissao_incorporador.toFixed(2)}%
                         </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>

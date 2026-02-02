@@ -283,7 +283,7 @@ const Leads = () => {
               <TableHead className="font-semibold">Status Inicial</TableHead>
               <TableHead className="font-semibold">Status Atual</TableHead>
               <TableHead className="font-semibold">Prioridade</TableHead>
-              <TableHead className="font-semibold">Responsável</TableHead>
+              <TableHead className="font-semibold">Comentários</TableHead>
               <TableHead className="font-semibold text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -343,8 +343,14 @@ const Leads = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {lead.responsavelNome || (
-                      <span className="text-muted-foreground text-sm">Não atribuído</span>
+                    {lead.observacoes ? (
+                      <span className="text-sm" title={lead.observacoes}>
+                        {lead.observacoes.length > 48
+                          ? `${lead.observacoes.slice(0, 48)}…`
+                          : lead.observacoes}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">

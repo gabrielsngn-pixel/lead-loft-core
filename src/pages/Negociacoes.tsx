@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { mockNegotiations } from "@/data/mockData";
 import { Negotiation } from "@/types/crm";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
   Building2, 
@@ -12,6 +13,7 @@ import {
   DollarSign, 
   MoreHorizontal, 
   Download,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,6 +23,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type NegotiationStage = "qualificacao" | "proposta" | "negociacao" | "fechamento";
 
@@ -32,7 +44,10 @@ const stageConfig: Record<NegotiationStage, { label: string; color: string; bgCo
 };
 
 const Negociacoes = () => {
-  const [negotiations] = useState<Negotiation[]>(mockNegotiations);
+  const { toast } = useToast();
+  const [negotiations, setNegotiations] = useState<Negotiation[]>(mockNegotiations);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [negotiationToDelete, setNegotiationToDelete] = useState<Negotiation | null>(null);
 
   const stages: NegotiationStage[] = ["qualificacao", "proposta", "negociacao", "fechamento"];
 
@@ -72,6 +87,22 @@ const Negociacoes = () => {
     a.href = url;
     a.download = `negociacoes-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
+  };
+
+  const handleDeleteClick = (negotiation: Negotiation) => {
+    setNegotiationToDelete(negotiation);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!negotiationToDelete) return;
+    setNegotiations((prev) => prev.filter((n) => n.id !== negotiationToDelete.id));
+    toast({
+      title: "Negociação excluída",
+      description: `${negotiationToDelete.titulo} foi removida.`,
+    });
+    setDeleteDialogOpen(false);
+    setNegotiationToDelete(null);
   };
 
   return (
@@ -168,6 +199,13 @@ const Negociacoes = () => {
                           <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
                           <DropdownMenuItem>Mover etapa</DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(negotiation)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir negociação
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -209,6 +247,27 @@ const Negociacoes = () => {
           </div>
         ))}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a negociação{" "}
+              <strong>{negotiationToDelete?.titulo}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
