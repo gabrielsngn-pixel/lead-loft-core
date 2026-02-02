@@ -59,18 +59,27 @@ export const leadFieldPermissions: FieldPermission[] = [
   { field: "viabilidade", label: "Viabilidade Aprovada", editableBy: ["master"], isProtected: true },
 ];
 
-// Master tem todas as permissões
+// Permissões de ações - Todos os perfis podem editar/remover em Leads, Contatos e Negociações
 export const actionPermissions = {
-  deleteContact: ["gestor", "master"] as UserRole[],
-  deleteLead: ["master"] as UserRole[], // Apenas master pode deletar leads
+  // Ações liberadas para todos os perfis
+  deleteContact: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  deleteLead: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  editLead: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  editContact: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  editNegotiation: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  deleteNegotiation: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  claimLead: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  registerActivity: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  
+  // Ações administrativas
   editCnpj: ["gestor", "master"] as UserRole[],
   archiveMeeting: ["consultor", "gestor", "master"] as UserRole[],
   createMeeting: ["consultor", "gestor", "master"] as UserRole[],
   viewAllContacts: ["gestor", "master"] as UserRole[],
-  exportData: ["consultor", "gestor", "master"] as UserRole[],
-  importData: ["gestor", "master"] as UserRole[],
+  exportData: ["sdr", "consultor", "gestor", "master"] as UserRole[],
+  importData: ["sdr", "consultor", "gestor", "master"] as UserRole[],
   manageUsers: ["gestor", "master"] as UserRole[],
-  promoteMaster: ["master"] as UserRole[], // Apenas master pode promover outros masters
+  promoteMaster: ["master"] as UserRole[],
   deleteDocuments: ["master"] as UserRole[],
   deleteViabilidade: ["master"] as UserRole[],
   overrideRules: ["master"] as UserRole[],

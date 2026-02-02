@@ -29,7 +29,6 @@ const NovoLead = () => {
     cidade: "",
     estado: "",
     origem: "" as LeadSource | "",
-    valorEstimado: "",
     observacoes: "",
   });
 
@@ -256,16 +255,6 @@ const NovoLead = () => {
                     <SelectItem value="outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="valorEstimado">Valor Estimado (R$)</Label>
-                <Input
-                  id="valorEstimado"
-                  type="number"
-                  placeholder="0,00"
-                  value={formData.valorEstimado}
-                  onChange={(e) => handleChange("valorEstimado", e.target.value)}
-                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações</Label>

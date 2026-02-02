@@ -3,7 +3,7 @@ export type LeadSource = "site" | "indicacao" | "evento" | "parceiro" | "outboun
 export type UserRole = "sdr" | "consultor" | "gestor" | "master";
 export type Priority = "alta" | "media" | "baixa";
 export type CompanyType = "incorporadora" | "banco" | "fundo" | "canal" | "outro";
-export type ActivityCategory = "loft" | "tech" | "interna";
+export type ActivityCategory = "comercial" | "trade_marketing" | "tecnologia" | "cre";
 
 export interface Lead {
   id: string;
