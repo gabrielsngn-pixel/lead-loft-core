@@ -108,6 +108,15 @@ const Contatos = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Lead | null>(null);
 
+  // Activity & Meeting dialogs
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Lead | null>(null);
+  const [activityDescription, setActivityDescription] = useState("");
+  const [meetingDate, setMeetingDate] = useState("");
+  const [meetingTime, setMeetingTime] = useState("");
+  const [meetingDescription, setMeetingDescription] = useState("");
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newContactData, setNewContactData] = useState({
     razaoSocial: "",
@@ -278,6 +287,58 @@ const Contatos = () => {
     }
   };
 
+  const handleOpenActivityDialog = (contact: Lead) => {
+    setSelectedContact(contact);
+    setActivityDescription("");
+    setActivityDialogOpen(true);
+  };
+
+  const handleOpenMeetingDialog = (contact: Lead) => {
+    setSelectedContact(contact);
+    setMeetingDate("");
+    setMeetingTime("");
+    setMeetingDescription("");
+    setMeetingDialogOpen(true);
+  };
+
+  const handleRegisterActivity = async () => {
+    if (!selectedContact || !activityDescription.trim()) {
+      toast({ title: "Descreva a atividade", variant: "destructive" });
+      return;
+    }
+    try {
+      const updatedObs = selectedContact.observacoes
+        ? `${selectedContact.observacoes}\n[${format(new Date(), "dd/MM/yyyy HH:mm")}] ${activityDescription}`
+        : `[${format(new Date(), "dd/MM/yyyy HH:mm")}] ${activityDescription}`;
+      await updateLead({ ...selectedContact, observacoes: updatedObs });
+      setActivityDialogOpen(false);
+      toast({ title: "Atividade registrada" });
+    } catch {
+      toast({ title: "Erro ao registrar atividade", variant: "destructive" });
+    }
+  };
+
+  const handleScheduleMeeting = async () => {
+    if (!selectedContact || !meetingDate || !meetingTime) {
+      toast({ title: "Preencha data e hora", variant: "destructive" });
+      return;
+    }
+    try {
+      const dateTime = new Date(`${meetingDate}T${meetingTime}`);
+      const obsEntry = meetingDescription
+        ? `[Reunião agendada: ${format(dateTime, "dd/MM/yyyy HH:mm")}] ${meetingDescription}`
+        : `[Reunião agendada: ${format(dateTime, "dd/MM/yyyy HH:mm")}]`;
+      const updatedObs = selectedContact.observacoes
+        ? `${selectedContact.observacoes}\n${obsEntry}`
+        : obsEntry;
+      await updateLead({ ...selectedContact, proximaReuniao: dateTime, observacoes: updatedObs });
+      setMeetingDialogOpen(false);
+      toast({ title: "Reunião agendada" });
+    } catch {
+      toast({ title: "Erro ao agendar reunião", variant: "destructive" });
+    }
+  };
+
   return (
     <AppLayout title="Contatos Ativos" subtitle="Lista de leads sob sua responsabilidade">
       {/* Role Badge */}
@@ -434,10 +495,10 @@ const Contatos = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade" onClick={() => handleOpenActivityDialog(contact)}>
                           <ClipboardList className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Agendar Reunião">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Agendar Reunião" onClick={() => handleOpenMeetingDialog(contact)}>
                           <Calendar className="w-4 h-4" />
                         </Button>
                         <DropdownMenu>
@@ -568,6 +629,66 @@ const Contatos = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Register Activity Dialog */}
+      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Atividade</DialogTitle>
+            <DialogDescription>
+              Adicione uma atividade para <strong>{selectedContact?.nomeFantasia || selectedContact?.razaoSocial}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Descrição da atividade *</Label>
+              <Input
+                value={activityDescription}
+                onChange={(e) => setActivityDescription(e.target.value)}
+                placeholder="Ex: Ligação de follow-up, Envio de proposta..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleRegisterActivity}>Registrar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Meeting Dialog */}
+      <Dialog open={meetingDialogOpen} onOpenChange={setMeetingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agendar Reunião</DialogTitle>
+            <DialogDescription>
+              Agende uma reunião com <strong>{selectedContact?.nomeFantasia || selectedContact?.razaoSocial}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data *</Label>
+              <Input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Hora *</Label>
+              <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label>Descrição (opcional)</Label>
+              <Input
+                value={meetingDescription}
+                onChange={(e) => setMeetingDescription(e.target.value)}
+                placeholder="Assunto da reunião..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setMeetingDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleScheduleMeeting}>Agendar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
