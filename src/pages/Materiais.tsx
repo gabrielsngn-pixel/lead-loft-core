@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { MaterialCard } from "@/components/materials/MaterialCard";
 import { VersionHistoryDialog } from "@/components/materials/VersionHistoryDialog";
 import { UploadMaterialDialog } from "@/components/materials/UploadMaterialDialog";
+import { MaterialViewerDialog } from "@/components/materials/MaterialViewerDialog";
 import { mockMaterials } from "@/data/mockMaterials";
 import { Material, MaterialCategory, MaterialType, MaterialAudience } from "@/types/materials";
 import { cn } from "@/lib/utils";
@@ -45,12 +46,12 @@ const categoryConfig: Record<MaterialCategory, { label: string; icon: typeof Gra
     description: "Materiais de onboarding, treinamentos e capacitação do time"
   },
   prospeccao: { 
-    label: "Prospecção", 
+    label: "Marketing e Trade", 
     icon: Briefcase,
-    description: "Materiais para abordagem comercial e prospecção"
+    description: "Materiais para abordagem comercial, marketing e trade"
   },
   institucional: { 
-    label: "Materiais Institucionais", 
+    label: "Institucional", 
     icon: Users,
     description: "Apresentações, decks e documentos institucionais da empresa"
   },
@@ -78,12 +79,13 @@ const Materiais = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [audienceFilter, setAudienceFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
-  const [materials] = useState<Material[]>(mockMaterials);
+  const [materials, setMaterials] = useState<Material[]>(mockMaterials);
   
   // Dialog states
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [viewerDialogOpen, setViewerDialogOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -159,16 +161,18 @@ const Materiais = () => {
   };
 
   const handleUseMaterial = (material: Material) => {
-    // Open the material directly
-    if (material.url) {
-      window.open(material.url, "_blank");
-    } else {
-      toast({
-        title: "Abrindo material",
-        description: `Exibindo "${material.titulo}"...`,
-      });
-    }
+    // Open material in the viewer dialog
+    setSelectedMaterial(material);
+    setViewerDialogOpen(true);
     // TODO: Increment usage count in database
+  };
+
+  const handleDeleteMaterial = (material: Material) => {
+    setMaterials(prev => prev.filter(m => m.id !== material.id));
+    toast({
+      title: "Material excluído",
+      description: `"${material.titulo}" foi removido da biblioteca.`,
+    });
   };
 
   const CategoryIcon = categoryConfig[activeTab].icon;
@@ -330,9 +334,10 @@ const Materiais = () => {
                     <MaterialCard
                       material={material}
                       onUse={handleUseMaterial}
-                      onView={handleViewMaterial}
+                      onView={handleUseMaterial}
                       onDownload={handleDownloadMaterial}
                       onViewHistory={handleViewHistory}
+                      onDelete={handleDeleteMaterial}
                       isAdmin={true} // In real app, check user role
                     />
                   </div>
@@ -362,6 +367,13 @@ const Materiais = () => {
         material={selectedMaterial}
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
+      />
+      
+      <MaterialViewerDialog
+        material={selectedMaterial}
+        open={viewerDialogOpen}
+        onOpenChange={setViewerDialogOpen}
+        onDownload={handleDownloadMaterial}
       />
       
       <UploadMaterialDialog
