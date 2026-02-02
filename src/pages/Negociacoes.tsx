@@ -22,6 +22,7 @@ import {
   Percent,
   Home,
   Calculator,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,6 +56,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ContratoLoftDialog, { DadosProjeto, DadosIncorporadora } from "@/components/contrato/ContratoLoft";
 
 const stageConfig: Record<NegotiationStage, { label: string; color: string; bgColor: string }> = {
   proposta_aprovada: { label: "Proposta Aprovada", color: "text-blue-600", bgColor: "bg-blue-50 border-blue-200" },
@@ -80,6 +82,7 @@ const Negociacoes = () => {
   const [negotiationToDelete, setNegotiationToDelete] = useState<Negotiation | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedNegotiation, setSelectedNegotiation] = useState<Negotiation | null>(null);
+  const [contratoDialogOpen, setContratoDialogOpen] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newNegData, setNewNegData] = useState({
@@ -473,10 +476,52 @@ const Negociacoes = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Contract Download Button */}
+              <div className="border-t pt-4">
+                <Button
+                  onClick={() => {
+                    setDetailsDialogOpen(false);
+                    setContratoDialogOpen(true);
+                  }}
+                  className="w-full gap-2"
+                  variant="outline"
+                >
+                  <FileText className="w-4 h-4" />
+                  Gerar Contrato PDF
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Contract Dialog */}
+      {selectedNegotiation && (
+        <ContratoLoftDialog
+          open={contratoDialogOpen}
+          onOpenChange={setContratoDialogOpen}
+          dadosProjeto={{
+            vgv: selectedNegotiation.vgvTotal || 0,
+            unidades: selectedNegotiation.unidades || 0,
+            ticketMedio: selectedNegotiation.ticketMedio || 0,
+            comissaoIncorporador: (selectedNegotiation.comissaoIncorporador || 0) * 100,
+            valorRegistroPorUnidade: selectedNegotiation.registroValor || 0,
+            registroTipo: (selectedNegotiation.registroValor || 0) > 0 ? "por_unidade" : "nenhum",
+            nomeEmpreendimento: selectedNegotiation.titulo,
+          }}
+          dadosPreenchidos={{
+            razaoSocial: selectedNegotiation.lead.razaoSocial,
+            nomeFantasia: selectedNegotiation.lead.nomeFantasia || "",
+            cnpj: selectedNegotiation.lead.cnpj,
+            endereco: "",
+            cidade: selectedNegotiation.lead.cidade,
+            estado: selectedNegotiation.lead.estado,
+            representanteLegal: "",
+            cpfRepresentante: "",
+          }}
+        />
+      )}
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
