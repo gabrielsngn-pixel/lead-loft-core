@@ -2,18 +2,22 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockNegotiations } from "@/data/mockData";
-import { Negotiation } from "@/types/crm";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useNegotiations } from "@/hooks/useNegotiations";
+import { useLeads } from "@/hooks/useLeads";
+import { Negotiation, Lead } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Plus, 
-  Building2, 
-  Calendar, 
-  DollarSign, 
-  MoreHorizontal, 
+import {
+  Plus,
+  Building2,
+  Calendar,
+  DollarSign,
+  MoreHorizontal,
   Download,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,6 +37,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type NegotiationStage = "qualificacao" | "proposta" | "negociacao" | "fechamento";
 
@@ -45,31 +63,35 @@ const stageConfig: Record<NegotiationStage, { label: string; color: string; bgCo
 
 const Negociacoes = () => {
   const { toast } = useToast();
-  const [negotiations, setNegotiations] = useState<Negotiation[]>(mockNegotiations);
+  const { leads } = useLeads();
+  const { negotiations, loading, createNegotiation, deleteNegotiation } = useNegotiations();
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [negotiationToDelete, setNegotiationToDelete] = useState<Negotiation | null>(null);
 
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newNegData, setNewNegData] = useState({
+    leadId: "",
+    titulo: "",
+    valor: "",
+    etapa: "qualificacao" as NegotiationStage,
+    probabilidade: "20",
+  });
+
   const stages: NegotiationStage[] = ["qualificacao", "proposta", "negociacao", "fechamento"];
 
-  const getNegotiationsByStage = (stage: NegotiationStage) => {
-    return negotiations.filter((n) => n.etapa === stage);
-  };
+  const getNegotiationsByStage = (stage: NegotiationStage) => negotiations.filter((n) => n.etapa === stage);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-  const getTotalByStage = (stage: NegotiationStage) => {
-    return getNegotiationsByStage(stage).reduce((sum, n) => sum + n.valor, 0);
-  };
+  const getTotalByStage = (stage: NegotiationStage) =>
+    getNegotiationsByStage(stage).reduce((sum, n) => sum + n.valor, 0);
 
   const handleExport = () => {
     const csvContent = [
-      ["Empresa", "Título", "Valor", "Etapa", "Probabilidade", "Previsão Fechamento", "CNPJ", "Viabilidade"],
-      ...negotiations.map(n => [
+      ["Empresa", "Título", "Valor", "Etapa", "Probabilidade", "Previsão Fechamento", "CNPJ"],
+      ...negotiations.map((n) => [
         n.lead.nomeFantasia || n.lead.razaoSocial,
         n.titulo,
         n.valor.toString(),
@@ -77,9 +99,10 @@ const Negociacoes = () => {
         `${n.probabilidade}%`,
         n.dataPrevisaoFechamento ? format(n.dataPrevisaoFechamento, "dd/MM/yyyy") : "",
         n.lead.cnpj,
-        n.lead.viabilidade?.status || "pendente",
-      ])
-    ].map(row => row.join(",")).join("\n");
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
@@ -94,16 +117,43 @@ const Negociacoes = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!negotiationToDelete) return;
-    setNegotiations((prev) => prev.filter((n) => n.id !== negotiationToDelete.id));
-    toast({
-      title: "Negociação excluída",
-      description: `${negotiationToDelete.titulo} foi removida.`,
-    });
-    setDeleteDialogOpen(false);
-    setNegotiationToDelete(null);
+    try {
+      await deleteNegotiation(negotiationToDelete.id);
+      toast({ title: "Negociação excluída", description: `${negotiationToDelete.titulo} foi removida.` });
+    } catch {
+      toast({ title: "Erro ao excluir negociação", variant: "destructive" });
+    } finally {
+      setDeleteDialogOpen(false);
+      setNegotiationToDelete(null);
+    }
   };
+
+  const handleCreateNegotiation = async () => {
+    if (!newNegData.leadId || !newNegData.titulo || !newNegData.valor) {
+      toast({ title: "Campos obrigatórios", description: "Preencha Lead, Título e Valor.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await createNegotiation({
+        leadId: newNegData.leadId,
+        titulo: newNegData.titulo,
+        valor: parseFloat(newNegData.valor.replace(/\D/g, "")) / 100 || 0,
+        etapa: newNegData.etapa,
+        probabilidade: parseInt(newNegData.probabilidade, 10) || 20,
+      });
+      toast({ title: "Negociação criada" });
+      setCreateDialogOpen(false);
+      setNewNegData({ leadId: "", titulo: "", valor: "", etapa: "qualificacao", probabilidade: "20" });
+    } catch {
+      toast({ title: "Erro ao criar negociação", variant: "destructive" });
+    }
+  };
+
+  // Leads with responsibility (contacts)
+  const eligibleLeads = leads.filter((l) => l.responsavelId);
 
   return (
     <AppLayout title="Negociações" subtitle="Acompanhe o funil de vendas">
@@ -122,7 +172,7 @@ const Negociacoes = () => {
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
-          <Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Negociação
           </Button>
@@ -130,63 +180,48 @@ const Negociacoes = () => {
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto pb-4">
-        {stages.map((stage, stageIndex) => (
-          <div
-            key={stage}
-            className="kanban-column min-w-[300px] animate-fade-in"
-            style={{ animationDelay: `${stageIndex * 100}ms` }}
-          >
-            {/* Column Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className={cn("w-3 h-3 rounded-full", {
-                  "bg-blue-500": stage === "qualificacao",
-                  "bg-primary": stage === "proposta",
-                  "bg-amber-500": stage === "negociacao",
-                  "bg-success": stage === "fechamento",
-                })} />
-                <h3 className="font-semibold text-foreground">
-                  {stageConfig[stage].label}
-                </h3>
-                <Badge variant="secondary" className="ml-1">
-                  {getNegotiationsByStage(stage).length}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Stage Total */}
-            <div className={cn(
-              "rounded-lg p-3 mb-4 border",
-              stageConfig[stage].bgColor
-            )}>
-              <p className="text-sm text-muted-foreground">Total na etapa</p>
-              <p className={cn("text-lg font-bold", stageConfig[stage].color)}>
-                {formatCurrency(getTotalByStage(stage))}
-              </p>
-            </div>
-
-            {/* Cards */}
-            <div className="space-y-3">
-              {getNegotiationsByStage(stage).map((negotiation, cardIndex) => {
-                return (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto pb-4">
+          {stages.map((stage, stageIndex) => (
+            <div key={stage} className="kanban-column min-w-[300px] animate-fade-in" style={{ animationDelay: `${stageIndex * 100}ms` }}>
+              {/* Column Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
                   <div
-                    key={negotiation.id}
-                    className="kanban-card animate-fade-in"
-                    style={{ animationDelay: `${(stageIndex * 100) + (cardIndex * 50)}ms` }}
-                  >
+                    className={cn("w-3 h-3 rounded-full", {
+                      "bg-secondary": stage === "qualificacao",
+                      "bg-primary": stage === "proposta",
+                      "bg-warning": stage === "negociacao",
+                      "bg-success": stage === "fechamento",
+                    })}
+                  />
+                  <h3 className="font-semibold text-foreground">{stageConfig[stage].label}</h3>
+                  <Badge variant="secondary" className="ml-1">{getNegotiationsByStage(stage).length}</Badge>
+                </div>
+              </div>
+
+              {/* Stage Total */}
+              <div className={cn("rounded-lg p-3 mb-4 border", stageConfig[stage].bgColor)}>
+                <p className="text-sm text-muted-foreground">Total na etapa</p>
+                <p className={cn("text-lg font-bold", stageConfig[stage].color)}>{formatCurrency(getTotalByStage(stage))}</p>
+              </div>
+
+              {/* Cards */}
+              <div className="space-y-3">
+                {getNegotiationsByStage(stage).map((negotiation, cardIndex) => (
+                  <div key={negotiation.id} className="kanban-card animate-fade-in" style={{ animationDelay: `${stageIndex * 100 + cardIndex * 50}ms` }}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
                           <Building2 className="w-4 h-4 text-secondary" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-foreground">
-                            {negotiation.lead.nomeFantasia || negotiation.lead.razaoSocial}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {negotiation.lead.cidade}/{negotiation.lead.estado}
-                          </p>
+                          <p className="font-medium text-sm text-foreground">{negotiation.lead.nomeFantasia || negotiation.lead.razaoSocial}</p>
+                          <p className="text-xs text-muted-foreground">{negotiation.lead.cidade}/{negotiation.lead.estado}</p>
                         </div>
                       </div>
                       <DropdownMenu>
@@ -199,10 +234,7 @@ const Negociacoes = () => {
                           <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
                           <DropdownMenuItem>Mover etapa</DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteClick(negotiation)}
-                          >
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(negotiation)}>
                             <Trash2 className="w-4 h-4 mr-2" />
                             Excluir negociação
                           </DropdownMenuItem>
@@ -210,61 +242,117 @@ const Negociacoes = () => {
                       </DropdownMenu>
                     </div>
 
-                    <p className="text-sm font-medium text-foreground mb-3">
-                      {negotiation.titulo}
-                    </p>
+                    <p className="text-sm font-medium text-foreground mb-3">{negotiation.titulo}</p>
 
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <DollarSign className="w-4 h-4" />
-                        <span className="font-semibold text-foreground">
-                          {formatCurrency(negotiation.valor)}
-                        </span>
+                        <span className="font-semibold text-foreground">{formatCurrency(negotiation.valor)}</span>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {negotiation.probabilidade}%
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">{negotiation.probabilidade}%</Badge>
                     </div>
 
                     {negotiation.dataPrevisaoFechamento && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-3 pt-3 border-t">
                         <Calendar className="w-3 h-3" />
-                        <span>
-                          Previsão: {format(negotiation.dataPrevisaoFechamento, "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
+                        <span>Previsão: {format(negotiation.dataPrevisaoFechamento, "dd/MM/yyyy", { locale: ptBR })}</span>
                       </div>
                     )}
                   </div>
-                );
-              })}
+                ))}
 
-              {getNegotiationsByStage(stage).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">Nenhuma negociação</p>
-                </div>
-              )}
+                {getNegotiationsByStage(stage).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">Nenhuma negociação</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Negociação</DialogTitle>
+            <DialogDescription>Crie uma negociação vinculada a um contato ativo.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Contato (Lead) *</Label>
+              <Select value={newNegData.leadId} onValueChange={(v) => setNewNegData((p) => ({ ...p, leadId: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um contato" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eligibleLeads.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.nomeFantasia || l.razaoSocial}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input value={newNegData.titulo} onChange={(e) => setNewNegData((p) => ({ ...p, titulo: e.target.value }))} placeholder="Ex.: Pacote de integração" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor (R$) *</Label>
+              <Input
+                value={newNegData.valor}
+                onChange={(e) => {
+                  const numeric = e.target.value.replace(/\D/g, "");
+                  const formatted = (Number(numeric) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+                  setNewNegData((p) => ({ ...p, valor: formatted }));
+                }}
+                placeholder="0,00"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Etapa</Label>
+                <Select value={newNegData.etapa} onValueChange={(v) => setNewNegData((p) => ({ ...p, etapa: v as NegotiationStage }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stages.map((s) => (
+                      <SelectItem key={s} value={s}>{stageConfig[s].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Probabilidade (%)</Label>
+                <Input type="number" min={0} max={100} value={newNegData.probabilidade} onChange={(e) => setNewNegData((p) => ({ ...p, probabilidade: e.target.value }))} />
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateNegotiation}>Criar Negociação</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a negociação{" "}
-              <strong>{negotiationToDelete?.titulo}</strong>? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a negociação <strong>{negotiationToDelete?.titulo}</strong>? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
