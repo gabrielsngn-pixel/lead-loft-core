@@ -1,4 +1,4 @@
-export type MaterialCategory = "treinamento" | "prospeccao" | "reuniao";
+export type MaterialCategory = "treinamento" | "prospeccao" | "institucional";
 export type MaterialType = "pdf" | "ppt" | "video" | "imagem" | "link" | "documento";
 export type MaterialStatus = "ativo" | "arquivado";
 export type MaterialAudience = "sdr" | "consultor" | "gestor" | "todos";

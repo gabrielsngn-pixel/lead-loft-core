@@ -178,12 +178,12 @@ export const mockMaterials: Material[] = [
     atualizadoPor: "João Silva",
   },
   
-  // Materiais para Reunião
+  // Materiais Institucionais (antigo "reuniao")
   {
     id: "mat-8",
     titulo: "Deck de Proposta Comercial",
     descricao: "Apresentação padrão para reuniões de proposta comercial.",
-    categoria: "reuniao",
+    categoria: "institucional",
     tipo: "ppt",
     status: "ativo",
     publicoAlvo: "consultor",
@@ -209,7 +209,7 @@ export const mockMaterials: Material[] = [
     id: "mat-9",
     titulo: "Calculadora de ROI",
     descricao: "Planilha interativa para demonstrar retorno sobre investimento ao cliente.",
-    categoria: "reuniao",
+    categoria: "institucional",
     tipo: "documento",
     status: "ativo",
     publicoAlvo: "consultor",
@@ -234,7 +234,7 @@ export const mockMaterials: Material[] = [
     id: "mat-10",
     titulo: "FAQ Técnico para Reuniões",
     descricao: "Documento com perguntas frequentes e respostas técnicas para apoio em reuniões.",
-    categoria: "reuniao",
+    categoria: "institucional",
     tipo: "pdf",
     status: "ativo",
     publicoAlvo: "todos",
@@ -259,7 +259,7 @@ export const mockMaterials: Material[] = [
     id: "mat-11",
     titulo: "Checklist de Fechamento",
     descricao: "Lista de verificação para garantir que todos os pontos foram cobertos antes do fechamento.",
-    categoria: "reuniao",
+    categoria: "institucional",
     tipo: "documento",
     status: "ativo",
     publicoAlvo: "consultor",

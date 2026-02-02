@@ -30,9 +30,9 @@ interface UploadMaterialDialogProps {
 }
 
 const categoryLabels: Record<MaterialCategory, string> = {
-  treinamento: "Treinamento & Capacitação",
-  prospeccao: "Prospecção & Marketing",
-  reuniao: "Materiais para Reunião",
+  treinamento: "Treinamentos",
+  prospeccao: "Prospecção",
+  institucional: "Materiais Institucionais",
 };
 
 const typeLabels: Record<MaterialType, string> = {
