@@ -15,9 +15,21 @@ interface NegotiationRow {
   data_previsao_fechamento: string | null;
   created_at: string;
   updated_at: string;
+  // Novos campos de indicadores
+  viabilidade_id: string | null;
+  margem_estimada: number | null;
+  comissao_incorporador: number | null;
+  registro_valor: number | null;
+  registro_tipo: string | null;
+  receita_registro_loft_percent: number | null;
+  despesas_operacionais: number | null;
+  unidades: number | null;
+  ticket_medio: number | null;
+  vgv_total: number | null;
+  comissao_bancaria_ponderada: number | null;
 }
 
-type NegotiationStage = "qualificacao" | "proposta" | "negociacao" | "fechamento";
+import { NegotiationStage } from "@/types/crm";
 
 function rowToNegotiation(row: NegotiationRow, lead: Lead | undefined): Negotiation {
   const dummyLead: Lead = lead ?? {
@@ -49,6 +61,18 @@ function rowToNegotiation(row: NegotiationRow, lead: Lead | undefined): Negotiat
       : undefined,
     dataCriacao: new Date(row.created_at),
     dataAtualizacao: new Date(row.updated_at),
+    // Novos campos de indicadores
+    viabilidadeId: row.viabilidade_id || undefined,
+    margemEstimada: row.margem_estimada ?? undefined,
+    comissaoIncorporador: row.comissao_incorporador ?? undefined,
+    registroValor: row.registro_valor ?? undefined,
+    registroTipo: row.registro_tipo ?? undefined,
+    receitaRegistroLoftPercent: row.receita_registro_loft_percent ?? undefined,
+    despesasOperacionais: row.despesas_operacionais ?? undefined,
+    unidades: row.unidades ?? undefined,
+    ticketMedio: row.ticket_medio ?? undefined,
+    vgvTotal: row.vgv_total ?? undefined,
+    comissaoBancariaPonderada: row.comissao_bancaria_ponderada ?? undefined,
   };
 }
 
@@ -90,6 +114,18 @@ export function useNegotiations() {
     etapa?: NegotiationStage;
     probabilidade?: number;
     dataPrevisaoFechamento?: Date;
+    // Indicadores do simulador
+    viabilidadeId?: string;
+    margemEstimada?: number;
+    comissaoIncorporador?: number;
+    registroValor?: number;
+    registroTipo?: string;
+    receitaRegistroLoftPercent?: number;
+    despesasOperacionais?: number;
+    unidades?: number;
+    ticketMedio?: number;
+    vgvTotal?: number;
+    comissaoBancariaPonderada?: number;
   }) => {
     if (!profile) throw new Error("Usuário não autenticado");
     const { data, error } = await supabase
@@ -98,11 +134,23 @@ export function useNegotiations() {
         lead_id: input.leadId,
         titulo: input.titulo,
         valor: input.valor,
-        etapa: input.etapa || "qualificacao",
+        etapa: input.etapa || "proposta_aprovada",
         probabilidade: input.probabilidade ?? 20,
         data_previsao_fechamento: input.dataPrevisaoFechamento?.toISOString() || null,
         criado_por: profile.user_id,
         criado_por_nome: profile.nome,
+        // Indicadores do simulador
+        viabilidade_id: input.viabilidadeId || null,
+        margem_estimada: input.margemEstimada ?? null,
+        comissao_incorporador: input.comissaoIncorporador ?? null,
+        registro_valor: input.registroValor ?? null,
+        registro_tipo: input.registroTipo ?? null,
+        receita_registro_loft_percent: input.receitaRegistroLoftPercent ?? null,
+        despesas_operacionais: input.despesasOperacionais ?? null,
+        unidades: input.unidades ?? null,
+        ticket_medio: input.ticketMedio ?? null,
+        vgv_total: input.vgvTotal ?? null,
+        comissao_bancaria_ponderada: input.comissaoBancariaPonderada ?? null,
       })
       .select()
       .single();

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useLeads } from "@/hooks/useLeads";
-import { Negotiation, Lead } from "@/types/crm";
+import { Negotiation, NegotiationStage } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -18,6 +18,10 @@ import {
   Download,
   Trash2,
   Loader2,
+  TrendingUp,
+  Percent,
+  Home,
+  Calculator,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,45 +56,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type NegotiationStage = "qualificacao" | "proposta" | "negociacao" | "fechamento";
-
 const stageConfig: Record<NegotiationStage, { label: string; color: string; bgColor: string }> = {
-  qualificacao: { label: "Qualificação", color: "text-blue-600", bgColor: "bg-blue-50 border-blue-200" },
-  proposta: { label: "Proposta", color: "text-primary", bgColor: "bg-primary/5 border-primary/20" },
-  negociacao: { label: "Negociação", color: "text-amber-600", bgColor: "bg-amber-50 border-amber-200" },
-  fechamento: { label: "Fechamento", color: "text-success", bgColor: "bg-success/5 border-success/20" },
+  proposta_aprovada: { label: "Proposta Aprovada", color: "text-blue-600", bgColor: "bg-blue-50 border-blue-200" },
+  proposta_enviada: { label: "Proposta Enviada", color: "text-primary", bgColor: "bg-primary/5 border-primary/20" },
+  em_negociacao: { label: "Em Negociação", color: "text-amber-600", bgColor: "bg-amber-50 border-amber-200" },
+  proposta_ganha: { label: "Proposta Ganha", color: "text-success", bgColor: "bg-success/5 border-success/20" },
+  proposta_cancelada: { label: "Proposta Cancelada", color: "text-destructive", bgColor: "bg-destructive/5 border-destructive/20" },
 };
+
+const stages: NegotiationStage[] = ["proposta_aprovada", "proposta_enviada", "em_negociacao", "proposta_ganha", "proposta_cancelada"];
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
 
 const Negociacoes = () => {
   const { toast } = useToast();
   const { leads } = useLeads();
-  const { negotiations, loading, createNegotiation, deleteNegotiation } = useNegotiations();
+  const { negotiations, loading, createNegotiation, deleteNegotiation, updateNegotiation } = useNegotiations();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [negotiationToDelete, setNegotiationToDelete] = useState<Negotiation | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedNegotiation, setSelectedNegotiation] = useState<Negotiation | null>(null);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newNegData, setNewNegData] = useState({
     leadId: "",
     titulo: "",
     valor: "",
-    etapa: "qualificacao" as NegotiationStage,
+    etapa: "proposta_aprovada" as NegotiationStage,
     probabilidade: "20",
   });
 
-  const stages: NegotiationStage[] = ["qualificacao", "proposta", "negociacao", "fechamento"];
-
   const getNegotiationsByStage = (stage: NegotiationStage) => negotiations.filter((n) => n.etapa === stage);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const getTotalByStage = (stage: NegotiationStage) =>
     getNegotiationsByStage(stage).reduce((sum, n) => sum + n.valor, 0);
 
   const handleExport = () => {
     const csvContent = [
-      ["Empresa", "Título", "Valor", "Etapa", "Probabilidade", "Previsão Fechamento", "CNPJ"],
+      ["Empresa", "Título", "Valor", "Etapa", "Probabilidade", "Previsão Fechamento", "CNPJ", "Margem", "VGV", "Unidades"],
       ...negotiations.map((n) => [
         n.lead.nomeFantasia || n.lead.razaoSocial,
         n.titulo,
@@ -99,6 +106,9 @@ const Negociacoes = () => {
         `${n.probabilidade}%`,
         n.dataPrevisaoFechamento ? format(n.dataPrevisaoFechamento, "dd/MM/yyyy") : "",
         n.lead.cnpj,
+        n.margemEstimada ? formatPercent(n.margemEstimada) : "",
+        n.vgvTotal ? formatCurrency(n.vgvTotal) : "",
+        n.unidades?.toString() || "",
       ]),
     ]
       .map((row) => row.join(","))
@@ -115,6 +125,20 @@ const Negociacoes = () => {
   const handleDeleteClick = (negotiation: Negotiation) => {
     setNegotiationToDelete(negotiation);
     setDeleteDialogOpen(true);
+  };
+
+  const handleViewDetails = (negotiation: Negotiation) => {
+    setSelectedNegotiation(negotiation);
+    setDetailsDialogOpen(true);
+  };
+
+  const handleMoveStage = async (negotiation: Negotiation, newStage: NegotiationStage) => {
+    try {
+      await updateNegotiation({ ...negotiation, etapa: newStage });
+      toast({ title: "Etapa atualizada", description: `Movido para ${stageConfig[newStage].label}` });
+    } catch {
+      toast({ title: "Erro ao mover negociação", variant: "destructive" });
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -146,7 +170,7 @@ const Negociacoes = () => {
       });
       toast({ title: "Negociação criada" });
       setCreateDialogOpen(false);
-      setNewNegData({ leadId: "", titulo: "", valor: "", etapa: "qualificacao", probabilidade: "20" });
+      setNewNegData({ leadId: "", titulo: "", valor: "", etapa: "proposta_aprovada", probabilidade: "20" });
     } catch {
       toast({ title: "Erro ao criar negociação", variant: "destructive" });
     }
@@ -185,29 +209,30 @@ const Negociacoes = () => {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
           {stages.map((stage, stageIndex) => (
-            <div key={stage} className="kanban-column min-w-[300px] animate-fade-in" style={{ animationDelay: `${stageIndex * 100}ms` }}>
+            <div key={stage} className="kanban-column min-w-[260px] animate-fade-in" style={{ animationDelay: `${stageIndex * 100}ms` }}>
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div
                     className={cn("w-3 h-3 rounded-full", {
-                      "bg-secondary": stage === "qualificacao",
-                      "bg-primary": stage === "proposta",
-                      "bg-warning": stage === "negociacao",
-                      "bg-success": stage === "fechamento",
+                      "bg-blue-500": stage === "proposta_aprovada",
+                      "bg-primary": stage === "proposta_enviada",
+                      "bg-warning": stage === "em_negociacao",
+                      "bg-success": stage === "proposta_ganha",
+                      "bg-destructive": stage === "proposta_cancelada",
                     })}
                   />
-                  <h3 className="font-semibold text-foreground">{stageConfig[stage].label}</h3>
-                  <Badge variant="secondary" className="ml-1">{getNegotiationsByStage(stage).length}</Badge>
+                  <h3 className="font-semibold text-foreground text-sm">{stageConfig[stage].label}</h3>
+                  <Badge variant="secondary" className="ml-1 text-xs">{getNegotiationsByStage(stage).length}</Badge>
                 </div>
               </div>
 
               {/* Stage Total */}
               <div className={cn("rounded-lg p-3 mb-4 border", stageConfig[stage].bgColor)}>
-                <p className="text-sm text-muted-foreground">Total na etapa</p>
-                <p className={cn("text-lg font-bold", stageConfig[stage].color)}>{formatCurrency(getTotalByStage(stage))}</p>
+                <p className="text-xs text-muted-foreground">Total na etapa</p>
+                <p className={cn("text-base font-bold", stageConfig[stage].color)}>{formatCurrency(getTotalByStage(stage))}</p>
               </div>
 
               {/* Cards */}
@@ -231,9 +256,12 @@ const Negociacoes = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem>Mover etapa</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewDetails(negotiation)}>Ver detalhes</DropdownMenuItem>
+                          {stages.filter(s => s !== stage).map(s => (
+                            <DropdownMenuItem key={s} onClick={() => handleMoveStage(negotiation, s)}>
+                              Mover para {stageConfig[s].label}
+                            </DropdownMenuItem>
+                          ))}
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(negotiation)}>
                             <Trash2 className="w-4 h-4 mr-2" />
                             Excluir negociação
@@ -244,20 +272,62 @@ const Negociacoes = () => {
 
                     <p className="text-sm font-medium text-foreground mb-3">{negotiation.titulo}</p>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <DollarSign className="w-4 h-4" />
+                    {/* Indicadores principais */}
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <DollarSign className="w-3 h-3" />
+                          <span>Valor</span>
+                        </div>
                         <span className="font-semibold text-foreground">{formatCurrency(negotiation.valor)}</span>
                       </div>
-                      <Badge variant="outline" className="text-xs">{negotiation.probabilidade}%</Badge>
+                      
+                      {negotiation.margemEstimada !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>Margem</span>
+                          </div>
+                          <Badge variant="outline" className={cn("text-xs", {
+                            "border-success text-success": negotiation.margemEstimada >= 0.004,
+                            "border-warning text-warning-foreground": negotiation.margemEstimada >= 0.003 && negotiation.margemEstimada < 0.004,
+                            "border-destructive text-destructive": negotiation.margemEstimada < 0.003,
+                          })}>
+                            {formatPercent(negotiation.margemEstimada)}
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {negotiation.unidades && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Home className="w-3 h-3" />
+                            <span>Unidades</span>
+                          </div>
+                          <span className="font-medium">{negotiation.unidades}</span>
+                        </div>
+                      )}
+
+                      {negotiation.vgvTotal && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Calculator className="w-3 h-3" />
+                            <span>VGV</span>
+                          </div>
+                          <span className="font-medium">{formatCurrency(negotiation.vgvTotal)}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {negotiation.dataPrevisaoFechamento && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-3 pt-3 border-t">
-                        <Calendar className="w-3 h-3" />
-                        <span>Previsão: {format(negotiation.dataPrevisaoFechamento, "dd/MM/yyyy", { locale: ptBR })}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      <Badge variant="outline" className="text-xs">{negotiation.probabilidade}%</Badge>
+                      {negotiation.dataPrevisaoFechamento && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span>{format(negotiation.dataPrevisaoFechamento, "dd/MM", { locale: ptBR })}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
 
@@ -338,6 +408,73 @@ const Negociacoes = () => {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateNegotiation}>Criar Negociação</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Negociação</DialogTitle>
+            <DialogDescription>Indicadores do simulador de viabilidade</DialogDescription>
+          </DialogHeader>
+
+          {selectedNegotiation && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Empresa</p>
+                  <p className="font-medium">{selectedNegotiation.lead.nomeFantasia || selectedNegotiation.lead.razaoSocial}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Título</p>
+                  <p className="font-medium">{selectedNegotiation.titulo}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3">Indicadores do Simulador</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Margem</span>
+                    <span className="font-medium">{selectedNegotiation.margemEstimada !== undefined ? formatPercent(selectedNegotiation.margemEstimada) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Comissão Inc.</span>
+                    <span className="font-medium">{selectedNegotiation.comissaoIncorporador !== undefined ? formatPercent(selectedNegotiation.comissaoIncorporador) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Registro (valor)</span>
+                    <span className="font-medium">{selectedNegotiation.registroValor !== undefined ? formatCurrency(selectedNegotiation.registroValor) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Receita Reg. % Loft</span>
+                    <span className="font-medium">{selectedNegotiation.receitaRegistroLoftPercent !== undefined ? formatPercent(selectedNegotiation.receitaRegistroLoftPercent) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Desp. Operacionais</span>
+                    <span className="font-medium">{selectedNegotiation.despesasOperacionais !== undefined ? formatCurrency(selectedNegotiation.despesasOperacionais) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Unidades</span>
+                    <span className="font-medium">{selectedNegotiation.unidades ?? "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">Ticket Médio</span>
+                    <span className="font-medium">{selectedNegotiation.ticketMedio !== undefined ? formatCurrency(selectedNegotiation.ticketMedio) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-muted-foreground">VGV Total</span>
+                    <span className="font-medium">{selectedNegotiation.vgvTotal !== undefined ? formatCurrency(selectedNegotiation.vgvTotal) : "—"}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-muted/30 rounded col-span-2">
+                    <span className="text-muted-foreground">Comissão Bancária Ponderada</span>
+                    <span className="font-medium">{selectedNegotiation.comissaoBancariaPonderada !== undefined ? formatPercent(selectedNegotiation.comissaoBancariaPonderada) : "—"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

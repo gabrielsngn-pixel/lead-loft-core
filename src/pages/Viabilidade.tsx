@@ -69,6 +69,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useLeads } from "@/hooks/useLeads";
+import { useNegotiations } from "@/hooks/useNegotiations";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -114,6 +115,7 @@ const Viabilidade = () => {
   const { toast } = useToast();
   const { profile, user, isMaster } = useAuth();
   const { leads } = useLeads();
+  const { createNegotiation } = useNegotiations();
   const [viabilidades, setViabilidades] = useState<ViabilidadeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -340,6 +342,7 @@ const Viabilidade = () => {
   const handleContratoGerado = async (contrato: any) => {
     if (selectedViabilidade) {
       try {
+        // Atualizar status da viabilidade
         await supabase
           .from("viabilidades")
           .update({
@@ -347,14 +350,45 @@ const Viabilidade = () => {
             resultado: results.status === "viable" ? "viavel" : "condicional",
           })
           .eq("id", selectedViabilidade.id);
+
+        // Criar negociação automaticamente com indicadores do simulador
+        if (selectedViabilidade.empresa_id) {
+          const registroValorTotal = inputs.registroTipo === "internalizado" 
+            ? inputs.valorRegistroPorUnidade * inputs.unidades 
+            : 0;
+
+          await createNegotiation({
+            leadId: selectedViabilidade.empresa_id,
+            titulo: selectedViabilidade.nome_empreendimento,
+            valor: results.receitaBrutaCurrency,
+            etapa: "proposta_aprovada",
+            probabilidade: results.status === "viable" ? 80 : 50,
+            viabilidadeId: selectedViabilidade.id,
+            margemEstimada: results.margemFinalPercent,
+            comissaoIncorporador: inputs.comissaoIncorporador / 100, // Converter para decimal
+            registroValor: registroValorTotal,
+            registroTipo: inputs.registroTipo,
+            receitaRegistroLoftPercent: results.receitaRegistroLoftPercent,
+            despesasOperacionais: results.custosOperacionaisCurrency,
+            unidades: inputs.unidades,
+            ticketMedio: ticketMedio,
+            vgvTotal: inputs.vgv,
+            comissaoBancariaPonderada: results.taxaPonderadaBanco,
+          });
+        }
         
         fetchViabilidades();
         toast({
-          title: "Contrato gerado!",
-          description: `Contrato ${contrato.numeroContrato} foi gerado com sucesso.`,
+          title: "Proposta aprovada!",
+          description: `Contrato ${contrato.numeroContrato} gerado e negociação criada automaticamente.`,
         });
       } catch (error) {
         console.error("Error updating viabilidade:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao aprovar simulação.",
+          variant: "destructive",
+        });
       }
     }
   };
