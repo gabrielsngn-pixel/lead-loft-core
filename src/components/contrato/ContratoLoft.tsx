@@ -34,7 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import loftLogo from "@/assets/loft-mais-negocio-logo.jpg";
+
 
 // ==========================================
 // TIPOS
@@ -154,8 +154,7 @@ function ContratoDocumento({ data }: ContratoDocumentoProps) {
   return (
     <div className="bg-white text-black p-8" style={{ fontFamily: "Inter, sans-serif", fontSize: "11pt", lineHeight: "1.6" }}>
       {/* CABEÇALHO */}
-      <div className="flex justify-between items-start mb-8 pb-4" style={{ borderBottom: "2px solid #FF774A" }}>
-        <img src={loftLogo} alt="Loft Mais Negócio" className="h-10" />
+      <div className="flex justify-end items-start mb-8 pb-4" style={{ borderBottom: "2px solid #FF774A" }}>
         <p className="text-sm" style={{ color: "#666" }}>São Paulo, {dataFormatada}</p>
       </div>
 
