@@ -56,6 +56,81 @@ export type Database = {
         }
         Relationships: []
       }
+      activities: {
+        Row: {
+          categoria: string
+          comentario: string | null
+          concluida: boolean
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          data_agendada: string
+          data_conclusao: string | null
+          descricao: string | null
+          id: string
+          lead_id: string | null
+          negociacao_id: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          comentario?: string | null
+          concluida?: boolean
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          data_agendada: string
+          data_conclusao?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          negociacao_id?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          comentario?: string | null
+          concluida?: boolean
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          data_agendada?: string
+          data_conclusao?: string | null
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          negociacao_id?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_negociacao_id_fkey"
+            columns: ["negociacao_id"]
+            isOneToOne: false
+            referencedRelation: "negotiations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_action_logs: {
         Row: {
           action_type: string
