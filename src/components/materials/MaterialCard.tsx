@@ -63,7 +63,7 @@ const typeLabels: Record<MaterialType, string> = {
 const categoryIcons: Record<MaterialCategory, typeof GraduationCap> = {
   treinamento: GraduationCap,
   prospeccao: Briefcase,
-  reuniao: Users,
+  institucional: Users,
 };
 
 const audienceLabels = {

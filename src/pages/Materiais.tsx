@@ -15,10 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { MaterialCard } from "@/components/materials/MaterialCard";
 import { VersionHistoryDialog } from "@/components/materials/VersionHistoryDialog";
-import { UseMaterialDialog } from "@/components/materials/UseMaterialDialog";
 import { UploadMaterialDialog } from "@/components/materials/UploadMaterialDialog";
 import { mockMaterials } from "@/data/mockMaterials";
-import { Material, MaterialCategory, MaterialType, MaterialAudience, MaterialUsage } from "@/types/materials";
+import { Material, MaterialCategory, MaterialType, MaterialAudience } from "@/types/materials";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -41,19 +40,19 @@ import { useToast } from "@/hooks/use-toast";
 
 const categoryConfig: Record<MaterialCategory, { label: string; icon: typeof GraduationCap; description: string }> = {
   treinamento: { 
-    label: "Treinamento & Capacitação", 
+    label: "Treinamentos", 
     icon: GraduationCap,
     description: "Materiais de onboarding, treinamentos e capacitação do time"
   },
   prospeccao: { 
-    label: "Prospecção & Marketing", 
+    label: "Prospecção", 
     icon: Briefcase,
-    description: "Materiais para abordagem comercial e marketing"
+    description: "Materiais para abordagem comercial e prospecção"
   },
-  reuniao: { 
-    label: "Materiais para Reunião", 
+  institucional: { 
+    label: "Materiais Institucionais", 
     icon: Users,
-    description: "Decks, calculadoras e documentos para reuniões"
+    description: "Apresentações, decks e documentos institucionais da empresa"
   },
 };
 
@@ -84,7 +83,6 @@ const Materiais = () => {
   // Dialog states
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [useDialogOpen, setUseDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   
   const { toast } = useToast();
@@ -161,13 +159,16 @@ const Materiais = () => {
   };
 
   const handleUseMaterial = (material: Material) => {
-    setSelectedMaterial(material);
-    setUseDialogOpen(true);
-  };
-
-  const handleConfirmUse = (usage: Partial<MaterialUsage>) => {
-    // In a real app, this would save to the database
-    console.log("Material usage recorded:", usage);
+    // Open the material directly
+    if (material.url) {
+      window.open(material.url, "_blank");
+    } else {
+      toast({
+        title: "Abrindo material",
+        description: `Exibindo "${material.titulo}"...`,
+      });
+    }
+    // TODO: Increment usage count in database
   };
 
   const CategoryIcon = categoryConfig[activeTab].icon;
@@ -361,13 +362,6 @@ const Materiais = () => {
         material={selectedMaterial}
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
-      />
-      
-      <UseMaterialDialog
-        material={selectedMaterial}
-        open={useDialogOpen}
-        onOpenChange={setUseDialogOpen}
-        onConfirm={handleConfirmUse}
       />
       
       <UploadMaterialDialog
