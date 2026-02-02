@@ -27,6 +27,9 @@ interface NegotiationRow {
   ticket_medio: number | null;
   vgv_total: number | null;
   comissao_bancaria_ponderada: number | null;
+  // Contrato gerado
+  contrato_url: string | null;
+  contrato_numero: string | null;
 }
 
 import { NegotiationStage } from "@/types/crm";
@@ -73,6 +76,9 @@ function rowToNegotiation(row: NegotiationRow, lead: Lead | undefined): Negotiat
     ticketMedio: row.ticket_medio ?? undefined,
     vgvTotal: row.vgv_total ?? undefined,
     comissaoBancariaPonderada: row.comissao_bancaria_ponderada ?? undefined,
+    // Contrato gerado
+    contratoUrl: row.contrato_url ?? undefined,
+    contratoNumero: row.contrato_numero ?? undefined,
   };
 }
 
@@ -126,6 +132,9 @@ export function useNegotiations() {
     ticketMedio?: number;
     vgvTotal?: number;
     comissaoBancariaPonderada?: number;
+    // Contrato
+    contratoUrl?: string;
+    contratoNumero?: string;
   }) => {
     if (!profile) throw new Error("Usuário não autenticado");
     const { data, error } = await supabase
@@ -151,6 +160,9 @@ export function useNegotiations() {
         ticket_medio: input.ticketMedio ?? null,
         vgv_total: input.vgvTotal ?? null,
         comissao_bancaria_ponderada: input.comissaoBancariaPonderada ?? null,
+        // Contrato
+        contrato_url: input.contratoUrl ?? null,
+        contrato_numero: input.contratoNumero ?? null,
       })
       .select()
       .single();

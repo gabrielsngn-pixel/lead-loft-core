@@ -571,6 +571,8 @@ export type Database = {
           atualizado_por_nome: string | null
           comissao_bancaria_ponderada: number | null
           comissao_incorporador: number | null
+          contrato_numero: string | null
+          contrato_url: string | null
           created_at: string
           criado_por: string
           criado_por_nome: string
@@ -597,6 +599,8 @@ export type Database = {
           atualizado_por_nome?: string | null
           comissao_bancaria_ponderada?: number | null
           comissao_incorporador?: number | null
+          contrato_numero?: string | null
+          contrato_url?: string | null
           created_at?: string
           criado_por: string
           criado_por_nome: string
@@ -623,6 +627,8 @@ export type Database = {
           atualizado_por_nome?: string | null
           comissao_bancaria_ponderada?: number | null
           comissao_incorporador?: number | null
+          contrato_numero?: string | null
+          contrato_url?: string | null
           created_at?: string
           criado_por?: string
           criado_por_nome?: string
