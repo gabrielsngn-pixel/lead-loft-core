@@ -9,9 +9,10 @@ import {
   DollarSign,
   Percent,
   Info,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SimuladorResults, formatCurrency, formatPercent, CONSTANTS } from "@/lib/simulador";
+import { SimuladorResults, formatCurrency, formatPercent, CONSTANTS, BANK_RATES } from "@/lib/simulador";
 
 interface ResultadosSimuladorProps {
   results: SimuladorResults;
@@ -46,6 +47,9 @@ export function ResultadosSimulador({ results, registroTipo }: ResultadosSimulad
   const config = statusConfig[results.status];
   const StatusIcon = config.icon;
 
+  // Calcular se há receita Caixa
+  const temReceitaCaixa = results.receitaPorBanco.caixa > 0;
+
   return (
     <div className="space-y-4">
       {/* Card Principal de Status */}
@@ -76,6 +80,60 @@ export function ResultadosSimulador({ results, registroTipo }: ResultadosSimulad
             </div>
           </div>
         </div>
+      </Card>
+
+      {/* Breakdown de Receita por Banco */}
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Building className="w-4 h-4" />
+            Receita por Banco
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Itaú */}
+            <div className="p-3 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Itaú ({BANK_RATES.itau * 100}%)</p>
+              <p className="font-bold text-lg">{formatCurrency(results.receitaPorBanco.itau)}</p>
+              <p className="text-xs text-muted-foreground">{results.receitaPorBancoPercent.itau.toFixed(3)}% VGV</p>
+            </div>
+            
+            {/* Santander */}
+            <div className="p-3 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Santander ({BANK_RATES.santander * 100}%)</p>
+              <p className="font-bold text-lg">{formatCurrency(results.receitaPorBanco.santander)}</p>
+              <p className="text-xs text-muted-foreground">{results.receitaPorBancoPercent.santander.toFixed(3)}% VGV</p>
+            </div>
+            
+            {/* Bradesco */}
+            <div className="p-3 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Bradesco ({BANK_RATES.bradesco * 100}%)</p>
+              <p className="font-bold text-lg">{formatCurrency(results.receitaPorBanco.bradesco)}</p>
+              <p className="text-xs text-muted-foreground">{results.receitaPorBancoPercent.bradesco.toFixed(3)}% VGV</p>
+            </div>
+            
+            {/* Caixa */}
+            <div className={cn(
+              "p-3 rounded-lg",
+              results.caixaRemunerada ? "bg-muted/30" : "bg-warning/10 border border-warning/30"
+            )}>
+              <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                Caixa
+                {!results.caixaRemunerada && (
+                  <span className="text-warning">(não remunerada)</span>
+                )}
+              </p>
+              <p className={cn(
+                "font-bold text-lg",
+                !results.caixaRemunerada && "text-muted-foreground"
+              )}>
+                {formatCurrency(results.receitaPorBanco.caixa)}
+              </p>
+              <p className="text-xs text-muted-foreground">{results.receitaPorBancoPercent.caixa.toFixed(3)}% VGV</p>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Grid de Métricas */}
@@ -178,6 +236,17 @@ export function ResultadosSimulador({ results, registroTipo }: ResultadosSimulad
           <AlertTitle className="text-warning-foreground">Teto aplicado na Caixa</AlertTitle>
           <AlertDescription className="text-muted-foreground">
             A taxa efetiva da Caixa ({formatPercent(results.taxaEfetivaCaixa)}) foi limitada pelo teto de remuneração por unidade.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Alerta Caixa Não Remunerada */}
+      {!results.caixaRemunerada && results.receitaPorBancoPercent.caixa === 0 && (
+        <Alert className="border-warning/30 bg-warning/10">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertTitle className="text-warning-foreground">Operação com Caixa sem remuneração</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            A comissão do incorporador foi aplicada apenas sobre os bancos remunerados (Itaú, Santander, Bradesco).
           </AlertDescription>
         </Alert>
       )}
