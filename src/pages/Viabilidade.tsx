@@ -360,7 +360,7 @@ const Viabilidade = () => {
           await createNegotiation({
             leadId: selectedViabilidade.empresa_id,
             titulo: selectedViabilidade.nome_empreendimento,
-            valor: results.receitaBrutaCurrency,
+            valor: results.margemFinalCurrency, // Valor bruto = Margem Final Loft em R$
             etapa: "proposta_aprovada",
             probabilidade: results.status === "viable" ? 80 : 50,
             viabilidadeId: selectedViabilidade.id,

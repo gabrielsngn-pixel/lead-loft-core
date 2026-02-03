@@ -40,7 +40,7 @@ const Dashboard = () => {
   };
 
   const formatPercent = (value: number) => {
-    return `${value.toFixed(1)}%`;
+    return `${value.toFixed(2)}%`;
   };
 
   // Get upcoming activities (not completed, future dates)
