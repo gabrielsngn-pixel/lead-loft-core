@@ -25,22 +25,48 @@ interface DbActivity {
   updated_at: string;
 }
 
-const mapDbToActivity = (db: DbActivity): Activity => ({
-  id: db.id,
-  leadId: db.lead_id || undefined,
-  negociacaoId: db.negociacao_id || undefined,
-  tipo: db.tipo as Activity["tipo"],
-  categoria: db.categoria as ActivityCategory,
-  titulo: db.titulo,
-  descricao: db.descricao || undefined,
-  dataAgendada: new Date(db.data_agendada),
-  dataConclusao: db.data_conclusao ? new Date(db.data_conclusao) : undefined,
-  concluida: db.concluida,
-  responsavelId: db.responsavel_id || "",
-  responsavelNome: db.responsavel_nome || undefined,
-  comentario: db.comentario || undefined,
-  statusAndamento: (db.status_andamento as ActivityStatus) || "em_andamento",
-});
+const mapDbToActivity = (db: DbActivity): Activity => {
+  // Safely parse dates to avoid "Invalid time value" errors
+  let dataAgendada: Date;
+  try {
+    dataAgendada = db.data_agendada ? new Date(db.data_agendada) : new Date();
+    // Check if the date is valid
+    if (isNaN(dataAgendada.getTime())) {
+      dataAgendada = new Date();
+    }
+  } catch {
+    dataAgendada = new Date();
+  }
+
+  let dataConclusao: Date | undefined;
+  if (db.data_conclusao) {
+    try {
+      dataConclusao = new Date(db.data_conclusao);
+      if (isNaN(dataConclusao.getTime())) {
+        dataConclusao = undefined;
+      }
+    } catch {
+      dataConclusao = undefined;
+    }
+  }
+
+  return {
+    id: db.id,
+    leadId: db.lead_id || undefined,
+    negociacaoId: db.negociacao_id || undefined,
+    tipo: db.tipo as Activity["tipo"],
+    categoria: db.categoria as ActivityCategory,
+    titulo: db.titulo,
+    descricao: db.descricao || undefined,
+    dataAgendada,
+    dataConclusao,
+    concluida: db.concluida,
+    responsavelId: db.responsavel_id || "",
+    responsavelNome: db.responsavel_nome || undefined,
+    comentario: db.comentario || undefined,
+    statusAndamento: (db.status_andamento as ActivityStatus) || "em_andamento",
+  };
+};
 
 export function useActivities() {
   const [activities, setActivities] = useState<Activity[]>([]);

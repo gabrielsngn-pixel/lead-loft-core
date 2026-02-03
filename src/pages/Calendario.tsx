@@ -646,7 +646,7 @@ const Calendario = () => {
                         <TableCell className="text-sm">{activity.responsavelNome || "—"}</TableCell>
                         <TableCell>
                           <Select
-                            value={activity.statusAndamento}
+                            value={activity.statusAndamento || "em_andamento"}
                             onValueChange={(value: ActivityStatus) => {
                               updateActivity(activity.id, { 
                                 statusAndamento: value,
@@ -657,7 +657,7 @@ const Calendario = () => {
                           >
                             <SelectTrigger className={cn(
                               "h-8 w-[140px] text-xs border",
-                              statusAndamentoColors[activity.statusAndamento]
+                              statusAndamentoColors[activity.statusAndamento || "em_andamento"]
                             )}>
                               <SelectValue />
                             </SelectTrigger>
