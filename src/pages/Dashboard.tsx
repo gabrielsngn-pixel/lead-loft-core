@@ -114,7 +114,7 @@ const Dashboard = () => {
           icon={<CalendarCheck className="w-6 h-6" />}
           tooltip="Total de reuniões efetivamente realizadas nos últimos 7 dias. Considera apenas reuniões com status 'Realizada'."
         />
-        {/* Reuniões Agendadas agora é um card com drilldown */}
+        <ScheduledMeetingsCard contatos={metrics.contatosAtivos} />
       </div>
 
       {/* Row 3 - Métricas Adicionais */}
@@ -133,10 +133,9 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Row 4 - Charts & Scheduled Meetings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      {/* Row 4 - Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <StatusPieChart leads={metrics.contatosAtivos} />
-        <ScheduledMeetingsCard contatos={metrics.contatosAtivos} />
         <PipelineChart negotiations={negotiations} />
       </div>
 
