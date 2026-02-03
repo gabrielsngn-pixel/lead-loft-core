@@ -4,6 +4,7 @@ export type UserRole = "sdr" | "consultor" | "gestor" | "master";
 export type Priority = "alta" | "media" | "baixa";
 export type CompanyType = "incorporadora" | "banco" | "fundo" | "canal" | "outro";
 export type ActivityCategory = "comercial" | "trade_marketing" | "tecnologia" | "cre";
+export type ActivityStatus = "concluida" | "atrasada" | "em_andamento" | "parada";
 
 export interface Lead {
   id: string;
@@ -81,6 +82,7 @@ export interface Activity {
   responsavelId: string;
   responsavelNome?: string;
   comentario?: string;
+  statusAndamento: ActivityStatus;
 }
 
 export interface User {

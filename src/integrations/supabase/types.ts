@@ -72,6 +72,7 @@ export type Database = {
           negociacao_id: string | null
           responsavel_id: string | null
           responsavel_nome: string | null
+          status_andamento: string
           tipo: string
           titulo: string
           updated_at: string
@@ -91,6 +92,7 @@ export type Database = {
           negociacao_id?: string | null
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          status_andamento?: string
           tipo: string
           titulo: string
           updated_at?: string
@@ -110,6 +112,7 @@ export type Database = {
           negociacao_id?: string | null
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          status_andamento?: string
           tipo?: string
           titulo?: string
           updated_at?: string

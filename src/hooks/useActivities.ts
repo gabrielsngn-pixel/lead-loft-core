@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Activity, ActivityCategory } from "@/types/crm";
+import { Activity, ActivityCategory, ActivityStatus } from "@/types/crm";
 
 interface DbActivity {
   id: string;
@@ -18,6 +18,7 @@ interface DbActivity {
   responsavel_id: string | null;
   responsavel_nome: string | null;
   comentario: string | null;
+  status_andamento: string;
   criado_por: string;
   criado_por_nome: string;
   created_at: string;
@@ -38,6 +39,7 @@ const mapDbToActivity = (db: DbActivity): Activity => ({
   responsavelId: db.responsavel_id || "",
   responsavelNome: db.responsavel_nome || undefined,
   comentario: db.comentario || undefined,
+  statusAndamento: (db.status_andamento as ActivityStatus) || "em_andamento",
 });
 
 export function useActivities() {
@@ -99,6 +101,7 @@ export function useActivities() {
           responsavel_id: activity.responsavelId || null,
           responsavel_nome: activity.responsavelNome || null,
           comentario: activity.comentario || null,
+          status_andamento: activity.statusAndamento || "em_andamento",
           criado_por: profile.user_id,
           criado_por_nome: profile.nome,
         })
@@ -138,6 +141,7 @@ export function useActivities() {
       if (updates.responsavelId !== undefined) dbUpdates.responsavel_id = updates.responsavelId || null;
       if (updates.responsavelNome !== undefined) dbUpdates.responsavel_nome = updates.responsavelNome || null;
       if (updates.comentario !== undefined) dbUpdates.comentario = updates.comentario || null;
+      if (updates.statusAndamento !== undefined) dbUpdates.status_andamento = updates.statusAndamento;
 
       const { data, error } = await supabase
         .from("activities")

@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
 import { mockUsers } from "@/data/mockData";
-import { Activity, ActivityCategory } from "@/types/crm";
+import { Activity, ActivityCategory, ActivityStatus } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -114,13 +114,27 @@ const categoryColors: Record<ActivityCategory, string> = {
   cre: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
+const statusAndamentoLabels: Record<ActivityStatus, string> = {
+  concluida: "Concluída",
+  atrasada: "Atrasada",
+  em_andamento: "Em Andamento",
+  parada: "Parada",
+};
+
+const statusAndamentoColors: Record<ActivityStatus, string> = {
+  concluida: "bg-success/10 text-success border-success/20",
+  atrasada: "bg-destructive/10 text-destructive border-destructive/20",
+  em_andamento: "bg-blue-100 text-blue-600 border-blue-200",
+  parada: "bg-warning/30 text-warning-foreground border-warning/30",
+};
+
 const exportColumns = [
   { key: "titulo", label: "Título", required: true },
   { key: "tipo", label: "Tipo", required: true },
   { key: "categoria", label: "Categoria" },
   { key: "dataAgendada", label: "Data Agendada", required: true },
   { key: "responsavelNome", label: "Responsável" },
-  { key: "concluida", label: "Status" },
+  { key: "statusAndamento", label: "Status" },
   { key: "descricao", label: "Comentário" },
 ];
 
@@ -280,6 +294,7 @@ const Calendario = () => {
       responsavelNome: newActivityForm.responsavelNome,
       dataAgendada: newActivityForm.dataAgendada,
       concluida: false,
+      statusAndamento: "em_andamento",
     });
     setIsSaving(false);
 
@@ -630,15 +645,32 @@ const Calendario = () => {
                         <TableCell className="font-medium">{activity.titulo}</TableCell>
                         <TableCell className="text-sm">{activity.responsavelNome || "—"}</TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={activity.concluida ? "secondary" : "outline"}
-                            className={cn(
-                              "text-xs",
-                              activity.concluida && "bg-success/10 text-success"
-                            )}
+                          <Select
+                            value={activity.statusAndamento}
+                            onValueChange={(value: ActivityStatus) => {
+                              updateActivity(activity.id, { 
+                                statusAndamento: value,
+                                concluida: value === "concluida",
+                                dataConclusao: value === "concluida" ? new Date() : undefined,
+                              });
+                            }}
                           >
-                            {activity.concluida ? "Concluída" : "Pendente"}
-                          </Badge>
+                            <SelectTrigger className={cn(
+                              "h-8 w-[140px] text-xs border",
+                              statusAndamentoColors[activity.statusAndamento]
+                            )}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.entries(statusAndamentoLabels) as [ActivityStatus, string][]).map(([key, label]) => (
+                                <SelectItem key={key} value={key}>
+                                  <span className={cn("text-xs", statusAndamentoColors[key].split(" ")[1])}>
+                                    {label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                           {activity.descricao || "—"}

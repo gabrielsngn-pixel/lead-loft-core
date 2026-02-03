@@ -240,6 +240,7 @@ export const mockActivities: Activity[] = [
     concluida: false,
     responsavelId: "1",
     responsavelNome: "João Silva",
+    statusAndamento: "em_andamento",
   },
   {
     id: "2",
@@ -251,6 +252,7 @@ export const mockActivities: Activity[] = [
     concluida: false,
     responsavelId: "1",
     responsavelNome: "João Silva",
+    statusAndamento: "em_andamento",
   },
   {
     id: "3",
@@ -263,6 +265,7 @@ export const mockActivities: Activity[] = [
     dataConclusao: new Date("2025-01-30T09:30:00"),
     responsavelId: "2",
     responsavelNome: "Maria Santos",
+    statusAndamento: "concluida",
   },
   {
     id: "4",
@@ -275,6 +278,7 @@ export const mockActivities: Activity[] = [
     concluida: false,
     responsavelId: "1",
     responsavelNome: "João Silva",
+    statusAndamento: "em_andamento",
   },
   {
     id: "5",
@@ -287,6 +291,7 @@ export const mockActivities: Activity[] = [
     concluida: false,
     responsavelId: "1",
     responsavelNome: "João Silva",
+    statusAndamento: "em_andamento",
   },
   {
     id: "6",
@@ -298,6 +303,7 @@ export const mockActivities: Activity[] = [
     concluida: false,
     responsavelId: "2",
     responsavelNome: "Maria Santos",
+    statusAndamento: "em_andamento",
   },
 ];
 
