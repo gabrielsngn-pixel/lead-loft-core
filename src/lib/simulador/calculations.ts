@@ -78,6 +78,15 @@ export interface SimuladorInputs {
   comissaoIncorporador: number; // % (0-1)
   registroTipo: RegistroTipo;
   valorRegistroPorUnidade: number;
+  remunerarCaixa: boolean; // Nova variável: se true, Caixa gera receita
+}
+
+// Breakdown de receita por banco
+export interface ReceitaPorBanco {
+  itau: number;
+  santander: number;
+  bradesco: number;
+  caixa: number;
 }
 
 export interface SimuladorResults {
@@ -89,6 +98,11 @@ export interface SimuladorResults {
   taxaEfetivaCaixa: number;          // % (decimal)
   caixaTetoAplicado: boolean;
   caixaDetalhe: CaixaProdutoDetalhe[];
+  
+  // Breakdown de receita por banco (em R$)
+  receitaPorBanco: ReceitaPorBanco;
+  receitaPorBancoPercent: ReceitaPorBanco;
+  caixaRemunerada: boolean;
   
   // Receitas (em %)
   receitaBrutaPercent: number;       // bank_commission - incorporator_commission
@@ -180,6 +194,7 @@ export const defaultInputs: SimuladorInputs = {
   comissaoIncorporador: 0.5,
   registroTipo: "parceiro",
   valorRegistroPorUnidade: 1000,
+  remunerarCaixa: false, // Padrão: Caixa não remunerada
 };
 
 // ============================================
@@ -365,7 +380,7 @@ function gerarAlertas(
  * Calcula viabilidade completa
  */
 export function calcularViabilidade(inputs: SimuladorInputs): SimuladorResults {
-  const { unidades, vgv, bankMix, caixaSubMix, comissaoIncorporador, registroTipo, valorRegistroPorUnidade } = inputs;
+  const { unidades, vgv, bankMix, caixaSubMix, comissaoIncorporador, registroTipo, valorRegistroPorUnidade, remunerarCaixa } = inputs;
   
   // --- Cálculos Base ---
   const ticketMedio = unidades > 0 ? vgv / unidades : 0;
@@ -374,20 +389,62 @@ export function calcularViabilidade(inputs: SimuladorInputs): SimuladorResults {
   const { taxaEfetiva: taxaEfetivaCaixa, tetoAplicado: caixaTetoAplicado, detalhe: caixaDetalhe } = 
     calcularTaxaEfetivaCaixa(caixaSubMix, ticketMedio);
 
-  // --- Comissão Bancária Ponderada Total ---
-  const taxaPonderadaBanco = calcularTaxaPonderadaBanco(bankMix, taxaEfetivaCaixa);
+  // --- Breakdown de Receita por Banco (NOVA LÓGICA) ---
+  // VGV alocado por banco
+  const vgvItau = vgv * (bankMix.itau / 100);
+  const vgvSantander = vgv * (bankMix.santander / 100);
+  const vgvBradesco = vgv * (bankMix.bradesco / 100);
+  const vgvCaixa = vgv * (bankMix.caixa / 100);
 
-  // --- Receitas (em decimal %) ---
-  // receita_bruta_percent = bank_commission - (incorporator_commission / 100)
-  const receitaBrutaPercent = taxaPonderadaBanco - (comissaoIncorporador / 100);
+  // Receita por banco (em R$)
+  const receitaItau = vgvItau * BANK_RATES.itau;
+  const receitaSantander = vgvSantander * BANK_RATES.santander;
+  const receitaBradesco = vgvBradesco * BANK_RATES.bradesco;
+  // Caixa: só gera receita se remunerarCaixa = true
+  const receitaCaixa = remunerarCaixa ? vgvCaixa * taxaEfetivaCaixa : 0;
+
+  // Receita por banco em R$
+  const receitaPorBanco: ReceitaPorBanco = {
+    itau: receitaItau,
+    santander: receitaSantander,
+    bradesco: receitaBradesco,
+    caixa: receitaCaixa,
+  };
+
+  // Receita por banco em % do VGV
+  const receitaPorBancoPercent: ReceitaPorBanco = {
+    itau: vgv > 0 ? (receitaItau / vgv) * 100 : 0,
+    santander: vgv > 0 ? (receitaSantander / vgv) * 100 : 0,
+    bradesco: vgv > 0 ? (receitaBradesco / vgv) * 100 : 0,
+    caixa: vgv > 0 ? (receitaCaixa / vgv) * 100 : 0,
+  };
+
+  // --- VGV Remunerado (para base de comissão) ---
+  // Comissão do incorporador incide APENAS sobre o VGV remunerado
+  const vgvRemunerado = vgvItau + vgvSantander + vgvBradesco + (remunerarCaixa ? vgvCaixa : 0);
+
+  // --- Receita Total Bancária (soma das receitas por banco) ---
+  const receitaBancariaTotalCurrency = receitaItau + receitaSantander + receitaBradesco + receitaCaixa;
+  const receitaBancariaTotalPercent = vgv > 0 ? receitaBancariaTotalCurrency / vgv : 0;
+
+  // --- Comissão do Incorporador (apenas sobre VGV remunerado) ---
+  const custoComissaoIncorporador = vgvRemunerado * (comissaoIncorporador / 100);
+
+  // --- Receita Bruta (receita bancária - comissão incorporador) ---
+  const receitaBrutaCurrency = receitaBancariaTotalCurrency - custoComissaoIncorporador;
+  const receitaBrutaPercent = vgv > 0 ? receitaBrutaCurrency / vgv : 0;
   
-  // imposto_percent = receita_bruta_percent × 0.101
+  // --- Impostos sobre receita bruta ---
+  const impostoCurrency = receitaBrutaCurrency * CONSTANTS.TAX_RATE;
   const impostoPercent = receitaBrutaPercent * CONSTANTS.TAX_RATE;
   
-  // receita_liquida_total_percent = receita_bruta_percent - imposto_percent
+  // --- Receita Líquida Total ---
+  const receitaLiquidaTotalCurrency = receitaBrutaCurrency - impostoCurrency;
   const receitaLiquidaTotalPercent = receitaBrutaPercent - impostoPercent;
 
   // --- Rateio 50/50 ---
+  const receitaLiquidaLoftCurrency = receitaLiquidaTotalCurrency * CONSTANTS.LOFT_PARTICIPATION;
+  const receitaLiquidaCRECurrency = receitaLiquidaTotalCurrency * CONSTANTS.PARTNER_PARTICIPATION;
   const receitaLiquidaLoftPercent = receitaLiquidaTotalPercent * CONSTANTS.LOFT_PARTICIPATION;
   const receitaLiquidaCREPercent = receitaLiquidaTotalPercent * CONSTANTS.PARTNER_PARTICIPATION;
 
@@ -413,37 +470,49 @@ export function calcularViabilidade(inputs: SimuladorInputs): SimuladorResults {
 
   // --- Custos Operacionais ---
   const custosOperacionaisPercent = CONSTANTS.OPERATIONAL_COSTS;
+  const custosOperacionaisCurrency = vgv * custosOperacionaisPercent;
 
   // --- Margem Final Loft ---
-  // margem_final_percent = receita_loft_com_registro_percent - 0.0024
   const margemFinalPercent = receitaLoftComRegistroPercent - custosOperacionaisPercent;
-
-  // --- Valores em R$ ---
-  const receitaBrutaCurrency = vgv * receitaBrutaPercent;
-  const impostoCurrency = vgv * impostoPercent;
-  const receitaLiquidaTotalCurrency = vgv * receitaLiquidaTotalPercent;
-  const receitaLiquidaLoftCurrency = vgv * receitaLiquidaLoftPercent;
-  const receitaLiquidaCRECurrency = vgv * receitaLiquidaCREPercent;
-  const custosOperacionaisCurrency = vgv * custosOperacionaisPercent;
   const margemFinalCurrency = vgv * margemFinalPercent;
 
+  // --- Taxa Ponderada (para display - considera se Caixa é remunerada) ---
+  const taxaPonderadaBancoDisplay = remunerarCaixa 
+    ? calcularTaxaPonderadaBanco(bankMix, taxaEfetivaCaixa)
+    : calcularTaxaPonderadaBanco({ ...bankMix, caixa: 0 }, taxaEfetivaCaixa) * (100 / (100 - bankMix.caixa));
+
+  // Taxa real considerando Caixa ou não
+  const taxaPonderadaReal = vgv > 0 ? receitaBancariaTotalCurrency / vgv : 0;
+
   // --- Status ---
-  // Converter para % (ex: 0.0042 → 0.42%)
   const margemPercentDisplay = margemFinalPercent * 100;
   const { status, label: statusLabel, color: statusColor } = determinarStatus(margemPercentDisplay);
 
   // --- Alertas ---
   const alerts = gerarAlertas(inputs, margemPercentDisplay, caixaTetoAplicado);
 
+  // Alerta adicional: Caixa não remunerada
+  if (bankMix.caixa > 0 && !remunerarCaixa) {
+    alerts.push({
+      type: "warning",
+      message: `Operação com Caixa (${bankMix.caixa}% do mix) sem remuneração`,
+    });
+  }
+
   return {
     // Base
     ticketMedio,
     
     // Comissão bancária
-    taxaPonderadaBanco: taxaPonderadaBanco * 100,  // Convertido para display (1.75%)
-    taxaEfetivaCaixa: taxaEfetivaCaixa * 100,      // Convertido para display
+    taxaPonderadaBanco: taxaPonderadaReal * 100,  // Taxa efetiva considerando Caixa
+    taxaEfetivaCaixa: taxaEfetivaCaixa * 100,
     caixaTetoAplicado,
     caixaDetalhe,
+    
+    // Breakdown por banco
+    receitaPorBanco,
+    receitaPorBancoPercent,
+    caixaRemunerada: remunerarCaixa,
     
     // Receitas (em % para display)
     receitaBrutaPercent: receitaBrutaPercent * 100,
@@ -490,12 +559,12 @@ export function calcularViabilidade(inputs: SimuladorInputs): SimuladorResults {
     
     // Legado (compatibilidade com componentes existentes)
     margemLoft: margemPercentDisplay,
-    margemMinima: CONSTANTS.MIN_MARGIN * 100,  // 0.30
+    margemMinima: CONSTANTS.MIN_MARGIN * 100,
     receitaBrutaTotal: receitaBrutaCurrency,
     receitaLiquidaTotal: receitaLiquidaTotalCurrency,
     receitaLoft: receitaLiquidaLoftCurrency,
     receitaCRE: receitaLiquidaCRECurrency,
-    custoComissaoIncorporador: vgv * (comissaoIncorporador / 100),
+    custoComissaoIncorporador,
   };
 }
 

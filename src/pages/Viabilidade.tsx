@@ -888,9 +888,12 @@ const Viabilidade = () => {
                 registroTipo={inputs.registroTipo}
                 valorRegistroPorUnidade={inputs.valorRegistroPorUnidade}
                 unidades={inputs.unidades}
+                remunerarCaixa={inputs.remunerarCaixa}
+                caixaMixPercent={inputs.bankMix.caixa}
                 onComissaoChange={(v) => setInputs({ ...inputs, comissaoIncorporador: v })}
                 onRegistroTipoChange={(v) => setInputs({ ...inputs, registroTipo: v })}
                 onValorRegistroChange={(v) => setInputs({ ...inputs, valorRegistroPorUnidade: v })}
+                onRemunerarCaixaChange={(v) => setInputs({ ...inputs, remunerarCaixa: v })}
               />
             </div>
 

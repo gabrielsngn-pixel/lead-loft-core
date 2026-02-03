@@ -1,8 +1,10 @@
-import { FileText, Percent } from "lucide-react";
+import { FileText, Percent, Building, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -11,15 +13,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, REGISTRO_OPTIONS, type RegistroTipo } from "@/lib/simulador";
+import { cn } from "@/lib/utils";
 
 interface ComissaoRegistroProps {
   comissaoIncorporador: number;
   registroTipo: RegistroTipo;
   valorRegistroPorUnidade: number;
   unidades: number;
+  remunerarCaixa: boolean;
+  caixaMixPercent: number;
   onComissaoChange: (value: number) => void;
   onRegistroTipoChange: (value: RegistroTipo) => void;
   onValorRegistroChange: (value: number) => void;
+  onRemunerarCaixaChange: (value: boolean) => void;
 }
 
 const formatNumber = (value: number) => new Intl.NumberFormat("pt-BR").format(value);
@@ -30,12 +36,54 @@ export function ComissaoRegistro({
   registroTipo,
   valorRegistroPorUnidade,
   unidades,
+  remunerarCaixa,
+  caixaMixPercent,
   onComissaoChange,
   onRegistroTipoChange,
   onValorRegistroChange,
+  onRemunerarCaixaChange,
 }: ComissaoRegistroProps) {
   return (
     <div className="space-y-4">
+      {/* Remunerar Caixa - NOVA VARIÁVEL OBRIGATÓRIA */}
+      {caixaMixPercent > 0 && (
+        <Card className={cn(
+          "border shadow-sm transition-colors",
+          !remunerarCaixa && "border-warning/50 bg-warning/5"
+        )}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Building className="w-4 h-4" />
+              Remuneração Caixa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label className="font-medium">Remunerar Caixa?</Label>
+                <p className="text-xs text-muted-foreground">
+                  {caixaMixPercent}% do mix está alocado na Caixa
+                </p>
+              </div>
+              <Switch
+                checked={remunerarCaixa}
+                onCheckedChange={onRemunerarCaixaChange}
+              />
+            </div>
+            
+            {!remunerarCaixa && (
+              <Alert className="border-warning/30 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-sm">
+                  Operação com Caixa <strong>sem remuneração</strong>. 
+                  A comissão do incorporador não incidirá sobre as unidades Caixa.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Comissão do Incorporador */}
       <Card className="border shadow-sm">
         <CardContent className="py-4 space-y-4">
