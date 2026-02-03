@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +36,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useLeads } from "@/hooks/useLeads";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
 import { roleLabels } from "@/types/permissions";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
+import { CreateContactDialog, NewContactData, UniqueCompany } from "@/components/contatos/CreateContactDialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -64,6 +70,9 @@ import {
   Plus,
   Trash2,
   Loader2,
+  ChevronDown,
+  ChevronRight,
+  Linkedin,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -118,17 +127,23 @@ const Contatos = () => {
   const [meetingDescription, setMeetingDescription] = useState("");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newContactData, setNewContactData] = useState({
-    razaoSocial: "",
-    nomeFantasia: "",
-    cnpj: "",
-    nomeContato: "",
-    email: "",
-    telefone: "",
-    cidade: "",
-    estado: "",
-    tipoEmpresa: "incorporadora" as CompanyType,
-  });
+
+  // Get unique companies from all leads for autocomplete
+  const uniqueCompanies = useMemo<UniqueCompany[]>(() => {
+    const companyMap = new Map<string, UniqueCompany>();
+    leads.forEach((lead) => {
+      if (!companyMap.has(lead.cnpj)) {
+        companyMap.set(lead.cnpj, {
+          razaoSocial: lead.razaoSocial,
+          nomeFantasia: lead.nomeFantasia,
+          cnpj: lead.cnpj,
+        });
+      }
+    });
+    return Array.from(companyMap.values()).sort((a, b) =>
+      (a.nomeFantasia || a.razaoSocial).localeCompare(b.nomeFantasia || b.razaoSocial)
+    );
+  }, [leads]);
 
   // Filter only leads that have a responsible person (active contacts)
   const activeContacts = leads.filter((lead) => lead.responsavelId);
@@ -169,6 +184,43 @@ const Contatos = () => {
       ? b.dataUltimaInteracao.getTime() - a.dataUltimaInteracao.getTime()
       : a.dataUltimaInteracao.getTime() - b.dataUltimaInteracao.getTime();
   });
+
+  // Group contacts by company (CNPJ)
+  const groupedContacts = useMemo(() => {
+    const groups = new Map<string, { company: UniqueCompany; contacts: Lead[] }>();
+    
+    sortedContacts.forEach((contact) => {
+      const key = contact.cnpj;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          company: {
+            razaoSocial: contact.razaoSocial,
+            nomeFantasia: contact.nomeFantasia,
+            cnpj: contact.cnpj,
+          },
+          contacts: [],
+        });
+      }
+      groups.get(key)!.contacts.push(contact);
+    });
+    
+    return Array.from(groups.values());
+  }, [sortedContacts]);
+
+  // Track which groups are expanded
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (cnpj: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(cnpj)) {
+        next.delete(cnpj);
+      } else {
+        next.add(cnpj);
+      }
+      return next;
+    });
+  };
 
   const handleExport = () => {
     const csvContent = [
@@ -238,49 +290,39 @@ const Contatos = () => {
     }
   };
 
-  const handleCreateContact = async () => {
+  const handleCreateContact = async (data: NewContactData) => {
     if (!profile) {
       toast({ title: "Perfil carregando", description: "Aguarde o carregamento do seu perfil.", variant: "destructive" });
       return;
     }
-    if (!newContactData.razaoSocial.trim() || !newContactData.email.trim() || !newContactData.telefone.trim()) {
+    if (!data.razaoSocial.trim() || !data.email.trim() || !data.telefone.trim()) {
       toast({ title: "Campos obrigatórios", description: "Preencha Razão Social, Email e Telefone.", variant: "destructive" });
       return;
     }
 
     try {
       const lead = await createLead({
-        cnpj: newContactData.cnpj || "00.000.000/0000-00",
-        razaoSocial: newContactData.razaoSocial,
-        nomeFantasia: newContactData.nomeFantasia || undefined,
-        email: newContactData.email,
-        telefone: newContactData.telefone,
-        cidade: newContactData.cidade || "N/A",
-        estado: newContactData.estado || "SP",
+        cnpj: data.cnpj || "00.000.000/0000-00",
+        razaoSocial: data.razaoSocial,
+        nomeFantasia: data.nomeFantasia || undefined,
+        email: data.email,
+        telefone: data.telefone,
+        cidade: data.cidade || "N/A",
+        estado: data.estado || "SP",
         origem: "outro",
         observacoes: undefined,
       });
-      // claim immediately
+      // claim immediately with linkedin
       await updateLead({
         ...lead,
         responsavelId: profile.user_id,
         responsavelNome: profile.nome,
-        tipoEmpresa: newContactData.tipoEmpresa,
-        nomeContato: newContactData.nomeContato || undefined,
+        tipoEmpresa: data.tipoEmpresa,
+        nomeContato: data.nomeContato || undefined,
+        linkedin: data.linkedin || undefined,
         status: "qualificado",
       });
       setCreateDialogOpen(false);
-      setNewContactData({
-        razaoSocial: "",
-        nomeFantasia: "",
-        cnpj: "",
-        nomeContato: "",
-        email: "",
-        telefone: "",
-        cidade: "",
-        estado: "",
-        tipoEmpresa: "incorporadora",
-      });
       toast({ title: "Contato criado", description: "O contato já foi atribuído a você e aparece na lista." });
     } catch {
       toast({ title: "Erro ao criar contato", variant: "destructive" });
@@ -441,6 +483,7 @@ const Contatos = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30">
+                <TableHead className="font-semibold w-8"></TableHead>
                 <TableHead className="font-semibold">Nome do Contato</TableHead>
                 <TableHead className="font-semibold">Empresa</TableHead>
                 <TableHead className="font-semibold">Tipo</TableHead>
@@ -463,69 +506,227 @@ const Contatos = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedContacts.map((contact, index) => {
-                const TypeIcon = companyTypeConfig[contact.tipoEmpresa]?.icon ?? HelpCircle;
-
-                return (
-                  <TableRow key={contact.id} className="table-row-hover animate-fade-in cursor-pointer" style={{ animationDelay: `${index * 30}ms` }} onClick={() => handleEditContact(contact)}>
-                    <TableCell>
-                      <div className="font-medium">{contact.nomeContato || "—"}</div>
-                      <div className="text-sm text-muted-foreground">{contact.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{contact.nomeFantasia || contact.razaoSocial}</div>
-                      <div className="text-sm text-muted-foreground">{contact.cidade}/{contact.estado}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <TypeIcon className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{companyTypeConfig[contact.tipoEmpresa]?.label ?? "—"}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{contact.responsavelNome ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge className={cn("badge-status", statusConfig[contact.status]?.className)}>{statusConfig[contact.status]?.label ?? contact.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn("badge-status", priorityConfig[contact.prioridade]?.className)}>{priorityConfig[contact.prioridade]?.label ?? contact.prioridade}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(contact.dataUltimaInteracao, { addSuffix: true, locale: ptBR })}</TableCell>
-                    <TableCell className="text-sm">
-                      {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade" onClick={() => handleOpenActivityDialog(contact)}>
-                          <ClipboardList className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Agendar Reunião" onClick={() => handleOpenMeetingDialog(contact)}>
-                          <Calendar className="w-4 h-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditContact(contact)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Ver detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditContact(contact)}>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
+              {groupedContacts.map((group, groupIndex) => {
+                const hasMultipleContacts = group.contacts.length > 1;
+                const isExpanded = expandedGroups.has(group.company.cnpj);
+                
+                if (hasMultipleContacts) {
+                  // Render collapsible group
+                  return (
+                    <Collapsible key={group.company.cnpj} open={isExpanded} onOpenChange={() => toggleGroup(group.company.cnpj)} asChild>
+                      <>
+                        {/* Group header row */}
+                        <TableRow 
+                          className="bg-muted/20 hover:bg-muted/40 cursor-pointer border-l-4 border-l-primary"
+                        >
+                          <TableCell className="w-8">
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </CollapsibleTrigger>
+                          </TableCell>
+                          <TableCell colSpan={3}>
+                            <div className="flex items-center gap-3">
+                              <Building2 className="w-5 h-5 text-primary" />
+                              <div>
+                                <div className="font-semibold">{group.company.nomeFantasia || group.company.razaoSocial}</div>
+                                <div className="text-xs text-muted-foreground font-mono">{group.company.cnpj}</div>
+                              </div>
+                              <Badge variant="secondary" className="ml-2">
+                                {group.contacts.length} contatos
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell colSpan={6}></TableCell>
+                        </TableRow>
+                        
+                        {/* Collapsible content: individual contacts */}
+                        <CollapsibleContent asChild>
+                          <>
+                            {group.contacts.map((contact, index) => {
+                              const TypeIcon = companyTypeConfig[contact.tipoEmpresa]?.icon ?? HelpCircle;
+                              return (
+                                <TableRow 
+                                  key={contact.id} 
+                                  className="table-row-hover animate-fade-in cursor-pointer bg-background/50 border-l-4 border-l-primary/30" 
+                                  style={{ animationDelay: `${index * 30}ms` }} 
+                                  onClick={() => handleEditContact(contact)}
+                                >
+                                  <TableCell className="w-8"></TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <div>
+                                        <div className="font-medium">{contact.nomeContato || "—"}</div>
+                                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                          {contact.email}
+                                          {contact.linkedin && (
+                                            <a 
+                                              href={contact.linkedin} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="text-[#0077B5] hover:text-[#0077B5]/80"
+                                            >
+                                              <Linkedin className="w-3 h-3" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm text-muted-foreground">{contact.cidade}/{contact.estado}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <TypeIcon className="w-4 h-4 text-muted-foreground" />
+                                      <span className="text-sm">{companyTypeConfig[contact.tipoEmpresa]?.label ?? "—"}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-sm">{contact.responsavelNome ?? "—"}</TableCell>
+                                  <TableCell>
+                                    <Badge className={cn("badge-status", statusConfig[contact.status]?.className)}>{statusConfig[contact.status]?.label ?? contact.status}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge className={cn("badge-status", priorityConfig[contact.prioridade]?.className)}>{priorityConfig[contact.prioridade]?.label ?? contact.prioridade}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(contact.dataUltimaInteracao, { addSuffix: true, locale: ptBR })}</TableCell>
+                                  <TableCell className="text-sm">
+                                    {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade" onClick={() => handleOpenActivityDialog(contact)}>
+                                        <ClipboardList className="w-4 h-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Agendar Reunião" onClick={() => handleOpenMeetingDialog(contact)}>
+                                        <Calendar className="w-4 h-4" />
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <MoreHorizontal className="w-4 h-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => handleEditContact(contact)}>
+                                            <Eye className="w-4 h-4 mr-2" />
+                                            Ver detalhes
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleEditContact(contact)}>
+                                            <Edit className="w-4 h-4 mr-2" />
+                                            Editar
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Excluir
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </>
+                        </CollapsibleContent>
+                      </>
+                    </Collapsible>
+                  );
+                } else {
+                  // Single contact - render normally
+                  const contact = group.contacts[0];
+                  const TypeIcon = companyTypeConfig[contact.tipoEmpresa]?.icon ?? HelpCircle;
+                  
+                  return (
+                    <TableRow 
+                      key={contact.id} 
+                      className="table-row-hover animate-fade-in cursor-pointer" 
+                      style={{ animationDelay: `${groupIndex * 30}ms` }} 
+                      onClick={() => handleEditContact(contact)}
+                    >
+                      <TableCell className="w-8"></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <div className="font-medium">{contact.nomeContato || "—"}</div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              {contact.email}
+                              {contact.linkedin && (
+                                <a 
+                                  href={contact.linkedin} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[#0077B5] hover:text-[#0077B5]/80"
+                                >
+                                  <Linkedin className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{contact.nomeFantasia || contact.razaoSocial}</div>
+                        <div className="text-sm text-muted-foreground">{contact.cidade}/{contact.estado}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <TypeIcon className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{companyTypeConfig[contact.tipoEmpresa]?.label ?? "—"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{contact.responsavelNome ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge className={cn("badge-status", statusConfig[contact.status]?.className)}>{statusConfig[contact.status]?.label ?? contact.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn("badge-status", priorityConfig[contact.prioridade]?.className)}>{priorityConfig[contact.prioridade]?.label ?? contact.prioridade}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(contact.dataUltimaInteracao, { addSuffix: true, locale: ptBR })}</TableCell>
+                      <TableCell className="text-sm">
+                        {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade" onClick={() => handleOpenActivityDialog(contact)}>
+                            <ClipboardList className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Agendar Reunião" onClick={() => handleOpenMeetingDialog(contact)}>
+                            <Calendar className="w-4 h-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEditContact(contact)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Ver detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditContact(contact)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
               })}
             </TableBody>
           </Table>
@@ -541,75 +742,12 @@ const Contatos = () => {
       </div>
 
       {/* Create Contact Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Novo Contato</DialogTitle>
-            <DialogDescription>Crie um contato ativo (já atribuído a você) para seguir a jornada comercial.</DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Razão Social *</Label>
-              <Input value={newContactData.razaoSocial} onChange={(e) => setNewContactData((p) => ({ ...p, razaoSocial: e.target.value }))} placeholder="Razão social da incorporadora" />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Nome Fantasia</Label>
-              <Input value={newContactData.nomeFantasia} onChange={(e) => setNewContactData((p) => ({ ...p, nomeFantasia: e.target.value }))} placeholder="Opcional" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>CNPJ</Label>
-              <Input value={newContactData.cnpj} onChange={(e) => setNewContactData((p) => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={newContactData.tipoEmpresa} onValueChange={(v) => setNewContactData((p) => ({ ...p, tipoEmpresa: v as CompanyType }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(companyTypeConfig).map(([key, cfg]) => (
-                    <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Nome do Contato</Label>
-              <Input value={newContactData.nomeContato} onChange={(e) => setNewContactData((p) => ({ ...p, nomeContato: e.target.value }))} placeholder="Opcional" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input value={newContactData.email} onChange={(e) => setNewContactData((p) => ({ ...p, email: e.target.value }))} placeholder="email@empresa.com" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Telefone *</Label>
-              <Input value={newContactData.telefone} onChange={(e) => setNewContactData((p) => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Cidade</Label>
-              <Input value={newContactData.cidade} onChange={(e) => setNewContactData((p) => ({ ...p, cidade: e.target.value }))} placeholder="Cidade" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Input value={newContactData.estado} onChange={(e) => setNewContactData((p) => ({ ...p, estado: e.target.value }))} placeholder="UF" />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateContact}>Criar contato</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateContactDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreateContact={handleCreateContact}
+        existingCompanies={uniqueCompanies}
+      />
 
       {/* Edit Dialog */}
       <EditLeadDialog lead={editingContact} open={editDialogOpen} onOpenChange={setEditDialogOpen} onSave={handleSaveContact} />

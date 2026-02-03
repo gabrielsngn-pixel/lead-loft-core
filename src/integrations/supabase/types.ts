@@ -178,6 +178,7 @@ export type Database = {
           email: string
           estado: string
           id: string
+          linkedin: string | null
           nome_contato: string | null
           nome_fantasia: string | null
           observacoes: string | null
@@ -206,6 +207,7 @@ export type Database = {
           email: string
           estado: string
           id?: string
+          linkedin?: string | null
           nome_contato?: string | null
           nome_fantasia?: string | null
           observacoes?: string | null
@@ -234,6 +236,7 @@ export type Database = {
           email?: string
           estado?: string
           id?: string
+          linkedin?: string | null
           nome_contato?: string | null
           nome_fantasia?: string | null
           observacoes?: string | null
