@@ -26,6 +26,7 @@ interface LeadRow {
   data_ultima_interacao: string;
   proxima_atividade: string | null;
   proxima_reuniao: string | null;
+  ultima_reuniao: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +54,7 @@ function rowToLead(row: LeadRow): Lead {
     dataUltimaInteracao: new Date(row.data_ultima_interacao),
     proximaAtividade: row.proxima_atividade ? new Date(row.proxima_atividade) : undefined,
     proximaReuniao: row.proxima_reuniao ? new Date(row.proxima_reuniao) : undefined,
+    ultimaReuniao: row.ultima_reuniao ? new Date(row.ultima_reuniao) : undefined,
   };
 }
 
@@ -145,6 +147,7 @@ export function useLeads() {
         data_ultima_interacao: new Date().toISOString(),
         proxima_atividade: updatedLead.proximaAtividade?.toISOString() || null,
         proxima_reuniao: updatedLead.proximaReuniao?.toISOString() || null,
+        ultima_reuniao: updatedLead.ultimaReuniao?.toISOString() || null,
         atualizado_por: profile.user_id,
         atualizado_por_nome: profile.nome,
       })
