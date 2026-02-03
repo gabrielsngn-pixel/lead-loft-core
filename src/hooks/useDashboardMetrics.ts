@@ -67,10 +67,13 @@ export function useDashboardMetrics({ leads, negotiations }: DashboardMetricsInp
     ).length;
     
     // 8. Reuniões agendadas (próximos 7 dias) - baseado em proximaReuniao dos contatos
-    const reunioesAgendadas7Dias = contatosAtivos.filter(c => 
-      c.proximaReuniao && 
-      isWithinInterval(c.proximaReuniao, { start: startOfDay(today), end: next7Days })
-    ).length;
+    // Inclui reuniões de hoje até 7 dias no futuro (intervalo inclusivo)
+    const todayStart = startOfDay(today);
+    const reunioesAgendadas7Dias = contatosAtivos.filter(c => {
+      if (!c.proximaReuniao) return false;
+      const reuniaoDate = startOfDay(c.proximaReuniao);
+      return reuniaoDate >= todayStart && reuniaoDate <= next7Days;
+    }).length;
     
     // 9. Tempo médio Lead → Contato (dias) - Opcional
     const leadsConvertidosTotal = leads.filter(l => l.responsavelId);
