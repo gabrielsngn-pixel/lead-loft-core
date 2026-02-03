@@ -23,6 +23,7 @@ export interface Lead {
   responsavelNome?: string;
   valorEstimado?: number;
   observacoes?: string;
+  linkedin?: string;
   dataCriacao: Date;
   dataUltimaInteracao: Date;
   proximaAtividade?: Date;

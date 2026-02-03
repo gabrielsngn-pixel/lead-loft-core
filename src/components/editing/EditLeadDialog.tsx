@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Building2, History, Save, X, Shield, Clock, User } from "lucide-react";
+import { Building2, History, Save, X, Shield, Clock, User, Linkedin } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -227,6 +227,14 @@ export function EditLeadDialog({
                     onSave={(v) => handleFieldChange("estado", v)}
                     placeholder="UF"
                     onHistoryClick={() => handleShowFieldHistory("estado")}
+                  />
+                  <EditableField
+                    fieldName="linkedin"
+                    label="LinkedIn"
+                    value={currentLead.linkedin}
+                    onSave={(v) => handleFieldChange("linkedin", v)}
+                    placeholder="https://linkedin.com/in/perfil"
+                    onHistoryClick={() => handleShowFieldHistory("linkedin")}
                   />
                 </div>
               </TabsContent>

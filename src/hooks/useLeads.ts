@@ -21,6 +21,7 @@ interface LeadRow {
   responsavel_id: string | null;
   responsavel_nome: string | null;
   observacoes: string | null;
+  linkedin: string | null;
   data_criacao: string;
   data_ultima_interacao: string;
   proxima_atividade: string | null;
@@ -47,6 +48,7 @@ function rowToLead(row: LeadRow): Lead {
     responsavelId: row.responsavel_id ?? undefined,
     responsavelNome: row.responsavel_nome ?? undefined,
     observacoes: row.observacoes ?? undefined,
+    linkedin: row.linkedin ?? undefined,
     dataCriacao: new Date(row.data_criacao),
     dataUltimaInteracao: new Date(row.data_ultima_interacao),
     proximaAtividade: row.proxima_atividade ? new Date(row.proxima_atividade) : undefined,
@@ -139,6 +141,7 @@ export function useLeads() {
         responsavel_id: updatedLead.responsavelId || null,
         responsavel_nome: updatedLead.responsavelNome || null,
         observacoes: updatedLead.observacoes || null,
+        linkedin: updatedLead.linkedin || null,
         data_ultima_interacao: new Date().toISOString(),
         proxima_atividade: updatedLead.proximaAtividade?.toISOString() || null,
         proxima_reuniao: updatedLead.proximaReuniao?.toISOString() || null,
