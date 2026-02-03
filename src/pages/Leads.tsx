@@ -290,6 +290,7 @@ const Leads = () => {
                 <TableHead className="font-semibold">Cidade</TableHead>
                 <TableHead className="font-semibold">CNPJ</TableHead>
                 <TableHead className="font-semibold">Contato</TableHead>
+                <TableHead className="font-semibold">Consultor</TableHead>
                 <TableHead className="font-semibold">Origem</TableHead>
                 <TableHead className="font-semibold">Status Inicial</TableHead>
                 <TableHead className="font-semibold">Status Atual</TableHead>
@@ -326,6 +327,17 @@ const Leads = () => {
                         <p>{lead.nomeContato || lead.email}</p>
                         <p className="text-muted-foreground">{lead.telefone}</p>
                       </div>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Input
+                        className="h-8 w-32 text-sm"
+                        placeholder="Nome do consultor"
+                        value={lead.responsavelNome || ""}
+                        onChange={(e) => {
+                          const newName = e.target.value;
+                          updateLead({ ...lead, responsavelNome: newName || undefined });
+                        }}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-normal">{origemLabels[lead.origem] ?? lead.origem}</Badge>
