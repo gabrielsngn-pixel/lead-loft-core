@@ -104,10 +104,19 @@ export function EditLeadDialog({
       logChange(fieldName, fieldPermission.label, oldValue, value);
     }
 
-    // Update the lead
+    // Update the lead - handle date fields
     setEditedLead(prev => {
       if (!prev) return prev;
-      const updated = { ...prev, [fieldName]: value, dataUltimaInteracao: new Date() };
+      let newValue: any = value;
+      
+      // Convert date strings to Date objects for date fields
+      if ((fieldName === 'ultimaReuniao' || fieldName === 'proximaReuniao') && value) {
+        newValue = new Date(value);
+      } else if ((fieldName === 'ultimaReuniao' || fieldName === 'proximaReuniao') && !value) {
+        newValue = undefined;
+      }
+      
+      const updated = { ...prev, [fieldName]: newValue, dataUltimaInteracao: new Date() };
       return updated;
     });
     setHasChanges(true);
@@ -235,6 +244,22 @@ export function EditLeadDialog({
                     onSave={(v) => handleFieldChange("linkedin", v)}
                     placeholder="https://linkedin.com/in/perfil"
                     onHistoryClick={() => handleShowFieldHistory("linkedin")}
+                  />
+                  <EditableField
+                    fieldName="ultimaReuniao"
+                    label="Última Reunião"
+                    value={currentLead.ultimaReuniao ? format(currentLead.ultimaReuniao, "yyyy-MM-dd") : ""}
+                    onSave={(v) => handleFieldChange("ultimaReuniao", v)}
+                    type="date"
+                    onHistoryClick={() => handleShowFieldHistory("ultimaReuniao")}
+                  />
+                  <EditableField
+                    fieldName="proximaReuniao"
+                    label="Próxima Reunião"
+                    value={currentLead.proximaReuniao ? format(currentLead.proximaReuniao, "yyyy-MM-dd") : ""}
+                    onSave={(v) => handleFieldChange("proximaReuniao", v)}
+                    type="date"
+                    onHistoryClick={() => handleShowFieldHistory("proximaReuniao")}
                   />
                 </div>
               </TabsContent>
