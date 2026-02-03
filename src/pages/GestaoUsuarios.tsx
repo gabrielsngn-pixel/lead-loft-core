@@ -16,6 +16,7 @@ import {
   Loader2,
   Edit,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -114,8 +115,10 @@ const GestaoUsuarios = () => {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [changeRoleDialogOpen, setChangeRoleDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
   const [selectedUserProfile, setSelectedUserProfile] = useState<UserProfile | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("consultor");
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -228,6 +231,61 @@ const GestaoUsuarios = () => {
     setSelectedRequest(fakeRequest);
     setSelectedRole("consultor");
     setApproveDialogOpen(true);
+  };
+
+  const handleDeleteClick = (userProfile: UserProfile) => {
+    setUserToDelete(userProfile);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete || !user || !profile) return;
+    setProcessing(true);
+
+    try {
+      // Delete related access_requests first
+      await supabase
+        .from("access_requests")
+        .delete()
+        .eq("user_id", userToDelete.user_id);
+
+      // Delete the profile
+      await supabase
+        .from("profiles")
+        .delete()
+        .eq("user_id", userToDelete.user_id);
+
+      // Log the action
+      await supabase.from("admin_action_logs").insert({
+        admin_user_id: user.id,
+        admin_name: profile.nome,
+        action_type: "delete_user",
+        target_user_id: userToDelete.user_id,
+        target_user_email: userToDelete.email,
+        details: { 
+          deleted_user_name: userToDelete.nome,
+          deleted_user_role: userToDelete.role 
+        },
+      });
+
+      toast({
+        title: "Usuário excluído!",
+        description: `${userToDelete.nome} foi removido do sistema.`,
+      });
+
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Erro ao excluir usuário",
+        description: "Ocorreu um erro ao excluir o usuário. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleChangeRole = async () => {
@@ -716,6 +774,17 @@ const GestaoUsuarios = () => {
                             Alterar Perfil
                           </Button>
                         )}
+                        {/* Delete button - only for Master users and not self */}
+                        {isMaster && userProfile.user_id !== user?.id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                            onClick={() => handleDeleteClick(userProfile)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -872,6 +941,37 @@ const GestaoUsuarios = () => {
             <Button onClick={handleChangeRole} disabled={processing}>
               {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Usuário</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir <strong>{userToDelete?.nome}</strong>? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="text-sm text-destructive">
+                ⚠️ Esta ação irá remover permanentemente o usuário do sistema.
+                Todos os dados associados ao usuário serão perdidos.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={processing}>
+              {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Excluir Usuário
             </Button>
           </DialogFooter>
         </DialogContent>
