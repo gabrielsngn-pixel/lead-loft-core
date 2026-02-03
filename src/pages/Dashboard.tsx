@@ -1,16 +1,15 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { StatCard } from "@/components/dashboard/StatCard";
+import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentLeads } from "@/components/dashboard/RecentLeads";
 import { UpcomingActivities } from "@/components/dashboard/UpcomingActivities";
 import { PipelineChart } from "@/components/dashboard/PipelineChart";
 import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
-import { ActivitiesByConsultorChart } from "@/components/dashboard/ActivitiesByConsultorChart";
-import { UpcomingMeetings } from "@/components/dashboard/UpcomingMeetings";
-import { InactiveLeadsAlert } from "@/components/dashboard/InactiveLeadsAlert";
+import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWithoutActionAlert";
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useActivities } from "@/hooks/useActivities";
-import { mockUsers } from "@/data/mockData";
+import { useMeetings } from "@/hooks/useMeetings";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import {
   Users,
   UserPlus,
@@ -19,6 +18,9 @@ import {
   TrendingUp,
   UserCheck,
   Calendar,
+  CalendarCheck,
+  Percent,
+  Clock,
   Loader2,
 } from "lucide-react";
 
@@ -26,6 +28,9 @@ const Dashboard = () => {
   const { leads, loading: leadsLoading } = useLeads();
   const { negotiations, loading: negotiationsLoading } = useNegotiations();
   const { activities, loading: activitiesLoading } = useActivities();
+  const { meetings, loading: meetingsLoading } = useMeetings();
+
+  const metrics = useDashboardMetrics({ leads, negotiations, meetings });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -36,36 +41,18 @@ const Dashboard = () => {
     }).format(value);
   };
 
-  // Calculate real stats from data
-  const repositorioLeads = leads.filter(l => !l.responsavelId).length;
-  const activeContacts = leads.filter(lead => lead.responsavelId);
-  const leadsNovos = leads.filter(l => l.status === "novo").length;
-  const negociacoesAtivas = negotiations.length;
-  const valorPipeline = negotiations.reduce((sum, n) => sum + n.valor, 0);
-  const receitaPotencial = negotiations.reduce((sum, n) => sum + (n.valor * n.probabilidade / 100), 0);
-  
-  // Calculate conversion rate (ganho / total that have been through the process)
-  const leadsGanhos = leads.filter(l => l.status === "ganho").length;
-  const leadsProcessados = leads.filter(l => l.status === "ganho" || l.status === "perdido").length;
-  const taxaConversao = leadsProcessados > 0 ? (leadsGanhos / leadsProcessados) * 100 : 0;
-
-  // Count meetings in next 7 days from real activities
-  const today = new Date();
-  const next7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const reunioesProximos7Dias = activities.filter(a => 
-    a.tipo === "reuniao" && 
-    !a.concluida && 
-    a.dataAgendada >= today && 
-    a.dataAgendada <= next7Days
-  ).length;
+  const formatPercent = (value: number) => {
+    return `${value.toFixed(1)}%`;
+  };
 
   // Get upcoming activities (not completed, future dates)
+  const today = new Date();
   const upcomingActivities = activities
     .filter(a => !a.concluida && a.dataAgendada >= today)
     .sort((a, b) => a.dataAgendada.getTime() - b.dataAgendada.getTime())
     .slice(0, 5);
 
-  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading;
+  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading || meetingsLoading;
 
   if (isLoading) {
     return (
@@ -79,77 +66,98 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard Executivo" subtitle="Visão gerencial do CRM">
-      {/* Stats Grid - Row 1 */}
+      {/* Row 1 - Métricas de Geração de Demanda */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Repositório de Leads"
-          value={repositorioLeads}
+        <MetricCard
+          title="Leads em Qualificação"
+          value={metrics.leadsEmQualificacao}
           icon={<Users className="w-6 h-6" />}
+          tooltip="Quantidade total de leads que ainda não foram convertidos em Contatos Ativos (sem responsável atribuído)."
         />
-        <StatCard
-          title="Contatos Ativos"
-          value={activeContacts.length}
-          icon={<UserCheck className="w-6 h-6" />}
-          variant="primary"
-        />
-        <StatCard
-          title="Negociações Ativas"
-          value={negociacoesAtivas}
-          icon={<Handshake className="w-6 h-6" />}
-        />
-        <StatCard
-          title="Receita Potencial"
-          value={formatCurrency(receitaPotencial)}
-          icon={<DollarSign className="w-6 h-6" />}
-          variant="secondary"
-        />
-      </div>
-
-      {/* Stats Grid - Row 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Leads Novos"
-          value={leadsNovos}
+        <MetricCard
+          title="Leads Novos (7 dias)"
+          value={metrics.leadsNovos7Dias}
           icon={<UserPlus className="w-6 h-6" />}
+          tooltip="Quantidade de leads cadastrados nos últimos 7 dias (janela móvel D-7)."
         />
-        <StatCard
-          title="Valor Pipeline"
-          value={formatCurrency(valorPipeline)}
-          icon={<DollarSign className="w-6 h-6" />}
-        />
-        <StatCard
-          title="Taxa Conversão"
-          value={`${taxaConversao.toFixed(1)}%`}
+        <MetricCard
+          title="Convertidos em Contato"
+          value={metrics.leadsConvertidos7Dias}
           icon={<TrendingUp className="w-6 h-6" />}
+          variant="primary"
+          tooltip="Leads que viraram contato nos últimos 7 dias. Exclui contatos de empresas que já possuíam outro contato cadastrado."
         />
-        <StatCard
-          title="Reuniões Próx. 7 dias"
-          value={reunioesProximos7Dias}
+        <MetricCard
+          title="Contatos Ativos"
+          value={metrics.totalContatosAtivos}
+          icon={<UserCheck className="w-6 h-6" />}
+          variant="secondary"
+          tooltip="Total de contatos ativos atualmente no sistema (leads com responsável atribuído)."
+        />
+      </div>
+
+      {/* Row 2 - Métricas de Pipeline e Revenue */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <MetricCard
+          title="Valor do Pipeline"
+          value={formatCurrency(metrics.valorPipeline)}
+          icon={<DollarSign className="w-6 h-6" />}
+          tooltip="Soma do valor das negociações ativas (propostas aprovadas, enviadas ou em negociação). Exclui concluídas ou canceladas."
+        />
+        <MetricCard
+          title="Margem Ponderada"
+          value={formatPercent(metrics.margemPonderada)}
+          icon={<Percent className="w-6 h-6" />}
+          tooltip="Margem média ponderada pelo valor de cada negociação ativa. Fórmula: Σ(Margem × Valor) ÷ Valor Total do Pipeline."
+        />
+        <MetricCard
+          title="Reuniões Realizadas (7d)"
+          value={metrics.reunioesRealizadas7Dias}
+          icon={<CalendarCheck className="w-6 h-6" />}
+          tooltip="Total de reuniões efetivamente realizadas nos últimos 7 dias. Considera apenas reuniões com status 'Realizada'."
+        />
+        <MetricCard
+          title="Reuniões Agendadas (7d)"
+          value={metrics.reunioesAgendadas7Dias}
           icon={<Calendar className="w-6 h-6" />}
+          tooltip="Quantidade de reuniões agendadas para os próximos 7 dias (janela D+7)."
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <StatusPieChart leads={activeContacts} />
-        <ActivitiesByConsultorChart activities={activities} users={mockUsers} />
-        <UpcomingMeetings activities={activities} />
+      {/* Row 3 - Métricas Adicionais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <MetricCard
+          title="Tempo Médio Lead → Contato"
+          value={`${metrics.tempoMedioConversao.toFixed(0)} dias`}
+          icon={<Clock className="w-6 h-6" />}
+          tooltip="Média de dias entre a criação do lead e sua conversão em contato. Mede eficiência do time na qualificação inicial."
+        />
+        <MetricCard
+          title="Negociações Ativas"
+          value={metrics.negociacoesAtivas.length}
+          icon={<Handshake className="w-6 h-6" />}
+          tooltip="Quantidade de negociações em andamento (propostas aprovadas, enviadas ou em negociação)."
+        />
       </div>
 
-      {/* Main Content Grid */}
+      {/* Row 4 - Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Left Column - Pipeline */}
+        <StatusPieChart leads={metrics.contatosAtivos} />
         <div className="lg:col-span-2">
           <PipelineChart negotiations={negotiations} />
         </div>
+      </div>
 
-        {/* Right Column - Inactive Leads Alert */}
-        <div>
-          <InactiveLeadsAlert leads={activeContacts} daysThreshold={7} />
+      {/* Row 5 - Alerts & Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <ContactsWithoutActionAlert contacts={metrics.contatosAtivos} />
+        <div className="lg:col-span-2">
+          <RecentLeads leads={leads} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentLeads leads={leads} />
+      {/* Row 6 - Activities */}
+      <div className="grid grid-cols-1">
         <UpcomingActivities activities={upcomingActivities} />
       </div>
     </AppLayout>

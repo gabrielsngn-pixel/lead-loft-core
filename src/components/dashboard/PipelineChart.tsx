@@ -1,15 +1,22 @@
 import { Negotiation } from "@/types/crm";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 interface PipelineChartProps {
   negotiations: Negotiation[];
 }
 
 const stages = [
-  { key: "qualificacao", label: "Qualificação", color: "bg-blue-500" },
-  { key: "proposta", label: "Proposta", color: "bg-primary" },
-  { key: "negociacao", label: "Negociação", color: "bg-warning" },
-  { key: "fechamento", label: "Fechamento", color: "bg-success" },
+  { key: "proposta_aprovada", label: "Proposta Aprovada", color: "bg-blue-500" },
+  { key: "proposta_enviada", label: "Proposta Enviada", color: "bg-primary" },
+  { key: "em_negociacao", label: "Em Negociação", color: "bg-warning" },
+  { key: "proposta_ganha", label: "Proposta Ganha", color: "bg-success" },
 ];
 
 export function PipelineChart({ negotiations }: PipelineChartProps) {
@@ -31,11 +38,29 @@ export function PipelineChart({ negotiations }: PipelineChartProps) {
     }).format(value);
   };
 
+  // Total only for active stages (excluding ganha)
+  const activeTotal = stageData
+    .filter(s => s.key !== "proposta_ganha")
+    .reduce((sum, s) => sum + s.totalValue, 0);
+
   return (
     <div className="stat-card">
-      <div className="mb-6">
-        <h3 className="font-display text-lg font-semibold">Pipeline de Vendas</h3>
-        <p className="text-sm text-muted-foreground">Valor por etapa do funil</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h3 className="font-display text-lg font-semibold">Pipeline de Vendas</h3>
+          <p className="text-sm text-muted-foreground">Valor por etapa do funil</p>
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[280px] text-xs leading-relaxed">
+              Visualização do valor acumulado em cada etapa do funil de negociações. 
+              Considera apenas negociações ativas, excluindo canceladas.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       <div className="space-y-4">
         {stageData.map((stage, index) => (
@@ -67,9 +92,9 @@ export function PipelineChart({ negotiations }: PipelineChartProps) {
       </div>
       <div className="mt-6 pt-4 border-t border-border">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Total no Pipeline</span>
+          <span className="text-sm text-muted-foreground">Pipeline Ativo</span>
           <span className="text-lg font-display font-bold text-primary">
-            {formatCurrency(stageData.reduce((sum, s) => sum + s.totalValue, 0))}
+            {formatCurrency(activeTotal)}
           </span>
         </div>
       </div>

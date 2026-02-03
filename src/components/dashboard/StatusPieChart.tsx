@@ -1,6 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Lead, LeadStatus } from "@/types/crm";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 const statusConfig: Record<LeadStatus, { label: string; color: string }> = {
   novo: { label: "Novo", color: "hsl(15, 100%, 64%)" },
@@ -29,7 +36,19 @@ export function StatusPieChart({ leads }: StatusPieChartProps) {
   return (
     <Card className="stat-card p-0">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-display">Ativos por Status</CardTitle>
+        <CardTitle className="text-lg font-display flex items-center gap-2">
+          <span>Contatos por Status</span>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[280px] text-xs leading-relaxed">
+                Distribuição dos contatos ativos por status atual no funil comercial.
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[200px]">
@@ -49,7 +68,7 @@ export function StatusPieChart({ leads }: StatusPieChartProps) {
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: number) => [value, "Leads"]}
+                formatter={(value: number) => [value, "Contatos"]}
                 contentStyle={{ 
                   borderRadius: "8px", 
                   border: "1px solid hsl(var(--border))",
