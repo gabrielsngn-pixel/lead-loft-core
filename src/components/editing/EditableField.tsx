@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Check, X, Lock, History } from "lucide-react";
+import { Pencil, Check, X, Lock, History, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,6 +65,15 @@ export function EditableField({
     }
   };
 
+  const handleClear = () => {
+    onSave("");
+    setEditValue("");
+    setIsEditing(false);
+  };
+
+  // Check if it's a clearable field (date fields that have a value)
+  const isClearable = type === "date" && value;
+
   if (isEditing) {
     return (
       <div className={cn("space-y-1", className)}>
@@ -73,6 +82,23 @@ export function EditableField({
             {label}
           </label>
           <div className="flex gap-1">
+            {isClearable && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-orange-500 hover:text-orange-600 hover:bg-orange-100"
+                      onClick={handleClear}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Limpar data</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <Button
               variant="ghost"
               size="icon"
