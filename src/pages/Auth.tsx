@@ -108,14 +108,39 @@ const Auth = () => {
 
   const handleSignup = async (data: SignupFormData) => {
     setIsLoading(true);
-    try {
+    
+    // Helper function with exponential backoff for rate limit errors
+    const attemptSignup = async (retryCount = 0): Promise<{ error: any }> => {
       const { error } = await signUp(data.email, data.password, data.nome);
+      
+      // Check for rate limit error
+      if (error?.message?.toLowerCase().includes('rate limit')) {
+        if (retryCount < 3) {
+          // Exponential backoff: wait 2, 4, 8 seconds
+          const waitTime = Math.pow(2, retryCount + 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return attemptSignup(retryCount + 1);
+        }
+        return { error };
+      }
+      
+      return { error };
+    };
+    
+    try {
+      const { error } = await attemptSignup();
 
       if (error) {
         if (error.message.includes("already registered")) {
           toast({
             title: "Usuário já cadastrado",
             description: "Este email já está cadastrado. Tente fazer login.",
+            variant: "destructive",
+          });
+        } else if (error.message.toLowerCase().includes("rate limit")) {
+          toast({
+            title: "Limite de requisições atingido",
+            description: "Aguarde alguns segundos e tente novamente. O sistema está processando muitas solicitações.",
             variant: "destructive",
           });
         } else {
