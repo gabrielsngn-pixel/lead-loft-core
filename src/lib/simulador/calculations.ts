@@ -9,7 +9,7 @@
 export const CONSTANTS = {
   TAX_RATE: 0.101,              // 10,1% de impostos sobre receita bruta
   OPERATIONAL_COSTS: 0.0024,    // 0,24% custos operacionais (100% Loft)
-  MIN_MARGIN: 0.003,            // 0,30% margem mínima (governança)
+  MIN_MARGIN: 0.000,            // 0,00% margem mínima (governança) - permite aprovação de qualquer margem >= 0
   VIABLE_MARGIN: 0.004,         // 0,40% margem viável
   LOFT_PARTICIPATION: 0.5,      // 50% rateio Loft
   PARTNER_PARTICIPATION: 0.5,   // 50% rateio CRE
