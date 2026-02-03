@@ -6,6 +6,7 @@ import { PipelineChart } from "@/components/dashboard/PipelineChart";
 import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
 import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWithoutActionAlert";
 import { ScheduledMeetingsCard } from "@/components/dashboard/ScheduledMeetingsCard";
+import { CompletedMeetingsCard } from "@/components/dashboard/CompletedMeetingsCard";
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useActivities } from "@/hooks/useActivities";
@@ -17,7 +18,6 @@ import {
   DollarSign,
   TrendingUp,
   UserCheck,
-  CalendarCheck,
   Percent,
   Clock,
   Loader2,
@@ -108,12 +108,7 @@ const Dashboard = () => {
           icon={<Percent className="w-6 h-6" />}
           tooltip="Margem média ponderada pelo valor de cada negociação ativa. Fórmula: Σ(Margem × Valor) ÷ Valor Total do Pipeline."
         />
-        <MetricCard
-          title="Reuniões Realizadas (7d)"
-          value={metrics.reunioesRealizadas7Dias}
-          icon={<CalendarCheck className="w-6 h-6" />}
-          tooltip="Total de reuniões efetivamente realizadas nos últimos 7 dias. Considera apenas reuniões com status 'Realizada'."
-        />
+        <CompletedMeetingsCard contatos={metrics.contatosAtivos} />
         <ScheduledMeetingsCard contatos={metrics.contatosAtivos} />
       </div>
 
