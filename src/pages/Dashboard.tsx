@@ -8,7 +8,6 @@ import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWitho
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useActivities } from "@/hooks/useActivities";
-import { useMeetings } from "@/hooks/useMeetings";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import {
   Users,
@@ -28,9 +27,8 @@ const Dashboard = () => {
   const { leads, loading: leadsLoading } = useLeads();
   const { negotiations, loading: negotiationsLoading } = useNegotiations();
   const { activities, loading: activitiesLoading } = useActivities();
-  const { meetings, loading: meetingsLoading } = useMeetings();
 
-  const metrics = useDashboardMetrics({ leads, negotiations, meetings });
+  const metrics = useDashboardMetrics({ leads, negotiations });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -52,7 +50,7 @@ const Dashboard = () => {
     .sort((a, b) => a.dataAgendada.getTime() - b.dataAgendada.getTime())
     .slice(0, 5);
 
-  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading || meetingsLoading;
+  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading;
 
   if (isLoading) {
     return (
@@ -150,7 +148,10 @@ const Dashboard = () => {
 
       {/* Row 5 - Alerts & Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <ContactsWithoutActionAlert contacts={metrics.contatosAtivos} />
+        <ContactsWithoutActionAlert 
+          contatosAlertaSla={metrics.contatosAlertaSla} 
+          contatosSemAcaoLista={metrics.contatosSemAcaoLista} 
+        />
         <div className="lg:col-span-2">
           <RecentLeads leads={leads} />
         </div>

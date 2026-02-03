@@ -192,6 +192,7 @@ export type Database = {
           status: string
           telefone: string
           tipo_empresa: string
+          ultima_reuniao: string | null
           updated_at: string
         }
         Insert: {
@@ -221,6 +222,7 @@ export type Database = {
           status?: string
           telefone: string
           tipo_empresa?: string
+          ultima_reuniao?: string | null
           updated_at?: string
         }
         Update: {
@@ -250,6 +252,7 @@ export type Database = {
           status?: string
           telefone?: string
           tipo_empresa?: string
+          ultima_reuniao?: string | null
           updated_at?: string
         }
         Relationships: []

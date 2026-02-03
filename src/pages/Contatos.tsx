@@ -55,6 +55,7 @@ import {
   MoreHorizontal,
   Eye,
   Calendar,
+  CalendarCheck,
   ClipboardList,
   Building2,
   Landmark,
@@ -74,7 +75,7 @@ import {
   ChevronRight,
   Linkedin,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const statusConfig: Record<LeadStatus, { label: string; className: string }> = {
@@ -120,6 +121,7 @@ const Contatos = () => {
   // Activity & Meeting dialogs
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [markMeetingDoneDialogOpen, setMarkMeetingDoneDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Lead | null>(null);
   const [activityDescription, setActivityDescription] = useState("");
   const [meetingDate, setMeetingDate] = useState("");
@@ -343,6 +345,35 @@ const Contatos = () => {
     setMeetingDialogOpen(true);
   };
 
+  const handleOpenMarkMeetingDoneDialog = (contact: Lead) => {
+    setSelectedContact(contact);
+    setMarkMeetingDoneDialogOpen(true);
+  };
+
+  const handleMarkMeetingAsDone = async () => {
+    if (!selectedContact || !selectedContact.proximaReuniao) {
+      toast({ title: "Contato sem reunião agendada", variant: "destructive" });
+      return;
+    }
+    try {
+      const obsEntry = `[Reunião realizada: ${format(selectedContact.proximaReuniao, "dd/MM/yyyy HH:mm")}]`;
+      const updatedObs = selectedContact.observacoes
+        ? `${selectedContact.observacoes}\n${obsEntry}`
+        : obsEntry;
+      
+      await updateLead({ 
+        ...selectedContact, 
+        ultimaReuniao: selectedContact.proximaReuniao,
+        proximaReuniao: undefined,
+        observacoes: updatedObs 
+      });
+      setMarkMeetingDoneDialogOpen(false);
+      toast({ title: "Reunião marcada como realizada" });
+    } catch {
+      toast({ title: "Erro ao atualizar reunião", variant: "destructive" });
+    }
+  };
+
   const handleRegisterActivity = async () => {
     if (!selectedContact || !activityDescription.trim()) {
       toast({ title: "Descreva a atividade", variant: "destructive" });
@@ -495,12 +526,7 @@ const Contatos = () => {
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/50" onClick={() => toggleSort("dataUltimaInteracao")}>
-                  <div className="flex items-center gap-1">
-                    Última Interação
-                    <ArrowUpDown className="w-3 h-3" />
-                  </div>
-                </TableHead>
+                <TableHead className="font-semibold">Última Reunião</TableHead>
                 <TableHead className="font-semibold">Próxima Reunião</TableHead>
                 <TableHead className="font-semibold text-right">Ações</TableHead>
               </TableRow>
@@ -595,7 +621,9 @@ const Contatos = () => {
                                   <TableCell>
                                     <Badge className={cn("badge-status", priorityConfig[contact.prioridade]?.className)}>{priorityConfig[contact.prioridade]?.label ?? contact.prioridade}</Badge>
                                   </TableCell>
-                                  <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(contact.dataUltimaInteracao, { addSuffix: true, locale: ptBR })}</TableCell>
+                                  <TableCell className="text-sm">
+                                    {contact.ultimaReuniao ? <span className="text-muted-foreground">{format(contact.ultimaReuniao, "dd/MM/yyyy")}</span> : <span className="text-muted-foreground">—</span>}
+                                  </TableCell>
                                   <TableCell className="text-sm">
                                     {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
                                   </TableCell>
@@ -622,6 +650,12 @@ const Contatos = () => {
                                             <Edit className="w-4 h-4 mr-2" />
                                             Editar
                                           </DropdownMenuItem>
+                                          {contact.proximaReuniao && (
+                                            <DropdownMenuItem onClick={() => handleOpenMarkMeetingDoneDialog(contact)}>
+                                              <CalendarCheck className="w-4 h-4 mr-2" />
+                                              Marcar reunião realizada
+                                            </DropdownMenuItem>
+                                          )}
                                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Excluir
@@ -689,7 +723,9 @@ const Contatos = () => {
                       <TableCell>
                         <Badge className={cn("badge-status", priorityConfig[contact.prioridade]?.className)}>{priorityConfig[contact.prioridade]?.label ?? contact.prioridade}</Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(contact.dataUltimaInteracao, { addSuffix: true, locale: ptBR })}</TableCell>
+                      <TableCell className="text-sm">
+                        {contact.ultimaReuniao ? <span className="text-muted-foreground">{format(contact.ultimaReuniao, "dd/MM/yyyy")}</span> : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell className="text-sm">
                         {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
                       </TableCell>
@@ -716,6 +752,12 @@ const Contatos = () => {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
+                              {contact.proximaReuniao && (
+                                <DropdownMenuItem onClick={() => handleOpenMarkMeetingDoneDialog(contact)}>
+                                  <CalendarCheck className="w-4 h-4 mr-2" />
+                                  Marcar reunião realizada
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Excluir
@@ -827,6 +869,26 @@ const Contatos = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mark Meeting as Done Dialog */}
+      <AlertDialog open={markMeetingDoneDialogOpen} onOpenChange={setMarkMeetingDoneDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar Reunião como Realizada</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirma que a reunião com <strong>{selectedContact?.nomeFantasia || selectedContact?.razaoSocial}</strong>
+              {selectedContact?.proximaReuniao && (
+                <> agendada para <strong>{format(selectedContact.proximaReuniao, "dd/MM/yyyy 'às' HH:mm")}</strong></>
+              )}
+              {" "}foi realizada?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkMeetingAsDone}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };

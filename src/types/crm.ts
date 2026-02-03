@@ -27,6 +27,7 @@ export interface Lead {
   dataCriacao: Date;
   dataUltimaInteracao: Date;
   proximaAtividade?: Date;
+  ultimaReuniao?: Date;
   proximaReuniao?: Date;
   viabilidade?: {
     status: "sim" | "nao" | "pendente";

@@ -1,16 +1,14 @@
 import { useMemo } from "react";
 import { Lead } from "@/types/crm";
 import { Negotiation } from "@/types/crm";
-import { MeetingMinutes } from "@/types/meetings";
 import { differenceInDays, subDays, startOfDay, endOfDay, addDays, isWithinInterval } from "date-fns";
 
 interface DashboardMetricsInput {
   leads: Lead[];
   negotiations: Negotiation[];
-  meetings: MeetingMinutes[];
 }
 
-export function useDashboardMetrics({ leads, negotiations, meetings }: DashboardMetricsInput) {
+export function useDashboardMetrics({ leads, negotiations }: DashboardMetricsInput) {
   return useMemo(() => {
     const today = new Date();
     const sevenDaysAgo = subDays(today, 7);
@@ -63,17 +61,15 @@ export function useDashboardMetrics({ leads, negotiations, meetings }: Dashboard
         }, 0) / valorPipeline
       : 0;
     
-    // 7. Reuniões realizadas (últimos 7 dias)
-    // Reunião realizada = status "realizada"
-    const reunioesRealizadas7Dias = meetings.filter(m => 
-      m.status === "realizada" && 
-      m.dataReuniao >= sevenDaysAgo
+    // 7. Reuniões realizadas (últimos 7 dias) - baseado em ultimaReuniao dos contatos
+    const reunioesRealizadas7Dias = contatosAtivos.filter(c => 
+      c.ultimaReuniao && c.ultimaReuniao >= sevenDaysAgo && c.ultimaReuniao <= today
     ).length;
     
-    // 8. Reuniões agendadas (próximos 7 dias)
-    const reunioesAgendadas7Dias = meetings.filter(m => 
-      m.status === "agendada" && 
-      isWithinInterval(m.dataReuniao, { start: startOfDay(today), end: next7Days })
+    // 8. Reuniões agendadas (próximos 7 dias) - baseado em proximaReuniao dos contatos
+    const reunioesAgendadas7Dias = contatosAtivos.filter(c => 
+      c.proximaReuniao && 
+      isWithinInterval(c.proximaReuniao, { start: startOfDay(today), end: next7Days })
     ).length;
     
     // 9. Tempo médio Lead → Contato (dias) - Opcional
@@ -86,12 +82,26 @@ export function useDashboardMetrics({ leads, negotiations, meetings }: Dashboard
         }, 0) / leadsConvertidosTotal.length
       : 0;
     
-    // 10. Contatos sem próxima ação definida
+    // 10. Contatos com alerta de SLA (última reunião > 10 dias e sem próxima reunião)
+    const tenDaysAgo = subDays(today, 10);
+    const contatosAlertaSla = contatosAtivos.filter(c => {
+      // Tem última reunião
+      if (!c.ultimaReuniao) return false;
+      // Última reunião foi há mais de 10 dias
+      const ultimaReuniaoAntiga = c.ultimaReuniao < tenDaysAgo;
+      // Não tem próxima reunião agendada
+      const semProximaReuniao = !c.proximaReuniao || c.proximaReuniao <= today;
+      return ultimaReuniaoAntiga && semProximaReuniao;
+    });
+    
+    // 11. Contatos sem próxima ação definida (sem reunião e sem atividade futura)
     const contatosSemAcao = contatosAtivos.filter(c => {
       const hasFutureMeeting = c.proximaReuniao && c.proximaReuniao > today;
       const hasFutureActivity = c.proximaAtividade && c.proximaAtividade > today;
-      return !hasFutureMeeting && !hasFutureActivity;
-    }).length;
+      // Excluir os que já estão no alerta de SLA
+      const noAlertaSla = c.ultimaReuniao && c.ultimaReuniao < tenDaysAgo;
+      return !hasFutureMeeting && !hasFutureActivity && !noAlertaSla;
+    });
     
     return {
       // Métricas principais
@@ -106,11 +116,15 @@ export function useDashboardMetrics({ leads, negotiations, meetings }: Dashboard
       
       // Métricas opcionais
       tempoMedioConversao,
-      contatosSemAcao,
+      contatosSemAcao: contatosSemAcao.length,
+      
+      // Alertas
+      contatosAlertaSla,
+      contatosSemAcaoLista: contatosSemAcao,
       
       // Dados para componentes
       contatosAtivos,
       negociacoesAtivas,
     };
-  }, [leads, negotiations, meetings]);
+  }, [leads, negotiations]);
 }
