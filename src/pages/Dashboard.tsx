@@ -5,6 +5,7 @@ import { UpcomingActivities } from "@/components/dashboard/UpcomingActivities";
 import { PipelineChart } from "@/components/dashboard/PipelineChart";
 import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
 import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWithoutActionAlert";
+import { ScheduledMeetingsCard } from "@/components/dashboard/ScheduledMeetingsCard";
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useActivities } from "@/hooks/useActivities";
@@ -16,7 +17,6 @@ import {
   DollarSign,
   TrendingUp,
   UserCheck,
-  Calendar,
   CalendarCheck,
   Percent,
   Clock,
@@ -114,12 +114,7 @@ const Dashboard = () => {
           icon={<CalendarCheck className="w-6 h-6" />}
           tooltip="Total de reuniões efetivamente realizadas nos últimos 7 dias. Considera apenas reuniões com status 'Realizada'."
         />
-        <MetricCard
-          title="Reuniões Agendadas (7d)"
-          value={metrics.reunioesAgendadas7Dias}
-          icon={<Calendar className="w-6 h-6" />}
-          tooltip="Quantidade de reuniões agendadas para os próximos 7 dias (janela D+7)."
-        />
+        {/* Reuniões Agendadas agora é um card com drilldown */}
       </div>
 
       {/* Row 3 - Métricas Adicionais */}
@@ -138,12 +133,11 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Row 4 - Charts */}
+      {/* Row 4 - Charts & Scheduled Meetings */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <StatusPieChart leads={metrics.contatosAtivos} />
-        <div className="lg:col-span-2">
-          <PipelineChart negotiations={negotiations} />
-        </div>
+        <ScheduledMeetingsCard contatos={metrics.contatosAtivos} />
+        <PipelineChart negotiations={negotiations} />
       </div>
 
       {/* Row 5 - Alerts & Lists */}
