@@ -113,7 +113,7 @@ export function MaterialCard({
   return (
     <Card 
       className={cn(
-        "stat-card p-0 overflow-hidden transition-all duration-200 hover:shadow-lg group",
+        "stat-card p-0 overflow-hidden transition-all duration-200 hover:shadow-lg group h-full flex flex-col",
         material.recomendado && "ring-2 ring-primary/20 border-primary/30"
       )}
     >
@@ -204,7 +204,7 @@ export function MaterialCard({
         </DropdownMenu>
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex flex-col flex-1">
         {/* Title and Description */}
         <h3 className="font-semibold text-foreground mb-1 line-clamp-2">
           {material.titulo}
@@ -244,6 +244,9 @@ export function MaterialCard({
           </Badge>
         </div>
 
+        {/* Spacer to push buttons to bottom */}
+        <div className="flex-1" />
+
         {/* Version and Size */}
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 pt-3 border-t">
           <span>v{material.versao}</span>
@@ -257,7 +260,7 @@ export function MaterialCard({
 
         {/* Action Button */}
         <Button 
-          className="w-full btn-cta" 
+          className="w-full btn-cta mt-auto" 
           size="sm"
           onClick={() => onUse?.(material)}
         >

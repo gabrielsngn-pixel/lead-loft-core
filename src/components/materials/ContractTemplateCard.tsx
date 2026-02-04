@@ -77,7 +77,7 @@ export function ContractTemplateCard({ className }: ContractTemplateCardProps) {
   return (
     <Card 
       className={cn(
-        "stat-card p-0 overflow-hidden transition-all duration-200 hover:shadow-lg group ring-2 ring-primary/20 border-primary/30",
+        "stat-card p-0 overflow-hidden transition-all duration-200 hover:shadow-lg group ring-2 ring-primary/20 border-primary/30 flex flex-col",
         className
       )}
     >
@@ -97,7 +97,7 @@ export function ContractTemplateCard({ className }: ContractTemplateCardProps) {
         </div>
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex flex-col flex-1">
         {/* Title and Description */}
         <h3 className="font-semibold text-foreground mb-1">
           Modelo de Contrato – Prestação de Serviços Loft
@@ -113,6 +113,9 @@ export function ContractTemplateCard({ className }: ContractTemplateCardProps) {
           <Badge variant="outline" className="text-xs">modelo</Badge>
           <Badge variant="outline" className="text-xs">comercial</Badge>
         </div>
+
+        {/* Spacer to push buttons to bottom */}
+        <div className="flex-1" />
 
         {/* Info */}
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 pt-3 border-t">

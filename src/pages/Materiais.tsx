@@ -386,10 +386,12 @@ const Materiais = () => {
         {Object.keys(categoryConfig).map((category) => (
           <TabsContent key={category} value={category} className="space-y-6">
             {sortedMaterials.length > 0 || category === "institucional" ? (
-              <div className="flex flex-row flex-wrap gap-4">
+              <div className="flex flex-row flex-wrap gap-4 items-stretch">
                 {/* Show Contract Template Card as first item in Institucional tab */}
                 {category === "institucional" && (
-                  <ContractTemplateCard className="w-[340px] flex-shrink-0" />
+                  <div className="w-[340px] flex-shrink-0">
+                    <ContractTemplateCard className="h-full" />
+                  </div>
                 )}
                 {sortedMaterials.map((material, index) => (
                   <div
