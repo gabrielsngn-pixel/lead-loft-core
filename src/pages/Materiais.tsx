@@ -16,7 +16,9 @@ import { Label } from "@/components/ui/label";
 import { MaterialCard } from "@/components/materials/MaterialCard";
 import { VersionHistoryDialog } from "@/components/materials/VersionHistoryDialog";
 import { UploadMaterialDialog } from "@/components/materials/UploadMaterialDialog";
+import { EditMaterialDialog } from "@/components/materials/EditMaterialDialog";
 import { MaterialViewerDialog } from "@/components/materials/MaterialViewerDialog";
+import { ContractTemplateCard } from "@/components/materials/ContractTemplateCard";
 import { useMaterials, DbMaterial } from "@/hooks/useMaterials";
 import { Material, MaterialCategory, MaterialType, MaterialAudience } from "@/types/materials";
 import { cn } from "@/lib/utils";
@@ -122,8 +124,10 @@ const Materiais = () => {
   
   // Dialog states
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [selectedDbMaterial, setSelectedDbMaterial] = useState<DbMaterial | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewerDialogOpen, setViewerDialogOpen] = useState(false);
 
   // Filter materials
@@ -205,8 +209,22 @@ const Materiais = () => {
     await archiveMaterial(material.id);
   };
 
+  const handleEditMaterial = (material: Material) => {
+    // Find the original DbMaterial
+    const dbMat = dbMaterials.find(m => m.id === material.id);
+    if (dbMat) {
+      setSelectedDbMaterial(dbMat);
+      setEditDialogOpen(true);
+    }
+  };
+
   const handleMaterialCreated = () => {
     setUploadDialogOpen(false);
+  };
+
+  const handleMaterialUpdated = () => {
+    setEditDialogOpen(false);
+    setSelectedDbMaterial(null);
   };
 
   const CategoryIcon = categoryConfig[activeTab].icon;
@@ -367,6 +385,19 @@ const Materiais = () => {
         {/* Materials Grid */}
         {Object.keys(categoryConfig).map((category) => (
           <TabsContent key={category} value={category} className="space-y-6">
+            {/* Show Contract Template Card as first item in Institucional tab */}
+            {category === "institucional" && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-primary" />
+                  Modelo Oficial de Contrato
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <ContractTemplateCard />
+                </div>
+              </div>
+            )}
+            
             {sortedMaterials.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {sortedMaterials.map((material, index) => (
@@ -382,6 +413,7 @@ const Materiais = () => {
                       onDownload={handleDownloadMaterial}
                       onViewHistory={handleViewHistory}
                       onDelete={handleDeleteMaterial}
+                      onEdit={handleEditMaterial}
                       onToggleRecommended={handleToggleRecommended}
                       onArchive={handleArchiveMaterial}
                       isAdmin={true} // In real app, check user role
@@ -389,7 +421,7 @@ const Materiais = () => {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : category !== "institucional" ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <BookOpen className="w-16 h-16 text-muted-foreground/30 mb-4" />
                 <p className="text-lg font-medium text-muted-foreground">
@@ -403,7 +435,7 @@ const Materiais = () => {
                   Adicionar Material
                 </Button>
               </div>
-            )}
+            ) : null}
           </TabsContent>
         ))}
       </Tabs>
@@ -427,6 +459,13 @@ const Materiais = () => {
         onOpenChange={setUploadDialogOpen}
         defaultCategory={activeTab}
         onSuccess={handleMaterialCreated}
+      />
+
+      <EditMaterialDialog
+        material={selectedDbMaterial}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={handleMaterialUpdated}
       />
     </AppLayout>
   );

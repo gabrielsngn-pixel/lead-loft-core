@@ -133,7 +133,8 @@ export function generateContractHtml(data: ContractData): string {
     <li>• Assessoria para registro dos contratos de financiamento;</li>
     <li>• Monitoramento da jornada do comprador até a liberação dos recursos.</li>
   </ul>
-  <p style="margin-bottom: 24px;"><strong>1.2.</strong> Todos os serviços previstos neste contrato serão prestados sob responsabilidade exclusiva da <strong>LOFT</strong>, que responderá integralmente perante a <strong>INCORPORADORA</strong> pela sua execução.</p>
+  <p><strong>1.2.</strong> Todos os serviços previstos neste contrato serão prestados sob responsabilidade exclusiva da <strong>LOFT</strong>, que responderá integralmente perante a <strong>INCORPORADORA</strong> pela sua execução.</p>
+  <p style="margin-bottom: 24px;"><strong>1.3.</strong> O presente contrato caracteriza-se como obrigação de <strong>meio</strong>, não de resultado. A LOFT compromete-se a empregar os melhores esforços para a conversão das oportunidades de repasse, sem garantia de volume, valor ou resultado financeiro mínimo.</p>
 
   <h2 class="section-title">CLÁUSULA SEGUNDA – DO ESCOPO DOS SERVIÇOS</h2>
   <p><strong>2.1. Dos Serviços de Crédito:</strong> A CONTRATADA executará: contato com clientes; análise de documentação; submissão às instituições financeiras; acompanhamento do processo.</p>
@@ -141,8 +142,9 @@ export function generateContractHtml(data: ContractData): string {
   <p><strong>2.3. Dos Serviços de Registro:</strong> Providências junto à Prefeitura para ITBI; acompanhamento cartorário; entrega de via registrada.</p>
   <p style="margin-bottom: 24px;"><strong>2.4.</strong> A CONTRATADA poderá operar com modalidade digital de assinatura e registro.</p>
 
-  <h2 class="section-title">CLÁUSULA TERCEIRA – DAS CONDIÇÕES COMERCIAIS</h2>
-  <p><strong>3.1.</strong> As condições comerciais acordadas para o empreendimento "<strong>${data.nomeEmpreendimento}</strong>" são as seguintes:</p>
+  <h2 class="section-title">CLÁUSULA TERCEIRA – DA CARTEIRA POTENCIAL E CONDIÇÕES COMERCIAIS</h2>
+  <p><strong>3.1.</strong> A CONTRATANTE obriga-se a disponibilizar à LOFT <strong>100% (cem por cento) de sua carteira potencial de repasse</strong> referente ao empreendimento "<strong>${data.nomeEmpreendimento}</strong>", permitindo que a LOFT atue comercialmente junto aos clientes finais.</p>
+  <p><strong>3.2.</strong> Os valores abaixo representam <strong>estimativas não vinculantes</strong>, baseadas na projeção da carteira potencial de repasse no momento da contratação:</p>
   
   <div class="box">
     <table class="table">
@@ -151,15 +153,15 @@ export function generateContractHtml(data: ContractData): string {
         <td class="right">${data.nomeEmpreendimento}</td>
       </tr>
       <tr>
-        <td>Valor Geral de Vendas (VGV):</td>
+        <td>Estimativa de VGV Potencial:</td>
         <td class="right">${formatCurrency(data.vgvTotal)}</td>
       </tr>
       <tr>
-        <td>Número de unidades contratadas:</td>
+        <td>Estimativa de unidades potenciais:</td>
         <td class="right">${data.unidades} unidades</td>
       </tr>
       <tr>
-        <td>Ticket médio por unidade:</td>
+        <td>Ticket médio estimado:</td>
         <td class="right">${formatCurrency(data.ticketMedio)}</td>
       </tr>
       ${data.comissaoIncorporador > 0 ? `
@@ -174,28 +176,29 @@ export function generateContractHtml(data: ContractData): string {
         <td class="right">${formatCurrency(data.valorRegistroPorUnidade)}</td>
       </tr>
       <tr>
-        <td>Receita de registro total prevista:</td>
+        <td>Receita de registro estimada:</td>
         <td class="right">${formatCurrency(data.receitaRegistroTotal)}</td>
       </tr>
       ` : ""}
     </table>
   </div>
 
-  <p><strong>3.2.</strong> A remuneração da CONTRATADA será proveniente das comissões bancárias decorrentes da intermediação.</p>
-  <p style="margin-bottom: 24px;"><strong>3.3.</strong> A <strong>LOFT</strong> é a única responsável pela coordenação, gestão e entrega dos serviços contratados.</p>
+  <p><strong>3.3.</strong> Fica expressamente consignado que a CONTRATANTE <strong>não possui obrigação de resultado</strong> quanto ao volume de unidades enviadas, valor potencial da carteira ou montante de repasses efetivamente realizados.</p>
+  <p><strong>3.4.</strong> A remuneração da CONTRATADA será proveniente das comissões bancárias decorrentes da intermediação efetivamente realizada.</p>
+  <p style="margin-bottom: 24px;"><strong>3.5.</strong> A <strong>LOFT</strong> é a única responsável pela coordenação, gestão e entrega dos serviços contratados, cabendo a ela encantar o cliente final, conduzir o processo de crédito e buscar a conversão do repasse.</p>
 
   ${hasRegistro ? `
   <h2 class="section-title">CLÁUSULA QUARTA – DA COBRANÇA E DO REPASSE DOS VALORES DE REGISTRO</h2>
   <p><strong>4.1.</strong> A cobrança dos valores referentes aos serviços de registro será realizada diretamente pela INCORPORADORA junto ao cliente final.</p>
-  <p><strong>4.2.</strong> A responsabilidade pela cobrança, recebimento e repasse dos valores de registro à LOFT será exclusivamente da INCORPORADORA.</p>
-  <p><strong>4.3.</strong> A INCORPORADORA obriga-se a repassar à LOFT os valores correspondentes à receita de registro a cada processo de financiamento.</p>
-  <p><strong>4.4.</strong> A eventual inadimplência do cliente final não exime a INCORPORADORA da obrigação de pagamento à LOFT.</p>
-  <p style="margin-bottom: 24px;"><strong>4.5.</strong> O não repasse dos valores de registro caracterizará inadimplemento contratual.</p>
+  <p><strong>4.2.</strong> A responsabilidade pela cobrança, recebimento e repasse dos valores de registro à LOFT será exclusivamente da INCORPORADORA, limitando-se aos repasses efetivamente convertidos.</p>
+  <p><strong>4.3.</strong> A INCORPORADORA obriga-se a repassar à LOFT os valores correspondentes à receita de registro a cada processo de financiamento efetivamente concluído.</p>
+  <p><strong>4.4.</strong> A eventual inadimplência do cliente final não exime a INCORPORADORA da obrigação de pagamento à LOFT pelos serviços já prestados.</p>
+  <p style="margin-bottom: 24px;"><strong>4.5.</strong> O não repasse dos valores de registro pelos serviços efetivamente prestados caracterizará inadimplemento contratual.</p>
   ` : ""}
 
   <h2 class="section-title">CLÁUSULA ${hasRegistro ? "QUINTA" : "QUARTA"} – DAS OBRIGAÇÕES DAS PARTES</h2>
-  <p><strong>${hasRegistro ? "5" : "4"}.1. São obrigações da CONTRATADA:</strong> Executar os serviços com diligência; manter a CONTRATANTE informada; zelar pelo sigilo; cumprir normas aplicáveis.</p>
-  <p style="margin-bottom: 24px;"><strong>${hasRegistro ? "5" : "4"}.2. São obrigações da CONTRATANTE:</strong> Fornecer informações e documentos necessários; colaborar com o andamento; efetuar pagamentos; comunicar alterações relevantes.</p>
+  <p><strong>${hasRegistro ? "5" : "4"}.1. São obrigações da CONTRATADA:</strong> Executar os serviços com diligência e empregar os melhores esforços na conversão das oportunidades; manter a CONTRATANTE informada sobre o andamento dos processos; zelar pelo sigilo; cumprir normas aplicáveis.</p>
+  <p style="margin-bottom: 24px;"><strong>${hasRegistro ? "5" : "4"}.2. São obrigações da CONTRATANTE:</strong> Disponibilizar 100% de sua carteira potencial de repasse; fornecer informações e documentos necessários; colaborar com o andamento; efetuar pagamentos pelos serviços efetivamente prestados; comunicar alterações relevantes.</p>
 
   <h2 class="section-title">CLÁUSULA ${hasRegistro ? "SEXTA" : "QUINTA"} – DO PRAZO</h2>
   <p><strong>${hasRegistro ? "6" : "5"}.1.</strong> O contrato vigorará pelo prazo necessário à conclusão dos serviços, podendo ser rescindido com 30 dias de antecedência.</p>
@@ -205,7 +208,7 @@ export function generateContractHtml(data: ContractData): string {
   <p style="margin-bottom: 24px;"><strong>${hasRegistro ? "7" : "6"}.1.</strong> As partes comprometem-se a manter sigilo sobre informações comerciais, financeiras e estratégicas.</p>
 
   <h2 class="section-title">CLÁUSULA ${hasRegistro ? "OITAVA" : "SÉTIMA"} – DAS DISPOSIÇÕES GERAIS</h2>
-  <p><strong>${hasRegistro ? "8" : "7"}.1.</strong> Este contrato reflete as condições comerciais aprovadas na simulação de viabilidade.</p>
+  <p><strong>${hasRegistro ? "8" : "7"}.1.</strong> Este contrato reflete as estimativas da carteira potencial de repasse aprovadas na simulação de viabilidade, sem caráter vinculante quanto a resultados.</p>
   <p><strong>${hasRegistro ? "8" : "7"}.2.</strong> Alterações somente serão válidas se formalizadas por escrito.</p>
   <p style="margin-bottom: 24px;"><strong>${hasRegistro ? "8" : "7"}.3.</strong> A tolerância não implicará novação ou renúncia.</p>
 
@@ -305,4 +308,39 @@ export function generateContractNumber(): string {
   const year = new Date().getFullYear();
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
   return `LOFT-${year}-${random}`;
+}
+
+/**
+ * Gera o modelo de contrato com placeholders para uso comercial/institucional
+ */
+export function generateContractTemplateHtml(): string {
+  const placeholderData: ContractData = {
+    razaoSocial: "XXXXX XXXXX XXXXX",
+    nomeFantasia: "XXXXX",
+    cnpj: "XX.XXX.XXX/XXXX-XX",
+    endereco: "XXXXX, nº XXX",
+    cidade: "XXXXX",
+    estado: "XX",
+    representanteLegal: "XXXXX XXXXX",
+    cpfRepresentante: "XXX.XXX.XXX-XX",
+    vgvTotal: 0,
+    unidades: 0,
+    ticketMedio: 0,
+    comissaoIncorporador: 0,
+    valorRegistroPorUnidade: 0,
+    receitaRegistroTotal: 0,
+    hasRegistro: true,
+    nomeEmpreendimento: "XXXXX",
+    numeroContrato: "LOFT-XXXX-XXXX",
+    dataAssinatura: new Date().toISOString(),
+  };
+
+  // Generate the HTML but replace currency values with placeholders
+  let html = generateContractHtml(placeholderData);
+  
+  // Replace R$ 0,00 with R$ XXXXX
+  html = html.replace(/R\$\s*0,00/g, "R$ XXXXX");
+  html = html.replace(/0 unidades/g, "XXX unidades");
+  
+  return html;
 }
