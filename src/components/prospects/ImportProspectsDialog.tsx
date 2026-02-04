@@ -57,15 +57,16 @@ export function ImportProspectsDialog({
   };
 
   const downloadTemplate = () => {
-    const headers = "nome_completo,cargo,empresa,email,telefone,linkedin_url";
-    const example = "João Silva,Diretor Comercial,ABC Incorporadora,joao@abc.com.br,11999998888,https://linkedin.com/in/joaosilva";
+    // Apollo.io exact header format
+    const headers = "First Name,Last Name,Title,Company Name,Company Name for Emails,Email,Email Status,Primary Email Source,Primary Email Verification Source,Email Confidence,Primary Email Catch-all Status,Primary Email Last Verified At,Seniority,Departments,Contact Owner,Work Direct Phone,Home Phone,Mobile Phone,Corporate Phone,Other Phone,Stage,Lists,Last Contacted,Account Owner,# Employees,Industry,Keywords,Person Linkedin Url,Website,Company Linkedin Url,Facebook Url,Twitter Url,City,State,Country,Company Address,Company City,Company State,Company Country,Company Phone,Technologies,Annual Revenue,Total Funding,Latest Funding,Latest Funding Amount,Last Raised At,Subsidiary of,Email Sent,Email Open,Email Bounced,Replied,Demoed,Number of Retail Locations,Apollo Contact Id,Apollo Account Id,Secondary Email,Secondary Email Source,Secondary Email Status,Secondary Email Verification Source,Tertiary Email,Tertiary Email Source,Tertiary Email Status,Tertiary Email Verification Source,Qualify Contact";
+    const example = "João,Silva,Diretor Comercial,ABC Incorporadora,ABC Incorporadora,joao@abc.com.br,Verified,Apollo,Apollo,,,2026-01-01T12:00:00+00:00,C suite,,user@email.com,,,11999998888,,,Cold,,,user@email.com,50,real estate,,https://linkedin.com/in/joaosilva,https://abc.com.br,,,,,São Paulo,SP,Brazil,,São Paulo,SP,Brazil,,,,,,,,,,,false,false,false,false,,,,,,,,,,,,";
     const csv = `${headers}\n${example}`;
     
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "template_prospects.csv";
+    link.download = "template_apollo_prospects.csv";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -74,31 +75,82 @@ export function ImportProspectsDialog({
     const lines = text.split("\n").filter(line => line.trim());
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-    const requiredHeaders = ["nome_completo", "cargo", "empresa", "email", "linkedin_url"];
+    // Parse headers (handle quoted values)
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
     
-    for (const required of requiredHeaders) {
-      if (!headers.includes(required)) {
-        throw new Error(`Coluna obrigatória ausente: ${required}`);
+    // Apollo.io required columns mapping
+    const requiredMappings = {
+      first_name: ['first_name'],
+      last_name: ['last_name'],
+      title: ['title'],
+      company_name: ['company_name'],
+      email: ['email'],
+      person_linkedin_url: ['person_linkedin_url'],
+    };
+
+    // Check for required Apollo columns
+    for (const [key, possibleNames] of Object.entries(requiredMappings)) {
+      const found = possibleNames.some(name => headers.includes(name));
+      if (!found) {
+        throw new Error(`Coluna obrigatória ausente: ${key.replace(/_/g, ' ')}`);
       }
     }
 
     const rows: ProspectCSVRow[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map(v => v.trim());
-      if (values.length < headers.length) continue;
+      const values = parseCSVLine(lines[i]);
+      if (values.length < 6) continue; // Minimum required columns
 
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || "";
       });
 
+      // Map Apollo columns to our format
+      const firstName = row['first_name'] || '';
+      const lastName = row['last_name'] || '';
+      const nomeCompleto = `${firstName} ${lastName}`.trim();
+      const cargo = row['title'] || '';
+      const empresa = row['company_name'] || '';
+      const email = row['email'] || '';
+      const linkedinUrl = row['person_linkedin_url'] || '';
+      
+      // Get phone from available columns (priority: mobile > work direct > corporate > company)
+      const telefone = row['mobile_phone'] || row['work_direct_phone'] || row['corporate_phone'] || row['company_phone'] || '';
+
       // Validate required fields
-      if (!row.nome_completo || !row.cargo || !row.empresa || !row.email || !row.linkedin_url) {
+      if (!nomeCompleto || !cargo || !empresa || !email || !linkedinUrl) {
         continue;
       }
 
-      rows.push(row as ProspectCSVRow);
+      rows.push({
+        nome_completo: nomeCompleto,
+        cargo: cargo,
+        empresa: empresa,
+        email: email,
+        telefone: telefone.replace(/[^\d+]/g, ''), // Clean phone format
+        linkedin_url: linkedinUrl,
+      });
     }
 
     return rows;
@@ -158,10 +210,10 @@ export function ImportProspectsDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Importar Prospects</DialogTitle>
+          <DialogTitle>Importar Prospects do Apollo</DialogTitle>
           <DialogDescription>
-            Importe prospects de um arquivo CSV. Máximo de 25 registros por importação, 
-            1 importação por semana.
+            Importe prospects diretamente do Apollo.io usando o arquivo CSV exportado. 
+            Máximo de 25 registros por importação, 1 importação por semana.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,11 +228,11 @@ export function ImportProspectsDialog({
               {/* Download Template */}
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full text-left justify-start"
                 onClick={downloadTemplate}
               >
-                <Download className="w-4 h-4 mr-2" />
-                Baixar Template CSV
+                <Download className="w-4 h-4 mr-2 flex-shrink-0" />
+                Baixar Template Apollo.io
               </Button>
 
               {/* File Upload */}
