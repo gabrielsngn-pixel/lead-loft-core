@@ -17,6 +17,7 @@ import {
   LogOut,
   Calculator,
   FolderOpen,
+  UserSearch,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -36,6 +37,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const mainMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Prospects", url: "/prospects", icon: UserSearch },
   { title: "Novo Lead", url: "/leads/novo", icon: FileInput },
   { title: "Repositório de Leads", url: "/leads", icon: Users },
   { title: "Contatos Ativos", url: "/contatos", icon: UserCheck },

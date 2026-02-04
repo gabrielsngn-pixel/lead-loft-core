@@ -7,6 +7,7 @@ import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
 import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWithoutActionAlert";
 import { ScheduledMeetingsCard } from "@/components/dashboard/ScheduledMeetingsCard";
 import { CompletedMeetingsCard } from "@/components/dashboard/CompletedMeetingsCard";
+import { ProspectMetricsSection } from "@/components/dashboard/ProspectMetricsSection";
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useActivities } from "@/hooks/useActivities";
@@ -112,7 +113,12 @@ const Dashboard = () => {
         <ScheduledMeetingsCard contatos={metrics.contatosAtivos} />
       </div>
 
-      {/* Row 3 - Métricas Adicionais */}
+      {/* Row 3 - Prospect Metrics */}
+      <div className="mb-6">
+        <ProspectMetricsSection />
+      </div>
+
+      {/* Row 4 - Métricas Adicionais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <MetricCard
           title="Tempo Médio Lead → Contato"
@@ -128,13 +134,13 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Row 4 - Charts */}
+      {/* Row 5 - Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <StatusPieChart leads={metrics.contatosAtivos} />
         <PipelineChart negotiations={negotiations} />
       </div>
 
-      {/* Row 5 - Alerts & Lists */}
+      {/* Row 6 - Alerts & Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <ContactsWithoutActionAlert 
           contatosAlertaSla={metrics.contatosAlertaSla} 
@@ -145,7 +151,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Row 6 - Activities */}
+      {/* Row 7 - Activities */}
       <div className="grid grid-cols-1">
         <UpcomingActivities activities={upcomingActivities} />
       </div>
