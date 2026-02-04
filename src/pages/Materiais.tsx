@@ -385,21 +385,12 @@ const Materiais = () => {
         {/* Materials Grid */}
         {Object.keys(categoryConfig).map((category) => (
           <TabsContent key={category} value={category} className="space-y-6">
-            {/* Show Contract Template Card as first item in Institucional tab */}
-            {category === "institucional" && (
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-primary" />
-                  Modelo Oficial de Contrato
-                </h3>
-                <div className="flex flex-row flex-wrap gap-4">
-                  <ContractTemplateCard className="w-[340px] flex-shrink-0" />
-                </div>
-              </div>
-            )}
-            
-            {sortedMaterials.length > 0 ? (
+            {sortedMaterials.length > 0 || category === "institucional" ? (
               <div className="flex flex-row flex-wrap gap-4">
+                {/* Show Contract Template Card as first item in Institucional tab */}
+                {category === "institucional" && (
+                  <ContractTemplateCard className="w-[340px] flex-shrink-0" />
+                )}
                 {sortedMaterials.map((material, index) => (
                   <div
                     key={material.id}
