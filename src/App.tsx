@@ -17,6 +17,7 @@ import Script from "./pages/Script";
 import Configuracoes from "./pages/Configuracoes";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
 import Viabilidade from "./pages/Viabilidade";
+import Prospects from "./pages/Prospects";
 import Auth from "./pages/Auth";
 import AcessoPendente from "./pages/AcessoPendente";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,11 @@ const App = () => (
             <Route path="/" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/prospects" element={
+              <ProtectedRoute>
+                <Prospects />
               </ProtectedRoute>
             } />
             <Route path="/leads" element={

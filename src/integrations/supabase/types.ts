@@ -724,6 +724,161 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_activities: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          created_at: string
+          data_atividade: string
+          descricao: string | null
+          id: string
+          prospect_id: string
+          responsavel_id: string
+          responsavel_nome: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          data_atividade?: string
+          descricao?: string | null
+          id?: string
+          prospect_id: string
+          responsavel_id: string
+          responsavel_nome: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          data_atividade?: string
+          descricao?: string | null
+          id?: string
+          prospect_id?: string
+          responsavel_id?: string
+          responsavel_nome?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_activities_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_import_logs: {
+        Row: {
+          created_at: string
+          id: string
+          motivos_ignorados: Json | null
+          quantidade: number
+          registros_ignorados: number
+          registros_importados: number
+          user_id: string
+          user_nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivos_ignorados?: Json | null
+          quantidade: number
+          registros_ignorados?: number
+          registros_importados?: number
+          user_id: string
+          user_nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivos_ignorados?: Json | null
+          quantidade?: number
+          registros_ignorados?: number
+          registros_importados?: number
+          user_id?: string
+          user_nome?: string
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          cargo: string
+          consultor_responsavel_id: string | null
+          consultor_responsavel_nome: string | null
+          contato_ativo_id: string | null
+          convertido_em: string | null
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          data_importacao: string
+          email: string
+          empresa: string
+          id: string
+          linkedin_url: string
+          nome_completo: string
+          observacoes: string | null
+          origem: string
+          status: Database["public"]["Enums"]["prospect_status"]
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cargo: string
+          consultor_responsavel_id?: string | null
+          consultor_responsavel_nome?: string | null
+          contato_ativo_id?: string | null
+          convertido_em?: string | null
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          data_importacao?: string
+          email: string
+          empresa: string
+          id?: string
+          linkedin_url: string
+          nome_completo: string
+          observacoes?: string | null
+          origem?: string
+          status?: Database["public"]["Enums"]["prospect_status"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cargo?: string
+          consultor_responsavel_id?: string | null
+          consultor_responsavel_nome?: string | null
+          contato_ativo_id?: string | null
+          convertido_em?: string | null
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          data_importacao?: string
+          email?: string
+          empresa?: string
+          id?: string
+          linkedin_url?: string
+          nome_completo?: string
+          observacoes?: string | null
+          origem?: string
+          status?: Database["public"]["Enums"]["prospect_status"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       repository_documents: {
         Row: {
           arquivo_nome: string | null
@@ -944,6 +1099,14 @@ export type Database = {
       is_master: { Args: { check_user_id: string }; Returns: boolean }
     }
     Enums: {
+      prospect_status:
+        | "novo"
+        | "em_contato"
+        | "reuniao_agendada"
+        | "reuniao_realizada"
+        | "qualificado"
+        | "descartado"
+        | "convertido"
       user_role: "pending" | "sdr" | "consultor" | "gestor" | "master"
     }
     CompositeTypes: {
@@ -1072,6 +1235,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      prospect_status: [
+        "novo",
+        "em_contato",
+        "reuniao_agendada",
+        "reuniao_realizada",
+        "qualificado",
+        "descartado",
+        "convertido",
+      ],
       user_role: ["pending", "sdr", "consultor", "gestor", "master"],
     },
   },
