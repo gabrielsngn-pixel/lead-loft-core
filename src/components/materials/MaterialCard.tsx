@@ -30,6 +30,7 @@ import {
   GraduationCap,
   Briefcase,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -81,6 +82,7 @@ interface MaterialCardProps {
   onDownload?: (material: Material) => void;
   onViewHistory?: (material: Material) => void;
   onDelete?: (material: Material) => void;
+  onEdit?: (material: Material) => void;
   isAdmin?: boolean;
   onArchive?: (material: Material) => void;
   onToggleRecommended?: (material: Material) => void;
@@ -93,6 +95,7 @@ export function MaterialCard({
   onDownload,
   onViewHistory,
   onDelete,
+  onEdit,
   isAdmin = false,
   onArchive,
   onToggleRecommended,
@@ -167,6 +170,10 @@ export function MaterialCard({
             <DropdownMenuSeparator />
             {isAdmin && (
               <>
+                <DropdownMenuItem onClick={() => onEdit?.(material)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar Material
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onToggleRecommended?.(material)}>
                   {material.recomendado ? (
                     <>

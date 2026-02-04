@@ -74,6 +74,7 @@ import {
   ChevronDown,
   ChevronRight,
   Linkedin,
+  UserMinus,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -117,6 +118,8 @@ const Contatos = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Lead | null>(null);
+  const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
+  const [contactToUnassign, setContactToUnassign] = useState<Lead | null>(null);
 
   // Activity & Meeting dialogs
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
@@ -289,6 +292,31 @@ const Contatos = () => {
     } finally {
       setDeleteDialogOpen(false);
       setContactToDelete(null);
+    }
+  };
+
+  const handleUnassignClick = (contact: Lead) => {
+    setContactToUnassign(contact);
+    setUnassignDialogOpen(true);
+  };
+
+  const handleConfirmUnassign = async () => {
+    if (!contactToUnassign) return;
+    try {
+      await updateLead({
+        ...contactToUnassign,
+        responsavelId: undefined,
+        responsavelNome: undefined,
+      });
+      toast({ 
+        title: "Contato desapropriado", 
+        description: "O contato foi devolvido ao Repositório de Leads." 
+      });
+    } catch {
+      toast({ title: "Erro ao desapropriar contato", variant: "destructive" });
+    } finally {
+      setUnassignDialogOpen(false);
+      setContactToUnassign(null);
     }
   };
 
@@ -656,6 +684,10 @@ const Contatos = () => {
                                               Marcar reunião realizada
                                             </DropdownMenuItem>
                                           )}
+                                          <DropdownMenuItem onClick={() => handleUnassignClick(contact)}>
+                                            <UserMinus className="w-4 h-4 mr-2" />
+                                            Desapropriar contato
+                                          </DropdownMenuItem>
                                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Excluir
@@ -758,6 +790,10 @@ const Contatos = () => {
                                   Marcar reunião realizada
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem onClick={() => handleUnassignClick(contact)}>
+                                <UserMinus className="w-4 h-4 mr-2" />
+                                Desapropriar contato
+                              </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Excluir
@@ -806,6 +842,23 @@ const Contatos = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unassign Confirmation Dialog */}
+      <AlertDialog open={unassignDialogOpen} onOpenChange={setUnassignDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desapropriar contato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja desapropriar o contato <strong>{contactToUnassign?.nomeContato || contactToUnassign?.nomeFantasia || contactToUnassign?.razaoSocial}</strong>? 
+              O contato será devolvido ao Repositório de Leads e poderá ser apropriado por outro consultor. O histórico será mantido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmUnassign}>Desapropriar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
