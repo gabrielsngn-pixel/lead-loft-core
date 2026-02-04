@@ -392,20 +392,18 @@ const Materiais = () => {
                   <Star className="w-4 h-4 text-primary" />
                   Modelo Oficial de Contrato
                 </h3>
-                <div className="flex flex-wrap gap-4">
-                  <div className="w-[280px] min-w-[280px]">
-                    <ContractTemplateCard />
-                  </div>
+                <div className="flex flex-row flex-wrap gap-4">
+                  <ContractTemplateCard className="w-[340px] flex-shrink-0" />
                 </div>
               </div>
             )}
             
             {sortedMaterials.length > 0 ? (
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-row flex-wrap gap-4">
                 {sortedMaterials.map((material, index) => (
                   <div
                     key={material.id}
-                    className="w-[280px] min-w-[280px] animate-fade-in"
+                    className="w-[340px] flex-shrink-0 animate-fade-in"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <MaterialCard
