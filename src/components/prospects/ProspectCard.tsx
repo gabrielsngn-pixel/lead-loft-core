@@ -17,6 +17,7 @@ import {
   Linkedin,
   MoreHorizontal,
   UserCheck,
+  Users,
   Trash2,
   MessageCircle,
   Calendar,
@@ -35,6 +36,8 @@ interface ProspectCardProps {
   onConvert: (prospect: Prospect) => void;
   onDelete: (id: string) => void;
   onAddActivity: (prospect: Prospect) => void;
+  onAssign?: (prospect: Prospect) => void;
+  canAssign?: boolean;
 }
 
 export function ProspectCard({
@@ -43,6 +46,8 @@ export function ProspectCard({
   onConvert,
   onDelete,
   onAddActivity,
+  onAssign,
+  canAssign = false,
 }: ProspectCardProps) {
   const { isMaster } = useAuth();
   const statusConfig = PROSPECT_STATUS_CONFIG[prospect.status];
@@ -82,8 +87,14 @@ export function ProspectCard({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onConvert(prospect)}>
                   <UserCheck className="w-4 h-4 mr-2" />
-                  Apropriar Prospect
+                  Apropriar para mim
                 </DropdownMenuItem>
+                {canAssign && onAssign && (
+                  <DropdownMenuItem onClick={() => onAssign(prospect)}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Atribuir a consultor
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-muted-foreground"
