@@ -405,6 +405,38 @@ export function useProspects() {
     return (data as ProspectActivityRow[]).map(rowToActivity);
   };
 
+  // Assign prospect to a specific consultant (Gestor/Master only)
+  const assignProspect = async (prospect: Prospect, consultantId: string, consultantName: string) => {
+    if (!profile) throw new Error("Usuário não autenticado");
+
+    if (prospect.status === "convertido") {
+      throw new Error("Prospect já convertido não pode ser alterado");
+    }
+
+    const { error } = await supabase
+      .from("prospects")
+      .update({
+        consultor_responsavel_id: consultantId,
+        consultor_responsavel_nome: consultantName,
+        atualizado_por: profile.user_id,
+        atualizado_por_nome: profile.nome,
+      })
+      .eq("id", prospect.id);
+
+    if (error) {
+      console.error("Erro ao atribuir prospect:", error);
+      throw error;
+    }
+
+    setProspects(prev =>
+      prev.map(p =>
+        p.id === prospect.id
+          ? { ...p, consultorResponsavelId: consultantId, consultorResponsavelNome: consultantName, updatedAt: new Date() }
+          : p
+      )
+    );
+  };
+
   return { 
     prospects, 
     loading, 
@@ -416,5 +448,6 @@ export function useProspects() {
     deleteProspect,
     addActivity,
     getProspectActivities,
+    assignProspect,
   };
 }

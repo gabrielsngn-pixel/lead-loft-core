@@ -26,12 +26,13 @@ import { ProspectCard } from "@/components/prospects/ProspectCard";
 import { ImportProspectsDialog } from "@/components/prospects/ImportProspectsDialog";
 import { ProspectActivityDialog } from "@/components/prospects/ProspectActivityDialog";
 import { ConvertProspectDialog } from "@/components/prospects/ConvertProspectDialog";
+import { AssignProspectDialog } from "@/components/prospects/AssignProspectDialog";
 import { Prospect, ProspectStatus, PROSPECT_STATUS_CONFIG } from "@/types/prospects";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { subDays, isAfter } from "date-fns";
 
 const Prospects = () => {
-  const { isMaster } = useAuth();
+  const { isMaster, isGestor } = useAuth();
   const { toast } = useToast();
   const { 
     prospects, 
@@ -43,6 +44,7 @@ const Prospects = () => {
     deleteProspect,
     addActivity,
     getProspectActivities,
+    assignProspect,
   } = useProspects();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +53,7 @@ const Prospects = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
 
   // Metrics
@@ -140,6 +143,27 @@ const Prospects = () => {
   const handleAddActivity = (prospect: Prospect) => {
     setSelectedProspect(prospect);
     setActivityDialogOpen(true);
+  };
+
+  const handleAssign = (prospect: Prospect) => {
+    setSelectedProspect(prospect);
+    setAssignDialogOpen(true);
+  };
+
+  const handleConfirmAssign = async (prospect: Prospect, consultantId: string, consultantName: string) => {
+    try {
+      await assignProspect(prospect, consultantId, consultantName);
+      toast({ 
+        title: "Prospect atribuído!", 
+        description: `Prospect foi atribuído a ${consultantName}.` 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
   };
 
   if (loading) {
@@ -248,6 +272,8 @@ const Prospects = () => {
                   onConvert={handleConvert}
                   onDelete={handleDelete}
                   onAddActivity={handleAddActivity}
+                  onAssign={handleAssign}
+                  canAssign={isGestor || isMaster}
                 />
               ))}
             </div>
@@ -276,6 +302,14 @@ const Prospects = () => {
         onOpenChange={setConvertDialogOpen}
         prospect={selectedProspect}
         onConfirm={confirmConvert}
+      />
+
+      {/* Assign Prospect Dialog (Gestor/Master) */}
+      <AssignProspectDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        prospect={selectedProspect}
+        onAssign={handleConfirmAssign}
       />
     </AppLayout>
   );

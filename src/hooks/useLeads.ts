@@ -197,5 +197,32 @@ export function useLeads() {
     );
   };
 
-  return { leads, loading, fetchLeads, createLead, updateLead, deleteLead, claimLead };
+  // Assign lead to a specific consultant (Gestor/Master only)
+  const assignLead = async (lead: Lead, consultantId: string, consultantName: string) => {
+    if (!profile) throw new Error("Usuário não autenticado");
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        responsavel_id: consultantId,
+        responsavel_nome: consultantName,
+        data_ultima_interacao: new Date().toISOString(),
+        atualizado_por: profile.user_id,
+        atualizado_por_nome: profile.nome,
+      })
+      .eq("id", lead.id);
+
+    if (error) {
+      console.error("Erro ao atribuir lead:", error);
+      throw error;
+    }
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === lead.id
+          ? { ...l, responsavelId: consultantId, responsavelNome: consultantName, dataUltimaInteracao: new Date() }
+          : l
+      )
+    );
+  };
+
+  return { leads, loading, fetchLeads, createLead, updateLead, deleteLead, claimLead, assignLead };
 }

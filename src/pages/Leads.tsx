@@ -36,9 +36,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
+import { AssignLeadDialog } from "@/components/leads/AssignLeadDialog";
 import { useLeads } from "@/hooks/useLeads";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -48,6 +50,7 @@ import {
   Eye,
   Edit,
   UserPlus,
+  Users,
   Trash2,
   Building2,
   Landmark,
@@ -110,22 +113,30 @@ const exportColumns = [
 const Leads = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentUser } = usePermissions();
-  const { leads, loading, updateLead, deleteLead, claimLead } = useLeads();
+  const { currentUser, isGestor, isMaster } = usePermissions();
+  const { leads, loading, updateLead, deleteLead, claimLead, assignLead } = useLeads();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [cidadeFilter, setCidadeFilter] = useState<string>("all");
+  const [consultorFilter, setConsultorFilter] = useState<string>("all");
 
   // Get unique cities for filter dropdown
   const uniqueCities = Array.from(
     new Set(leads.filter((l) => !l.responsavelId).map((l) => l.cidade))
   ).sort();
+
+  // Get unique consultores from responsavelNome for filter dropdown
+  const uniqueConsultores = Array.from(
+    new Set(leads.filter((l) => !l.responsavelId && l.responsavelNome).map((l) => l.responsavelNome!))
+  ).sort();
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [leadToAssign, setLeadToAssign] = useState<Lead | null>(null);
 
   const handleEditLead = (lead: Lead) => {
     setEditingLead(lead);
@@ -173,6 +184,20 @@ const Leads = () => {
     }
   };
 
+  const handleOpenAssignDialog = (lead: Lead) => {
+    setLeadToAssign(lead);
+    setAssignDialogOpen(true);
+  };
+
+  const handleAssignLead = async (lead: Lead, consultantId: string, consultantName: string) => {
+    try {
+      await assignLead(lead, consultantId, consultantName);
+      toast({ title: `Lead atribuído a ${consultantName}` });
+    } catch {
+      toast({ title: "Erro ao atribuir lead", variant: "destructive" });
+    }
+  };
+
   // Repositório de Leads: apenas leads SEM responsável (não apropriados)
   const filteredLeads = leads.filter((lead) => {
     // Lead com responsável vai para Contatos Ativos, não aparece aqui
@@ -187,8 +212,14 @@ const Leads = () => {
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     const matchesTipo = tipoFilter === "all" || lead.tipoEmpresa === tipoFilter;
     const matchesCidade = cidadeFilter === "all" || lead.cidade === cidadeFilter;
+    
+    // Filtro por consultor: "none" = sem consultor, "all" = todos, ou nome específico
+    const matchesConsultor = 
+      consultorFilter === "all" || 
+      (consultorFilter === "none" && !lead.responsavelNome) ||
+      (consultorFilter !== "none" && lead.responsavelNome === consultorFilter);
 
-    return matchesSearch && matchesStatus && matchesTipo && matchesCidade;
+    return matchesSearch && matchesStatus && matchesTipo && matchesCidade && matchesConsultor;
   });
 
   const handleImport = (_data: any[]) => {
@@ -266,6 +297,18 @@ const Leads = () => {
                 <SelectItem value="all">Todas Cidades</SelectItem>
                 {uniqueCities.map((cidade) => (
                   <SelectItem key={cidade} value={cidade}>{cidade}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={consultorFilter} onValueChange={setConsultorFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Consultor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Consultores</SelectItem>
+                <SelectItem value="none">Sem Consultor</SelectItem>
+                {uniqueConsultores.map((consultor) => (
+                  <SelectItem key={consultor} value={consultor}>{consultor}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -379,8 +422,14 @@ const Leads = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleClaimLead(lead)}>
                               <UserPlus className="w-4 h-4 mr-2" />
-                              Apropriar
+                              Apropriar para mim
                             </DropdownMenuItem>
+                            {(isGestor || isMaster) && (
+                              <DropdownMenuItem onClick={() => handleOpenAssignDialog(lead)}>
+                                <Users className="w-4 h-4 mr-2" />
+                                Atribuir a consultor
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(lead)}>
                               <Trash2 className="w-4 h-4 mr-2" />
                               Excluir
@@ -423,6 +472,14 @@ const Leads = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Assign Lead Dialog (Gestor/Master) */}
+      <AssignLeadDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        lead={leadToAssign}
+        onAssign={handleAssignLead}
+      />
     </AppLayout>
   );
 };
