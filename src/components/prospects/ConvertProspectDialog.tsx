@@ -92,6 +92,10 @@ export function ConvertProspectDialog({
             existingCompanies={existingCompanies}
             value={companyData}
             onChange={setCompanyData}
+            defaultManualValues={{
+              razaoSocial: prospect.empresa,
+              nomeFantasia: prospect.empresa,
+            }}
           />
         </div>
 
