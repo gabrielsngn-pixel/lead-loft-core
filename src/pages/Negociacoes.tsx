@@ -83,6 +83,7 @@ const Negociacoes = () => {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedNegotiation, setSelectedNegotiation] = useState<Negotiation | null>(null);
   const [contratoDialogOpen, setContratoDialogOpen] = useState(false);
+  const [dragOverStage, setDragOverStage] = useState<NegotiationStage | null>(null);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newNegData, setNewNegData] = useState({
@@ -94,6 +95,30 @@ const Negociacoes = () => {
   });
 
   const getNegotiationsByStage = (stage: NegotiationStage) => negotiations.filter((n) => n.etapa === stage);
+
+  const handleDragStart = (e: React.DragEvent, negotiation: Negotiation) => {
+    e.dataTransfer.setData("negotiationId", negotiation.id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, stage: NegotiationStage) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverStage(stage);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStage(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetStage: NegotiationStage) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    const negId = e.dataTransfer.getData("negotiationId");
+    const negotiation = negotiations.find((n) => n.id === negId);
+    if (!negotiation || negotiation.etapa === targetStage) return;
+    await handleMoveStage(negotiation, targetStage);
+  };
 
   const getTotalByStage = (stage: NegotiationStage) =>
     getNegotiationsByStage(stage).reduce((sum, n) => sum + n.valor, 0);
@@ -214,7 +239,17 @@ const Negociacoes = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
           {stages.map((stage, stageIndex) => (
-            <div key={stage} className="kanban-column min-w-[260px] animate-fade-in" style={{ animationDelay: `${stageIndex * 100}ms` }}>
+            <div
+              key={stage}
+              className={cn(
+                "kanban-column min-w-[260px] animate-fade-in transition-colors rounded-lg",
+                dragOverStage === stage && "ring-2 ring-primary/50 bg-primary/5"
+              )}
+              style={{ animationDelay: `${stageIndex * 100}ms` }}
+              onDragOver={(e) => handleDragOver(e, stage)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, stage)}
+            >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -241,7 +276,13 @@ const Negociacoes = () => {
               {/* Cards */}
               <div className="space-y-3">
                 {getNegotiationsByStage(stage).map((negotiation, cardIndex) => (
-                  <div key={negotiation.id} className="kanban-card animate-fade-in" style={{ animationDelay: `${stageIndex * 100 + cardIndex * 50}ms` }}>
+                  <div
+                    key={negotiation.id}
+                    className="kanban-card animate-fade-in cursor-grab active:cursor-grabbing"
+                    style={{ animationDelay: `${stageIndex * 100 + cardIndex * 50}ms` }}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, negotiation)}
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/10">
