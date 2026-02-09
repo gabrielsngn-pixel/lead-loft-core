@@ -118,32 +118,6 @@ export function useProspects() {
   }, [fetchProspects]);
 
   const checkImportLimit = async (): Promise<{ canImport: boolean; message?: string }> => {
-    // Check last import date for weekly limit
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    const { data: recentImports, error } = await supabase
-      .from("prospect_import_logs")
-      .select("*")
-      .gte("created_at", oneWeekAgo.toISOString())
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Erro ao verificar limite de importação:", error);
-      return { canImport: false, message: "Erro ao verificar limite de importação" };
-    }
-
-    if (recentImports && recentImports.length > 0) {
-      const lastImport = new Date(recentImports[0].created_at);
-      const nextAllowed = new Date(lastImport);
-      nextAllowed.setDate(nextAllowed.getDate() + 7);
-      
-      return { 
-        canImport: false, 
-        message: `Limite de 1 importação por semana. Próxima importação permitida em ${nextAllowed.toLocaleDateString("pt-BR")}` 
-      };
-    }
-
     return { canImport: true };
   };
 
@@ -158,11 +132,6 @@ export function useProspects() {
 
     if (rows.length > 25) {
       throw new Error("Máximo de 25 registros por importação");
-    }
-
-    const limitCheck = await checkImportLimit();
-    if (!limitCheck.canImport) {
-      throw new Error(limitCheck.message);
     }
 
     // Get existing emails and linkedin URLs for deduplication
