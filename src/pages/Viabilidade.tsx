@@ -996,10 +996,10 @@ const Viabilidade = () => {
                 results={results} 
                 registroTipo={inputs.registroTipo}
                 vgv={inputs.vgv}
-                canAprovar={isValidMix && selectedViabilidade !== null && isGestor}
+                canAprovar={isValidMix && selectedViabilidade !== null}
                 onAprovar={handleAprovarSimulacao}
                 isAprovado={selectedViabilidade?.status === "aprovado"}
-                canEnviarContrato={isValidMix && selectedViabilidade !== null && selectedViabilidade?.status === "aprovado" && isGestor}
+                canEnviarContrato={isValidMix && selectedViabilidade !== null && selectedViabilidade?.status === "aprovado"}
                 onEnviarContrato={handleEnviarContrato}
               />
             </div>
