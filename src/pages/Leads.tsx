@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ import {
 import { ExportImportButtons } from "@/components/shared/ExportImportButtons";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { AssignLeadDialog } from "@/components/leads/AssignLeadDialog";
+import { ClaimLeadDialog } from "@/components/leads/ClaimLeadDialog";
 import { useLeads } from "@/hooks/useLeads";
 import { Lead, LeadStatus, Priority, CompanyType } from "@/types/crm";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -137,6 +138,21 @@ const Leads = () => {
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [leadToAssign, setLeadToAssign] = useState<Lead | null>(null);
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [leadToClaim, setLeadToClaim] = useState<Lead | null>(null);
+
+  // Build unique companies list from all leads
+  const existingCompanies = useMemo(() => {
+    const map = new Map<string, { razaoSocial: string; nomeFantasia?: string; cnpj: string }>();
+    leads.forEach((l) => {
+      if (!map.has(l.cnpj)) {
+        map.set(l.cnpj, { razaoSocial: l.razaoSocial, nomeFantasia: l.nomeFantasia, cnpj: l.cnpj });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      (a.nomeFantasia || a.razaoSocial).localeCompare(b.nomeFantasia || b.razaoSocial)
+    );
+  }, [leads]);
 
   const handleEditLead = (lead: Lead) => {
     setEditingLead(lead);
@@ -175,13 +191,24 @@ const Leads = () => {
     }
   };
 
-  const handleClaimLead = async (lead: Lead) => {
+  const handleClaimLead = async (lead: Lead, companyData?: { razaoSocial: string; nomeFantasia: string; cnpj: string }) => {
     try {
-      await claimLead(lead);
+      if (companyData) {
+        // Update company data then claim
+        await updateLead({ ...lead, razaoSocial: companyData.razaoSocial, nomeFantasia: companyData.nomeFantasia, cnpj: companyData.cnpj });
+        await claimLead({ ...lead, razaoSocial: companyData.razaoSocial, nomeFantasia: companyData.nomeFantasia, cnpj: companyData.cnpj });
+      } else {
+        await claimLead(lead);
+      }
       toast({ title: "Você é agora responsável por este lead" });
     } catch {
       toast({ title: "Erro ao apropriar lead", variant: "destructive" });
     }
+  };
+
+  const handleOpenClaimDialog = (lead: Lead) => {
+    setLeadToClaim(lead);
+    setClaimDialogOpen(true);
   };
 
   const handleOpenAssignDialog = (lead: Lead) => {
@@ -420,7 +447,7 @@ const Leads = () => {
                               <Edit className="w-4 h-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleClaimLead(lead)}>
+                            <DropdownMenuItem onClick={() => handleOpenClaimDialog(lead)}>
                               <UserPlus className="w-4 h-4 mr-2" />
                               Apropriar para mim
                             </DropdownMenuItem>
@@ -479,6 +506,15 @@ const Leads = () => {
         onOpenChange={setAssignDialogOpen}
         lead={leadToAssign}
         onAssign={handleAssignLead}
+      />
+
+      {/* Claim Lead Dialog */}
+      <ClaimLeadDialog
+        open={claimDialogOpen}
+        onOpenChange={setClaimDialogOpen}
+        lead={leadToClaim}
+        existingCompanies={existingCompanies}
+        onClaim={handleClaimLead}
       />
     </AppLayout>
   );
