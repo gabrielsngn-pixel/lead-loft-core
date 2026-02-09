@@ -360,30 +360,58 @@ const Viabilidade = () => {
         })
         .eq("id", selectedViabilidade.id);
 
-      // Criar negociação automaticamente SEM contrato
+      // Criar ou atualizar negociação automaticamente SEM contrato
       if (selectedViabilidade.empresa_id) {
         const registroValorTotal = inputs.registroTipo === "internalizado" 
           ? inputs.valorRegistroPorUnidade * inputs.unidades 
           : 0;
 
-        await createNegotiation({
-          leadId: selectedViabilidade.empresa_id,
+        // Verificar se já existe negociação para esta viabilidade
+        const { data: existingNeg } = await supabase
+          .from("negotiations")
+          .select("id")
+          .eq("viabilidade_id", selectedViabilidade.id)
+          .maybeSingle();
+
+        const negData = {
+          lead_id: selectedViabilidade.empresa_id,
           titulo: selectedViabilidade.nome_empreendimento,
           valor: results.margemFinalCurrency,
-          etapa: "proposta_aprovada",
+          etapa: "proposta_aprovada" as const,
           probabilidade: results.status === "viable" ? 80 : 50,
-          viabilidadeId: selectedViabilidade.id,
-          margemEstimada: results.margemFinalPercent,
-          comissaoIncorporador: inputs.comissaoIncorporador / 100,
-          registroValor: registroValorTotal,
-          registroTipo: inputs.registroTipo,
-          receitaRegistroLoftPercent: results.receitaRegistroLoftPercent,
-          despesasOperacionais: results.custosOperacionaisCurrency,
+          viabilidade_id: selectedViabilidade.id,
+          margem_estimada: results.margemFinalPercent,
+          comissao_incorporador: inputs.comissaoIncorporador / 100,
+          registro_valor: registroValorTotal,
+          registro_tipo: inputs.registroTipo,
+          receita_registro_loft_percent: results.receitaRegistroLoftPercent,
+          despesas_operacionais: results.custosOperacionaisCurrency,
           unidades: inputs.unidades,
-          ticketMedio: ticketMedio,
-          vgvTotal: inputs.vgv,
-          comissaoBancariaPonderada: results.taxaPonderadaBanco,
-        });
+          ticket_medio: ticketMedio,
+          vgv_total: inputs.vgv,
+          comissao_bancaria_ponderada: results.taxaPonderadaBanco,
+        };
+
+        if (existingNeg) {
+          // Atualizar negociação existente com dados mais recentes
+          await supabase
+            .from("negotiations")
+            .update({
+              ...negData,
+              atualizado_por: user.id,
+              atualizado_por_nome: profile?.nome,
+            })
+            .eq("id", existingNeg.id);
+        } else {
+          // Criar nova negociação
+          await supabase
+            .from("negotiations")
+            .insert({
+              ...negData,
+              criado_por: user.id,
+              criado_por_nome: profile?.nome || "",
+            });
+        }
       }
       
       fetchViabilidades();
