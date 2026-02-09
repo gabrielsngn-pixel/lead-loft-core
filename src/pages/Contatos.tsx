@@ -191,12 +191,12 @@ const Contatos = () => {
       : a.dataUltimaInteracao.getTime() - b.dataUltimaInteracao.getTime();
   });
 
-  // Group contacts by company (CNPJ)
+  // Group contacts by company (Razão Social)
   const groupedContacts = useMemo(() => {
     const groups = new Map<string, { company: UniqueCompany; contacts: Lead[] }>();
     
     sortedContacts.forEach((contact) => {
-      const key = contact.cnpj;
+      const key = contact.razaoSocial.trim().toLowerCase();
       if (!groups.has(key)) {
         groups.set(key, {
           company: {
@@ -216,13 +216,13 @@ const Contatos = () => {
   // Track which groups are expanded
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  const toggleGroup = (cnpj: string) => {
+  const toggleGroup = (groupKey: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(cnpj)) {
-        next.delete(cnpj);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
       } else {
-        next.add(cnpj);
+        next.add(groupKey);
       }
       return next;
     });
@@ -584,12 +584,13 @@ const Contatos = () => {
             <TableBody>
               {groupedContacts.map((group, groupIndex) => {
                 const hasMultipleContacts = group.contacts.length > 1;
-                const isExpanded = expandedGroups.has(group.company.cnpj);
+                const groupKey = group.company.razaoSocial.trim().toLowerCase();
+                const isExpanded = expandedGroups.has(groupKey);
                 
                 if (hasMultipleContacts) {
                   // Render collapsible group
                   return (
-                    <Collapsible key={group.company.cnpj} open={isExpanded} onOpenChange={() => toggleGroup(group.company.cnpj)} asChild>
+                    <Collapsible key={groupKey} open={isExpanded} onOpenChange={() => toggleGroup(groupKey)} asChild>
                       <>
                         {/* Group header row */}
                         <TableRow 
