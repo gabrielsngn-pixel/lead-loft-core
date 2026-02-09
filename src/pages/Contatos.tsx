@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -308,9 +309,30 @@ const Contatos = () => {
         responsavelId: undefined,
         responsavelNome: undefined,
       });
+
+      // Revert any prospect that was converted into this contact
+      const { data: linkedProspects } = await supabase
+        .from("prospects")
+        .select("id")
+        .eq("contato_ativo_id", contactToUnassign.id)
+        .eq("status", "convertido");
+
+      if (linkedProspects && linkedProspects.length > 0) {
+        await supabase
+          .from("prospects")
+          .update({
+            status: "qualificado",
+            convertido_em: null,
+            contato_ativo_id: null,
+            consultor_responsavel_id: null,
+            consultor_responsavel_nome: null,
+          })
+          .eq("contato_ativo_id", contactToUnassign.id);
+      }
+
       toast({ 
         title: "Contato desapropriado", 
-        description: "O contato foi devolvido ao Repositório de Leads." 
+        description: "O contato foi devolvido ao Repositório de Leads." + (linkedProspects && linkedProspects.length > 0 ? " O prospect vinculado foi reativado." : "")
       });
     } catch {
       toast({ title: "Erro ao desapropriar contato", variant: "destructive" });
