@@ -16,10 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Prospect } from "@/types/prospects";
 import { useAuth } from "@/hooks/useAuth";
+import { CompanyLinkSelector, CompanyOption, SelectedCompanyData } from "@/components/contatos/CompanyLinkSelector";
 
 interface Consultant {
   id: string;
@@ -31,13 +32,15 @@ interface AssignProspectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prospect: Prospect | null;
-  onAssign: (prospect: Prospect, consultantId: string, consultantName: string) => Promise<void>;
+  existingCompanies: CompanyOption[];
+  onAssign: (prospect: Prospect, consultantId: string, consultantName: string, companyData?: { razaoSocial: string; nomeFantasia: string; cnpj: string }) => Promise<void>;
 }
 
 export function AssignProspectDialog({
   open,
   onOpenChange,
   prospect,
+  existingCompanies,
   onAssign,
 }: AssignProspectDialogProps) {
   const { profile } = useAuth();
@@ -45,13 +48,25 @@ export function AssignProspectDialog({
   const [selectedConsultant, setSelectedConsultant] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [companyData, setCompanyData] = useState<SelectedCompanyData>({
+    razaoSocial: "",
+    nomeFantasia: "",
+    cnpj: "",
+    isManual: false,
+  });
 
   useEffect(() => {
-    if (open) {
+    if (open && prospect) {
       fetchConsultants();
       setSelectedConsultant("");
+      setCompanyData({
+        razaoSocial: prospect.empresa,
+        nomeFantasia: prospect.empresa,
+        cnpj: "",
+        isManual: true,
+      });
     }
-  }, [open]);
+  }, [open, prospect]);
 
   const fetchConsultants = async () => {
     setFetching(true);
@@ -87,7 +102,12 @@ export function AssignProspectDialog({
 
     setLoading(true);
     try {
-      await onAssign(prospect, consultant.id, consultant.nome);
+      const data = {
+        razaoSocial: companyData.razaoSocial || prospect.empresa,
+        nomeFantasia: companyData.nomeFantasia || prospect.empresa,
+        cnpj: companyData.cnpj || "00.000.000/0000-00",
+      };
+      await onAssign(prospect, consultant.id, consultant.nome, data);
       onOpenChange(false);
     } finally {
       setLoading(false);
@@ -98,14 +118,14 @@ export function AssignProspectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="w-5 h-5" />
-            Associar Prospect a Consultor
+            Atribuir Prospect a Consultor
           </DialogTitle>
           <DialogDescription>
-            Selecione o consultor que ficará responsável pelo prospect{" "}
+            Selecione o consultor e vincule a uma empresa para criar o Contato Ativo do prospect{" "}
             <strong>{prospect.nomeCompleto}</strong>.
           </DialogDescription>
         </DialogHeader>
@@ -130,6 +150,25 @@ export function AssignProspectDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <CompanyLinkSelector
+            existingCompanies={existingCompanies}
+            value={companyData}
+            onChange={setCompanyData}
+            defaultManualValues={{
+              razaoSocial: prospect.empresa,
+              nomeFantasia: prospect.empresa,
+            }}
+          />
+        </div>
+
+        <div className="bg-muted/20 rounded-lg p-3 text-sm space-y-1">
+          <p className="font-medium text-muted-foreground">Esta ação irá:</p>
+          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+            <li>Criar um registro em <strong>Contatos Ativos</strong></li>
+            <li>Vincular o consultor selecionado como responsável</li>
+            <li>Marcar o prospect como <strong>Convertido</strong></li>
+          </ul>
         </div>
 
         <DialogFooter>
@@ -138,9 +177,16 @@ export function AssignProspectDialog({
           </Button>
           <Button
             onClick={handleAssign}
-            disabled={!selectedConsultant || loading}
+            disabled={!selectedConsultant || loading || !companyData.razaoSocial.trim()}
           >
-            {loading ? "Associando..." : "Associar Prospect"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Atribuindo...
+              </>
+            ) : (
+              "Atribuir Prospect"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

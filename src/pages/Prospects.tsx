@@ -170,12 +170,12 @@ const Prospects = () => {
     setAssignDialogOpen(true);
   };
 
-  const handleConfirmAssign = async (prospect: Prospect, consultantId: string, consultantName: string) => {
+  const handleConfirmAssign = async (prospect: Prospect, consultantId: string, consultantName: string, companyData?: { razaoSocial: string; nomeFantasia: string; cnpj: string }) => {
     try {
-      await assignProspect(prospect, consultantId, consultantName);
+      await assignProspect(prospect, consultantId, consultantName, companyData);
       toast({ 
         title: "Prospect atribuído!", 
-        description: `Prospect foi atribuído a ${consultantName}.` 
+        description: `Prospect foi atribuído a ${consultantName} e criado como Contato Ativo.` 
       });
     } catch (error: any) {
       toast({ 
@@ -336,6 +336,7 @@ const Prospects = () => {
         open={assignDialogOpen}
         onOpenChange={setAssignDialogOpen}
         prospect={selectedProspect}
+        existingCompanies={existingCompanies}
         onAssign={handleConfirmAssign}
       />
     </AppLayout>
