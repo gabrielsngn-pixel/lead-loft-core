@@ -26,6 +26,8 @@ interface CompanyLinkSelectorProps {
   onChange: (data: SelectedCompanyData) => void;
   /** Label above the selector */
   label?: string;
+  /** Default values to pre-fill when "Cadastrar nova empresa" is selected */
+  defaultManualValues?: { razaoSocial?: string; nomeFantasia?: string; cnpj?: string };
 }
 
 const MANUAL_OPTION_VALUE = "__MANUAL__";
@@ -35,6 +37,7 @@ export function CompanyLinkSelector({
   value,
   onChange,
   label = "Empresa",
+  defaultManualValues,
 }: CompanyLinkSelectorProps) {
   const [open, setOpen] = useState(false);
 
@@ -47,7 +50,12 @@ export function CompanyLinkSelector({
 
   const handleSelect = (selectedValue: string) => {
     if (selectedValue === MANUAL_OPTION_VALUE) {
-      onChange({ razaoSocial: "", nomeFantasia: "", cnpj: "", isManual: true });
+      onChange({
+        razaoSocial: defaultManualValues?.razaoSocial || "",
+        nomeFantasia: defaultManualValues?.nomeFantasia || "",
+        cnpj: defaultManualValues?.cnpj || "",
+        isManual: true,
+      });
     } else {
       const company = existingCompanies.find((c) => c.razaoSocial === selectedValue);
       if (company) {
