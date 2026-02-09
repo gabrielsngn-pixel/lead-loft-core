@@ -378,17 +378,61 @@ export function useProspects() {
     return (data as ProspectActivityRow[]).map(rowToActivity);
   };
 
-  // Assign prospect to a specific consultant (Gestor/Master only)
-  const assignProspect = async (prospect: Prospect, consultantId: string, consultantName: string) => {
+  // Assign prospect to a specific consultant and convert to Contato Ativo
+  const assignProspect = async (
+    prospect: Prospect,
+    consultantId: string,
+    consultantName: string,
+    companyData?: { razaoSocial: string; nomeFantasia: string; cnpj: string }
+  ) => {
     if (!profile) throw new Error("Usuário não autenticado");
 
     if (prospect.status === "convertido") {
       throw new Error("Prospect já convertido não pode ser alterado");
     }
 
-    const { error } = await supabase
+    const empresa = companyData?.razaoSocial || prospect.empresa;
+    const nomeFantasia = companyData?.nomeFantasia || prospect.empresa;
+    const cnpj = companyData?.cnpj || "00.000.000/0000-00";
+
+    // Create new contact in leads table (as Contato Ativo)
+    const { data: newContact, error: contactError } = await supabase
+      .from("leads")
+      .insert({
+        cnpj,
+        razao_social: empresa,
+        nome_fantasia: nomeFantasia,
+        nome_contato: prospect.nomeCompleto,
+        email: prospect.email,
+        telefone: prospect.telefone || "",
+        cidade: "",
+        estado: "",
+        origem: "outbound",
+        status: "qualificado",
+        prioridade: "media",
+        tipo_empresa: "incorporadora",
+        responsavel_id: consultantId,
+        responsavel_nome: consultantName,
+        observacoes: `Atribuído por ${profile.nome}. Cargo: ${prospect.cargo}. LinkedIn: ${prospect.linkedinUrl}`,
+        linkedin: prospect.linkedinUrl,
+        criado_por: profile.user_id,
+        criado_por_nome: profile.nome,
+      })
+      .select()
+      .single();
+
+    if (contactError) {
+      console.error("Erro ao criar contato:", contactError);
+      throw contactError;
+    }
+
+    // Update prospect status to converted
+    const { error: updateError } = await supabase
       .from("prospects")
       .update({
+        status: "convertido",
+        convertido_em: new Date().toISOString(),
+        contato_ativo_id: newContact.id,
         consultor_responsavel_id: consultantId,
         consultor_responsavel_nome: consultantName,
         atualizado_por: profile.user_id,
@@ -396,18 +440,12 @@ export function useProspects() {
       })
       .eq("id", prospect.id);
 
-    if (error) {
-      console.error("Erro ao atribuir prospect:", error);
-      throw error;
+    if (updateError) {
+      console.error("Erro ao atualizar prospect:", updateError);
+      throw updateError;
     }
 
-    setProspects(prev =>
-      prev.map(p =>
-        p.id === prospect.id
-          ? { ...p, consultorResponsavelId: consultantId, consultorResponsavelNome: consultantName, updatedAt: new Date() }
-          : p
-      )
-    );
+    await fetchProspects();
   };
 
   return { 
