@@ -1,21 +1,30 @@
+import { useState } from "react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Prospect } from "@/types/prospects";
-import { UserCheck } from "lucide-react";
+import { CompanyLinkSelector, CompanyOption, SelectedCompanyData } from "@/components/contatos/CompanyLinkSelector";
+import { UserCheck, Loader2 } from "lucide-react";
+
+export interface ConvertCompanyData {
+  razaoSocial: string;
+  nomeFantasia: string;
+  cnpj: string;
+}
 
 interface ConvertProspectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prospect: Prospect | null;
-  onConfirm: () => void;
+  onConfirm: (companyData?: ConvertCompanyData) => void;
+  existingCompanies: CompanyOption[];
+  loading?: boolean;
 }
 
 export function ConvertProspectDialog({
@@ -23,44 +32,97 @@ export function ConvertProspectDialog({
   onOpenChange,
   prospect,
   onConfirm,
+  existingCompanies,
+  loading,
 }: ConvertProspectDialogProps) {
+  const [companyData, setCompanyData] = useState<SelectedCompanyData>({
+    razaoSocial: "",
+    nomeFantasia: "",
+    cnpj: "",
+    isManual: false,
+  });
+
+  // Reset when dialog opens
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen && prospect) {
+      // Pre-fill with prospect's empresa as manual entry
+      setCompanyData({
+        razaoSocial: prospect.empresa,
+        nomeFantasia: prospect.empresa,
+        cnpj: "",
+        isManual: true,
+      });
+    }
+    onOpenChange(isOpen);
+  };
+
   if (!prospect) return null;
 
+  const handleConfirm = () => {
+    const data: ConvertCompanyData = {
+      razaoSocial: companyData.razaoSocial || prospect.empresa,
+      nomeFantasia: companyData.nomeFantasia || prospect.empresa,
+      cnpj: companyData.cnpj || "00.000.000/0000-00",
+    };
+    onConfirm(data);
+  };
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-primary/10">
               <UserCheck className="w-5 h-5 text-primary" />
             </div>
-            <AlertDialogTitle>Apropriar Prospect</AlertDialogTitle>
+            <DialogTitle>Apropriar Prospect</DialogTitle>
           </div>
-          <AlertDialogDescription className="space-y-3">
+          <DialogDescription className="space-y-3">
             <p>
-              Você está prestes a apropriar o prospect <strong>{prospect.nomeCompleto}</strong> ({prospect.empresa}).
+              Você está prestes a apropriar o prospect <strong>{prospect.nomeCompleto}</strong>.
             </p>
             <p className="text-sm">
-              Esta ação irá:
+              Vincule a uma empresa existente na base ou cadastre uma nova:
             </p>
-            <ul className="text-sm list-disc pl-5 space-y-1">
-              <li>Criar um novo registro em <strong>Contatos Ativos</strong></li>
-              <li>Vincular você como consultor responsável</li>
-              <li>Marcar o prospect como <strong>Convertido</strong></li>
-              <li>Bloquear edições futuras neste prospect</li>
-            </ul>
-            <p className="text-sm text-warning font-medium mt-2">
-              ⚠️ Esta ação não pode ser desfeita.
-            </p>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
-            Apropriar Prospect
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-2">
+          <CompanyLinkSelector
+            existingCompanies={existingCompanies}
+            value={companyData}
+            onChange={setCompanyData}
+          />
+        </div>
+
+        <div className="bg-muted/20 rounded-lg p-3 text-sm space-y-1">
+          <p className="font-medium text-muted-foreground">Esta ação irá:</p>
+          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+            <li>Criar um registro em <strong>Contatos Ativos</strong></li>
+            <li>Vincular você como consultor responsável</li>
+            <li>Marcar o prospect como <strong>Convertido</strong></li>
+          </ul>
+          <p className="text-warning font-medium mt-2">
+            ⚠️ Esta ação não pode ser desfeita.
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirm} disabled={loading || !companyData.razaoSocial.trim()}>
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Apropriando...
+              </>
+            ) : (
+              "Apropriar Prospect"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

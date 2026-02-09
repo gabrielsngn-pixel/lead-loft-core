@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ProspectCard } from "@/components/prospects/ProspectCard";
 import { ImportProspectsDialog } from "@/components/prospects/ImportProspectsDialog";
 import { ProspectActivityDialog } from "@/components/prospects/ProspectActivityDialog";
-import { ConvertProspectDialog } from "@/components/prospects/ConvertProspectDialog";
+import { ConvertProspectDialog, ConvertCompanyData } from "@/components/prospects/ConvertProspectDialog";
+import { useLeads } from "@/hooks/useLeads";
 import { AssignProspectDialog } from "@/components/prospects/AssignProspectDialog";
 import { CompanySummaryCard } from "@/components/prospects/CompanySummaryCard";
 import { Prospect, ProspectStatus, PROSPECT_STATUS_CONFIG } from "@/types/prospects";
@@ -47,6 +48,21 @@ const Prospects = () => {
     getProspectActivities,
     assignProspect,
   } = useProspects();
+  const { leads } = useLeads();
+  const [convertLoading, setConvertLoading] = useState(false);
+
+  // Build unique companies list from all leads
+  const existingCompanies = useMemo(() => {
+    const map = new Map<string, { razaoSocial: string; nomeFantasia?: string; cnpj: string }>();
+    leads.forEach((l) => {
+      if (!map.has(l.cnpj)) {
+        map.set(l.cnpj, { razaoSocial: l.razaoSocial, nomeFantasia: l.nomeFantasia, cnpj: l.cnpj });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      (a.nomeFantasia || a.razaoSocial).localeCompare(b.nomeFantasia || b.razaoSocial)
+    );
+  }, [leads]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | "all">("all");
@@ -108,10 +124,11 @@ const Prospects = () => {
     setConvertDialogOpen(true);
   };
 
-  const confirmConvert = async () => {
+  const confirmConvert = async (companyData?: ConvertCompanyData) => {
     if (!selectedProspect) return;
+    setConvertLoading(true);
     try {
-      await convertToContact(selectedProspect);
+      await convertToContact(selectedProspect, companyData);
       toast({ 
         title: "Prospect apropriado!", 
         description: "Um novo Contato Ativo foi criado." 
@@ -124,6 +141,8 @@ const Prospects = () => {
         description: error.message, 
         variant: "destructive" 
       });
+    } finally {
+      setConvertLoading(false);
     }
   };
 
@@ -308,6 +327,8 @@ const Prospects = () => {
         onOpenChange={setConvertDialogOpen}
         prospect={selectedProspect}
         onConfirm={confirmConvert}
+        existingCompanies={existingCompanies}
+        loading={convertLoading}
       />
 
       {/* Assign Prospect Dialog (Gestor/Master) */}

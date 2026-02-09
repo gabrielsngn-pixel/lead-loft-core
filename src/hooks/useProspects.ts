@@ -241,20 +241,24 @@ export function useProspects() {
     );
   };
 
-  const convertToContact = async (prospect: Prospect): Promise<string> => {
+  const convertToContact = async (prospect: Prospect, companyData?: { razaoSocial: string; nomeFantasia: string; cnpj: string }): Promise<string> => {
     if (!profile) throw new Error("Usuário não autenticado");
 
     if (prospect.status === "convertido") {
       throw new Error("Prospect já foi convertido");
     }
 
+    const empresa = companyData?.razaoSocial || prospect.empresa;
+    const nomeFantasia = companyData?.nomeFantasia || prospect.empresa;
+    const cnpj = companyData?.cnpj || "00.000.000/0000-00";
+
     // Create new contact in leads table (as Contato Ativo)
     const { data: newContact, error: contactError } = await supabase
       .from("leads")
       .insert({
-        cnpj: "00.000.000/0000-00", // Placeholder - will be updated later
-        razao_social: prospect.empresa,
-        nome_fantasia: prospect.empresa,
+        cnpj: cnpj,
+        razao_social: empresa,
+        nome_fantasia: nomeFantasia,
         nome_contato: prospect.nomeCompleto,
         email: prospect.email,
         telefone: prospect.telefone || "",
