@@ -989,6 +989,7 @@ export type Database = {
           solicitado_por: string
           solicitado_por_nome: string
           status: string
+          status_contrato: string | null
           tir_estimada: number | null
           updated_at: string
           vgv_estimado: number | null
@@ -1026,6 +1027,7 @@ export type Database = {
           solicitado_por: string
           solicitado_por_nome: string
           status?: string
+          status_contrato?: string | null
           tir_estimada?: number | null
           updated_at?: string
           vgv_estimado?: number | null
@@ -1063,6 +1065,7 @@ export type Database = {
           solicitado_por?: string
           solicitado_por_nome?: string
           status?: string
+          status_contrato?: string | null
           tir_estimada?: number | null
           updated_at?: string
           vgv_estimado?: number | null

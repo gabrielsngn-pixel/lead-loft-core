@@ -98,7 +98,7 @@ const Dashboard = () => {
       {/* Row 2 - Métricas de Pipeline e Revenue */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          title="Valor do Pipeline"
+          title="Receita Operacional"
           value={formatCurrency(metrics.valorPipeline)}
           icon={<DollarSign className="w-6 h-6" />}
           tooltip="Soma do valor das negociações ativas (propostas aprovadas, enviadas ou em negociação). Exclui concluídas ou canceladas."

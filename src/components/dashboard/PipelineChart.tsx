@@ -47,7 +47,7 @@ export function PipelineChart({ negotiations }: PipelineChartProps) {
     <div className="stat-card">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h3 className="font-display text-lg font-semibold">Pipeline de Vendas</h3>
+          <h3 className="font-display text-lg font-semibold">Receita Operacional</h3>
           <p className="text-sm text-muted-foreground">Valor por etapa do funil</p>
         </div>
         <TooltipProvider>

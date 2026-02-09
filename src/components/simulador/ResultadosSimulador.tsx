@@ -189,7 +189,7 @@ export function ResultadosSimulador({ results, registroTipo }: ResultadosSimulad
                 <DollarSign className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Receita Líquida</p>
+                <p className="text-xs text-muted-foreground">Receita Operacional</p>
                 <p className="text-xl font-bold text-success">
                   {formatCurrency(results.receitaLiquidaTotalCurrency)}
                 </p>
