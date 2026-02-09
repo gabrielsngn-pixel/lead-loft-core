@@ -27,6 +27,7 @@ import { ImportProspectsDialog } from "@/components/prospects/ImportProspectsDia
 import { ProspectActivityDialog } from "@/components/prospects/ProspectActivityDialog";
 import { ConvertProspectDialog } from "@/components/prospects/ConvertProspectDialog";
 import { AssignProspectDialog } from "@/components/prospects/AssignProspectDialog";
+import { CompanySummaryCard } from "@/components/prospects/CompanySummaryCard";
 import { Prospect, ProspectStatus, PROSPECT_STATUS_CONFIG } from "@/types/prospects";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { subDays, isAfter } from "date-fns";
@@ -207,6 +208,11 @@ const Prospects = () => {
           variant={semAtividade7Dias > 0 ? "primary" : "secondary"}
           tooltip="Prospects ativos sem atividade há mais de 7 dias"
         />
+      </div>
+
+      {/* Company Summary */}
+      <div className="mb-6">
+        <CompanySummaryCard prospects={prospects} />
       </div>
 
       {/* Actions */}
