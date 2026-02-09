@@ -12,6 +12,9 @@ interface ResultadosSidebarProps {
   vgv: number;
   onAprovar?: () => void;
   canAprovar?: boolean;
+  isAprovado?: boolean;
+  canEnviarContrato?: boolean;
+  onEnviarContrato?: () => void;
 }
 
 export function ResultadosSidebar({ 
@@ -19,7 +22,10 @@ export function ResultadosSidebar({
   registroTipo, 
   vgv,
   onAprovar, 
-  canAprovar = true 
+  canAprovar = true,
+  isAprovado = false,
+  canEnviarContrato = false,
+  onEnviarContrato,
 }: ResultadosSidebarProps) {
   const statusConfig = {
     viable: {
@@ -244,8 +250,8 @@ export function ResultadosSidebar({
         </div>
       )}
 
-      {/* Botão Aprovar Simulação */}
-      {results.status !== "inviable" && onAprovar && (
+      {/* Botão Aprovar Viabilidade */}
+      {results.status !== "inviable" && onAprovar && !isAprovado && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -255,15 +261,40 @@ export function ResultadosSidebar({
                   disabled={!canAprovar}
                   className="w-full h-12 text-base gap-2 bg-secondary hover:bg-secondary/90"
                 >
-                  <FileSignature className="w-5 h-5" />
-                  Aprovar Simulação
+                  <CheckCircle2 className="w-5 h-5" />
+                  Aprovar Viabilidade
                 </Button>
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
               <p className="text-xs">
-                Quando aplicável, a cobrança do registro ao cliente final é realizada pela 
-                incorporadora, que se compromete contratualmente a repassar os valores devidos à Loft.
+                Aprova a viabilidade e cria a negociação automaticamente. O contrato pode ser enviado depois.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      {/* Botão Enviar Contrato (somente para aprovados) */}
+      {isAprovado && onEnviarContrato && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Button 
+                  onClick={onEnviarContrato}
+                  disabled={!canEnviarContrato}
+                  variant="outline"
+                  className="w-full h-12 text-base gap-2 border-primary text-primary hover:bg-primary/10"
+                >
+                  <FileSignature className="w-5 h-5" />
+                  Enviar Contrato
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p className="text-xs">
+                Gera o contrato em PDF e atualiza o status para "Em assinatura".
               </p>
             </TooltipContent>
           </Tooltip>

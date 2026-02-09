@@ -114,7 +114,7 @@ interface ViabilidadeRow {
 
 const Viabilidade = () => {
   const { toast } = useToast();
-  const { profile, user, isMaster } = useAuth();
+  const { profile, user, isMaster, isGestor } = useAuth();
   const { leads } = useLeads();
   const { createNegotiation } = useNegotiations();
   const [viabilidades, setViabilidades] = useState<ViabilidadeRow[]>([]);
@@ -328,11 +328,86 @@ const Viabilidade = () => {
     }
   };
 
-  const handleAprovarSimulacao = () => {
+  const handleAprovarSimulacao = async () => {
     if (!isValidMix) {
       toast({
         title: "Mix inválido",
         description: "Corrija o mix bancário antes de aprovar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!selectedViabilidade || !user) return;
+
+    setProcessing(true);
+    try {
+      // Salvar simulação primeiro
+      await supabase
+        .from("viabilidades")
+        .update({
+          vgv_estimado: inputs.vgv,
+          margem_estimada: results.margemFinalPercent,
+          comissao_incorporador: inputs.comissaoIncorporador,
+          resultado: results.status === "viable" ? "viavel" : results.status === "limit" ? "condicional" : "inviavel",
+          status: "aprovado",
+          status_contrato: "nao_enviado",
+          analisado_por: user.id,
+          analisado_por_nome: profile?.nome,
+          data_analise: new Date().toISOString(),
+          data_habitese: dataHabitese?.toISOString() || null,
+          projeto_atrasado: projetoAtrasado,
+          simulation_data: JSON.parse(JSON.stringify(inputs)),
+        })
+        .eq("id", selectedViabilidade.id);
+
+      // Criar negociação automaticamente SEM contrato
+      if (selectedViabilidade.empresa_id) {
+        const registroValorTotal = inputs.registroTipo === "internalizado" 
+          ? inputs.valorRegistroPorUnidade * inputs.unidades 
+          : 0;
+
+        await createNegotiation({
+          leadId: selectedViabilidade.empresa_id,
+          titulo: selectedViabilidade.nome_empreendimento,
+          valor: results.margemFinalCurrency,
+          etapa: "proposta_aprovada",
+          probabilidade: results.status === "viable" ? 80 : 50,
+          viabilidadeId: selectedViabilidade.id,
+          margemEstimada: results.margemFinalPercent,
+          comissaoIncorporador: inputs.comissaoIncorporador / 100,
+          registroValor: registroValorTotal,
+          registroTipo: inputs.registroTipo,
+          receitaRegistroLoftPercent: results.receitaRegistroLoftPercent,
+          despesasOperacionais: results.custosOperacionaisCurrency,
+          unidades: inputs.unidades,
+          ticketMedio: ticketMedio,
+          vgvTotal: inputs.vgv,
+          comissaoBancariaPonderada: results.taxaPonderadaBanco,
+        });
+      }
+      
+      fetchViabilidades();
+      toast({
+        title: "Viabilidade aprovada!",
+        description: "Negociação criada. O contrato pode ser enviado separadamente.",
+      });
+    } catch (error) {
+      console.error("Error approving viabilidade:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao aprovar viabilidade.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleEnviarContrato = () => {
+    if (!isValidMix) {
+      toast({
+        title: "Mix inválido",
+        description: "Corrija o mix bancário antes de enviar o contrato.",
         variant: "destructive",
       });
       return;
@@ -343,54 +418,41 @@ const Viabilidade = () => {
   const handleContratoGerado = async (contrato: any) => {
     if (selectedViabilidade) {
       try {
-        // Atualizar status da viabilidade
+        // Atualizar status do contrato
         await supabase
           .from("viabilidades")
           .update({
-            status: "aprovado",
-            resultado: results.status === "viable" ? "viavel" : "condicional",
+            status_contrato: "em_assinatura",
           })
           .eq("id", selectedViabilidade.id);
 
-        // Criar negociação automaticamente com indicadores do simulador e contrato
-        if (selectedViabilidade.empresa_id) {
-          const registroValorTotal = inputs.registroTipo === "internalizado" 
-            ? inputs.valorRegistroPorUnidade * inputs.unidades 
-            : 0;
+        // Atualizar negociação com dados do contrato (se existir)
+        const { data: negs } = await supabase
+          .from("negotiations")
+          .select("id")
+          .eq("viabilidade_id", selectedViabilidade.id)
+          .limit(1);
 
-          await createNegotiation({
-            leadId: selectedViabilidade.empresa_id,
-            titulo: selectedViabilidade.nome_empreendimento,
-            valor: results.margemFinalCurrency, // Valor bruto = Margem Final Loft em R$
-            etapa: "proposta_aprovada",
-            probabilidade: results.status === "viable" ? 80 : 50,
-            viabilidadeId: selectedViabilidade.id,
-            margemEstimada: results.margemFinalPercent,
-            comissaoIncorporador: inputs.comissaoIncorporador / 100, // Converter para decimal
-            registroValor: registroValorTotal,
-            registroTipo: inputs.registroTipo,
-            receitaRegistroLoftPercent: results.receitaRegistroLoftPercent,
-            despesasOperacionais: results.custosOperacionaisCurrency,
-            unidades: inputs.unidades,
-            ticketMedio: ticketMedio,
-            vgvTotal: inputs.vgv,
-            comissaoBancariaPonderada: results.taxaPonderadaBanco,
-            // Dados do contrato gerado
-            contratoUrl: contrato.contratoUrl,
-            contratoNumero: contrato.numeroContrato,
-          });
+        if (negs && negs.length > 0) {
+          await supabase
+            .from("negotiations")
+            .update({
+              contrato_url: contrato.contratoUrl,
+              contrato_numero: contrato.numeroContrato,
+            })
+            .eq("id", negs[0].id);
         }
         
         fetchViabilidades();
         toast({
-          title: "Proposta aprovada!",
-          description: `Contrato ${contrato.numeroContrato} gerado e negociação criada automaticamente.`,
+          title: "Contrato enviado!",
+          description: `Contrato ${contrato.numeroContrato} gerado. Status atualizado para "Em assinatura".`,
         });
       } catch (error) {
-        console.error("Error updating viabilidade:", error);
+        console.error("Error updating contract:", error);
         toast({
           title: "Erro",
-          description: "Erro ao aprovar simulação.",
+          description: "Erro ao atualizar contrato.",
           variant: "destructive",
         });
       }
@@ -657,7 +719,7 @@ const Viabilidade = () => {
                         <TableCell>
                           {viabilidade.status === "aprovado" ? (
                             <Select
-                              value={viabilidade.status_contrato || "em_assinatura"}
+                              value={viabilidade.status_contrato || "nao_enviado"}
                               onValueChange={async (value) => {
                                 try {
                                   await supabase
@@ -674,6 +736,7 @@ const Viabilidade = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="nao_enviado">Não enviado</SelectItem>
                                 <SelectItem value="em_assinatura">Em assinatura</SelectItem>
                                 <SelectItem value="assinado">Assinado</SelectItem>
                               </SelectContent>
@@ -933,8 +996,11 @@ const Viabilidade = () => {
                 results={results} 
                 registroTipo={inputs.registroTipo}
                 vgv={inputs.vgv}
-                canAprovar={isValidMix && selectedViabilidade !== null}
+                canAprovar={isValidMix && selectedViabilidade !== null && isGestor}
                 onAprovar={handleAprovarSimulacao}
+                isAprovado={selectedViabilidade?.status === "aprovado"}
+                canEnviarContrato={isValidMix && selectedViabilidade !== null && selectedViabilidade?.status === "aprovado" && isGestor}
+                onEnviarContrato={handleEnviarContrato}
               />
             </div>
           </div>

@@ -140,7 +140,7 @@ const EsteiraProjetos = () => {
   const filteredProjetos = useMemo(() => {
     return projetos.filter((p) => {
       if (statusFilter !== "todos") {
-        const sc = p.status_contrato || "em_assinatura";
+        const sc = p.status_contrato || "nao_enviado";
         if (sc !== statusFilter) return false;
       }
       if (incorporadoraFilter !== "todas" && p.empresa_nome !== incorporadoraFilter) return false;
@@ -165,7 +165,8 @@ const EsteiraProjetos = () => {
       const totalUnidades = monthProjetos.reduce((sum, p) => sum + getUnidades(p), 0);
       const totalVGV = monthProjetos.reduce((sum, p) => sum + (p.vgv_estimado || 0), 0);
       const assinados = monthProjetos.filter((p) => p.status_contrato === "assinado").length;
-      const emAssinatura = monthProjetos.filter((p) => (p.status_contrato || "em_assinatura") === "em_assinatura").length;
+      const emAssinatura = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "em_assinatura").length;
+      const naoEnviado = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "nao_enviado").length;
 
       return {
         name,
@@ -176,6 +177,7 @@ const EsteiraProjetos = () => {
         totalVGV,
         assinados,
         emAssinatura,
+        naoEnviado,
       };
     });
   }, [filteredProjetos]);
@@ -266,8 +268,9 @@ const EsteiraProjetos = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="assinado">Assinado</SelectItem>
+            <SelectItem value="nao_enviado">Não enviado</SelectItem>
             <SelectItem value="em_assinatura">Em assinatura</SelectItem>
+            <SelectItem value="assinado">Assinado</SelectItem>
           </SelectContent>
         </Select>
 
@@ -333,7 +336,7 @@ const EsteiraProjetos = () => {
                     <span className="text-muted-foreground">VGV</span>
                     <span className="font-semibold text-primary">{formatCurrency(month.totalVGV)}</span>
                   </div>
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 pt-1 flex-wrap">
                     {month.assinados > 0 && (
                       <Badge className="bg-success/10 text-success border-success/20 text-xs">
                         <FileSignature className="w-3 h-3 mr-1" />
@@ -343,6 +346,11 @@ const EsteiraProjetos = () => {
                     {month.emAssinatura > 0 && (
                       <Badge className="bg-warning/10 text-warning-foreground border-warning/20 text-xs">
                         {month.emAssinatura} em assin.
+                      </Badge>
+                    )}
+                    {month.naoEnviado > 0 && (
+                      <Badge className="bg-muted text-muted-foreground text-xs">
+                        {month.naoEnviado} não enviado{month.naoEnviado !== 1 ? "s" : ""}
                       </Badge>
                     )}
                   </div>
@@ -391,10 +399,12 @@ const EsteiraProjetos = () => {
                             "text-xs",
                             p.status_contrato === "assinado"
                               ? "bg-success/10 text-success border-success/20"
-                              : "bg-warning/10 text-warning-foreground border-warning/20"
+                              : p.status_contrato === "em_assinatura"
+                              ? "bg-warning/10 text-warning-foreground border-warning/20"
+                              : "bg-muted text-muted-foreground"
                           )}
                         >
-                          {p.status_contrato === "assinado" ? "Assinado" : "Em assinatura"}
+                          {p.status_contrato === "assinado" ? "Assinado" : p.status_contrato === "em_assinatura" ? "Em assinatura" : "Não enviado"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">{getUnidades(p).toLocaleString("pt-BR")}</TableCell>
