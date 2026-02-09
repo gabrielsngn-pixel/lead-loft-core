@@ -109,6 +109,7 @@ interface ViabilidadeRow {
   simulation_data: unknown;
   created_at: string;
   vgv_estimado: number | null;
+  status_contrato: string | null;
 }
 
 const Viabilidade = () => {
@@ -593,6 +594,7 @@ const Viabilidade = () => {
                   <TableHead className="font-semibold">Empreendimento</TableHead>
                   <TableHead className="font-semibold">Localização</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Contrato</TableHead>
                   <TableHead className="font-semibold">Margem</TableHead>
                   <TableHead className="font-semibold">Comissão</TableHead>
                   <TableHead className="font-semibold">Habite-se</TableHead>
@@ -651,6 +653,34 @@ const Viabilidade = () => {
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{viabilidade.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {viabilidade.status === "aprovado" ? (
+                            <Select
+                              value={viabilidade.status_contrato || "em_assinatura"}
+                              onValueChange={async (value) => {
+                                try {
+                                  await supabase
+                                    .from("viabilidades")
+                                    .update({ status_contrato: value })
+                                    .eq("id", viabilidade.id);
+                                  fetchViabilidades();
+                                } catch (error) {
+                                  console.error("Error updating contract status:", error);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[140px] h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="em_assinatura">Em assinatura</SelectItem>
+                                <SelectItem value="assinado">Assinado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {viabilidade.margem_estimada !== null ? (

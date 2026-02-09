@@ -134,7 +134,7 @@ export function ResultadosSidebar({
               </div>
 
               <div className="p-3 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground">Receita líquida total</p>
+                <p className="text-sm text-muted-foreground">Receita operacional</p>
                 <p className="text-xl font-bold">
                   {formatPercent(results.receitaLiquidaTotalPercent)}
                   <span className="text-sm font-normal text-muted-foreground ml-2">
