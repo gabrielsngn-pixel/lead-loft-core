@@ -7,20 +7,23 @@ import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
 import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWithoutActionAlert";
 import { ScheduledMeetingsCard } from "@/components/dashboard/ScheduledMeetingsCard";
 import { CompletedMeetingsCard } from "@/components/dashboard/CompletedMeetingsCard";
-import { ProspectMetricsSection } from "@/components/dashboard/ProspectMetricsSection";
+
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
 import { useActivities } from "@/hooks/useActivities";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { useProspectMetrics } from "@/hooks/useProspectMetrics";
 import {
   Users,
   UserPlus,
+  UserSearch,
   Handshake,
   DollarSign,
   TrendingUp,
   UserCheck,
   Percent,
   Clock,
+  AlertCircle,
   Loader2,
 } from "lucide-react";
 
@@ -28,6 +31,7 @@ const Dashboard = () => {
   const { leads, loading: leadsLoading } = useLeads();
   const { negotiations, loading: negotiationsLoading } = useNegotiations();
   const { activities, loading: activitiesLoading } = useActivities();
+  const prospectMetrics = useProspectMetrics();
 
   const metrics = useDashboardMetrics({ leads, negotiations });
 
@@ -51,7 +55,7 @@ const Dashboard = () => {
     .sort((a, b) => a.dataAgendada.getTime() - b.dataAgendada.getTime())
     .slice(0, 5);
 
-  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading;
+  const isLoading = leadsLoading || negotiationsLoading || activitiesLoading || prospectMetrics.loading;
 
   if (isLoading) {
     return (
@@ -65,33 +69,34 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard Executivo" subtitle="Visão gerencial do CRM">
-      {/* Row 1 - Métricas de Geração de Demanda */}
+      {/* Row 1 - Métricas de Prospecção */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          title="Leads em Qualificação"
-          value={metrics.leadsEmQualificacao}
-          icon={<Users className="w-6 h-6" />}
-          tooltip="Quantidade total de leads que ainda não foram convertidos em Contatos Ativos (sem responsável atribuído)."
+          title="Prospects Importados (7d)"
+          value={prospectMetrics.importadosUltimos7Dias}
+          icon={<UserSearch className="w-6 h-6" />}
+          tooltip="Prospects importados nos últimos 7 dias via CSV"
         />
         <MetricCard
-          title="Leads Novos (7 dias)"
-          value={metrics.leadsNovos7Dias}
-          icon={<UserPlus className="w-6 h-6" />}
-          tooltip="Quantidade de leads cadastrados nos últimos 7 dias (janela móvel D-7)."
-        />
-        <MetricCard
-          title="Convertidos em Contato"
-          value={metrics.leadsConvertidos7Dias}
-          icon={<TrendingUp className="w-6 h-6" />}
-          variant="primary"
-          tooltip="Leads que viraram contato nos últimos 7 dias. Exclui contatos de empresas que já possuíam outro contato cadastrado."
-        />
-        <MetricCard
-          title="Contatos Ativos"
-          value={metrics.totalContatosAtivos}
+          title="Prospects Convertidos (7d)"
+          value={prospectMetrics.convertidosUltimos7Dias}
           icon={<UserCheck className="w-6 h-6" />}
+          variant="primary"
+          tooltip="Prospects convertidos em Contato Ativo nos últimos 7 dias"
+        />
+        <MetricCard
+          title="Taxa de Conversão"
+          value={`${prospectMetrics.taxaConversao.toFixed(1)}%`}
+          icon={<TrendingUp className="w-6 h-6" />}
           variant="secondary"
-          tooltip="Total de contatos ativos atualmente no sistema (leads com responsável atribuído)."
+          tooltip="Percentual de prospects convertidos em relação ao total"
+        />
+        <MetricCard
+          title="Sem Atividade (7d)"
+          value={prospectMetrics.semAtividade7Dias}
+          icon={<AlertCircle className="w-6 h-6" />}
+          variant={prospectMetrics.semAtividade7Dias > 0 ? "primary" : "secondary"}
+          tooltip="Prospects ativos sem atividade há mais de 7 dias"
         />
       </div>
 
@@ -113,10 +118,6 @@ const Dashboard = () => {
         <ScheduledMeetingsCard contatos={metrics.contatosAtivos} />
       </div>
 
-      {/* Row 3 - Prospect Metrics */}
-      <div className="mb-6">
-        <ProspectMetricsSection />
-      </div>
 
       {/* Row 4 - Métricas Adicionais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
