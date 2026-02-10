@@ -125,7 +125,7 @@ const Leads = () => {
 
   // Get unique cities for filter dropdown
   const uniqueCities = Array.from(
-    new Set(leads.filter((l) => !l.responsavelId).map((l) => l.cidade))
+    new Set(leads.filter((l) => !l.responsavelId && l.cidade).map((l) => l.cidade))
   ).sort();
 
   // Get unique consultores from responsavelNome for filter dropdown
