@@ -167,6 +167,223 @@ export type Database = {
         }
         Relationships: []
       }
+      empreendimento_decisores: {
+        Row: {
+          cargo: string | null
+          consultor_responsavel_id: string | null
+          consultor_responsavel_nome: string | null
+          created_at: string
+          email: string | null
+          empreendimento_id: string
+          empresa: string | null
+          id: string
+          lead_id: string | null
+          linkedin: string | null
+          nome: string
+          observacoes: string | null
+          origem: string | null
+          prospect_id: string | null
+          status_relacionamento: string
+          telefone: string | null
+          tipo_vinculo: string
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          consultor_responsavel_id?: string | null
+          consultor_responsavel_nome?: string | null
+          created_at?: string
+          email?: string | null
+          empreendimento_id: string
+          empresa?: string | null
+          id?: string
+          lead_id?: string | null
+          linkedin?: string | null
+          nome: string
+          observacoes?: string | null
+          origem?: string | null
+          prospect_id?: string | null
+          status_relacionamento?: string
+          telefone?: string | null
+          tipo_vinculo?: string
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          consultor_responsavel_id?: string | null
+          consultor_responsavel_nome?: string | null
+          created_at?: string
+          email?: string | null
+          empreendimento_id?: string
+          empresa?: string | null
+          id?: string
+          lead_id?: string | null
+          linkedin?: string | null
+          nome?: string
+          observacoes?: string | null
+          origem?: string | null
+          prospect_id?: string | null
+          status_relacionamento?: string
+          telefone?: string | null
+          tipo_vinculo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empreendimento_decisores_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empreendimento_decisores_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empreendimento_decisores_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empreendimento_import_logs: {
+        Row: {
+          created_at: string
+          data_importacao: string
+          fonte: string
+          id: string
+          log_erros: Json | null
+          quantidade_ignorada: number
+          quantidade_importada: number
+          total_registros: number
+          user_id: string
+          user_nome: string
+        }
+        Insert: {
+          created_at?: string
+          data_importacao?: string
+          fonte: string
+          id?: string
+          log_erros?: Json | null
+          quantidade_ignorada?: number
+          quantidade_importada?: number
+          total_registros?: number
+          user_id: string
+          user_nome: string
+        }
+        Update: {
+          created_at?: string
+          data_importacao?: string
+          fonte?: string
+          id?: string
+          log_erros?: Json | null
+          quantidade_ignorada?: number
+          quantidade_importada?: number
+          total_registros?: number
+          user_id?: string
+          user_nome?: string
+        }
+        Relationships: []
+      }
+      empreendimentos: {
+        Row: {
+          ano_habitese: number | null
+          banco_financiador: string | null
+          chave_unica: string
+          cidade: string
+          construtora: string
+          consultor_responsavel_id: string | null
+          consultor_responsavel_nome: string | null
+          created_at: string
+          data_habitese: string | null
+          data_importacao: string
+          estado: string
+          fonte_importacao: string
+          gestor_responsavel_id: string | null
+          gestor_responsavel_nome: string | null
+          id: string
+          importado_por: string | null
+          importado_por_nome: string | null
+          mes_ano_habitese: string | null
+          modelo_repasse: string | null
+          nome_empreendimento: string
+          observacoes: string | null
+          status: string
+          status_importacao: string
+          ticket_medio: number | null
+          tipo_empreendimento: string
+          unidades_estimadas: number | null
+          updated_at: string
+          vgv_estimado: number | null
+        }
+        Insert: {
+          ano_habitese?: number | null
+          banco_financiador?: string | null
+          chave_unica: string
+          cidade: string
+          construtora: string
+          consultor_responsavel_id?: string | null
+          consultor_responsavel_nome?: string | null
+          created_at?: string
+          data_habitese?: string | null
+          data_importacao?: string
+          estado: string
+          fonte_importacao?: string
+          gestor_responsavel_id?: string | null
+          gestor_responsavel_nome?: string | null
+          id?: string
+          importado_por?: string | null
+          importado_por_nome?: string | null
+          mes_ano_habitese?: string | null
+          modelo_repasse?: string | null
+          nome_empreendimento: string
+          observacoes?: string | null
+          status?: string
+          status_importacao?: string
+          ticket_medio?: number | null
+          tipo_empreendimento?: string
+          unidades_estimadas?: number | null
+          updated_at?: string
+          vgv_estimado?: number | null
+        }
+        Update: {
+          ano_habitese?: number | null
+          banco_financiador?: string | null
+          chave_unica?: string
+          cidade?: string
+          construtora?: string
+          consultor_responsavel_id?: string | null
+          consultor_responsavel_nome?: string | null
+          created_at?: string
+          data_habitese?: string | null
+          data_importacao?: string
+          estado?: string
+          fonte_importacao?: string
+          gestor_responsavel_id?: string | null
+          gestor_responsavel_nome?: string | null
+          id?: string
+          importado_por?: string | null
+          importado_por_nome?: string | null
+          mes_ano_habitese?: string | null
+          modelo_repasse?: string | null
+          nome_empreendimento?: string
+          observacoes?: string | null
+          status?: string
+          status_importacao?: string
+          ticket_medio?: number | null
+          tipo_empreendimento?: string
+          unidades_estimadas?: number | null
+          updated_at?: string
+          vgv_estimado?: number | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           atualizado_por: string | null
