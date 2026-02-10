@@ -168,7 +168,7 @@ export function CreateEmpreendimentoDialog({
             <div className="space-y-2">
               <Label>Modelo de repasse</Label>
               <Select
-                value={form.modelo_repasse}
+                value={form.modelo_repasse || undefined}
                 onValueChange={(v) => setForm({ ...form, modelo_repasse: v })}
               >
                 <SelectTrigger>
