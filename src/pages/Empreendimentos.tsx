@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -15,22 +14,29 @@ import {
   Calendar,
   FileCheck,
   Loader2,
-  Users,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useEmpreendimentos } from "@/hooks/useEmpreendimentos";
 import { useAuth } from "@/hooks/useAuth";
 import { ImportEmpreendimentosDialog } from "@/components/empreendimentos/ImportEmpreendimentosDialog";
 import { CreateEmpreendimentoDialog } from "@/components/empreendimentos/CreateEmpreendimentoDialog";
 import { EmpreendimentoDetailDialog } from "@/components/empreendimentos/EmpreendimentoDetailDialog";
+import { EmpreendimentoCard } from "@/components/empreendimentos/EmpreendimentoCard";
 import type { Empreendimento } from "@/types/empreendimentos";
 import {
   statusEmpreendimentoLabels,
   statusEmpreendimentoColors,
-  tipoEmpreendimentoLabels,
   type EmpreendimentoStatus,
-  type TipoEmpreendimento,
 } from "@/types/empreendimentos";
+import { cn } from "@/lib/utils";
+
+const MONTH_NAMES = [
+  "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
 
 export default function Empreendimentos() {
   const {
@@ -83,21 +89,45 @@ export default function Empreendimentos() {
     return counts;
   }, [empreendimentos]);
 
-  // Calendar view by month/year
-  const byMonth = useMemo(() => {
-    const groups: Record<string, Empreendimento[]> = {};
+  // Top 10 próximos habite-ses
+  const top10Habiteses = useMemo(() => {
+    const today = new Date();
+    return empreendimentos
+      .filter((e) => e.data_habitese && e.status !== "contrato_assinado" && e.status !== "perdido")
+      .map((e) => ({
+        ...e,
+        diasRestantes: differenceInDays(parseISO(e.data_habitese!), today),
+      }))
+      .filter((e) => e.diasRestantes >= -30) // include up to 30 days overdue
+      .sort((a, b) => a.diasRestantes - b.diasRestantes)
+      .slice(0, 10);
+  }, [empreendimentos]);
+
+  // Calendar grouped by year > month
+  const calendarByYear = useMemo(() => {
+    const groups: Record<string, Record<string, Empreendimento[]>> = {};
     filtered
       .filter((e) => e.mes_ano_habitese)
       .forEach((e) => {
-        const key = e.mes_ano_habitese!;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(e);
+        const [mesStr, anoStr] = e.mes_ano_habitese!.split("/");
+        const ano = anoStr || "Sem Ano";
+        const mes = mesStr || "0";
+        if (!groups[ano]) groups[ano] = {};
+        if (!groups[ano][mes]) groups[ano][mes] = [];
+        groups[ano][mes].push(e);
       });
-    return Object.entries(groups).sort(([a], [b]) => {
-      const [ma, ya] = a.split("/").map(Number);
-      const [mb, yb] = b.split("/").map(Number);
-      return ya !== yb ? ya - yb : ma - mb;
-    });
+    return Object.entries(groups)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([year, months]) => ({
+        year,
+        months: Object.entries(months)
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([month, emps]) => ({
+            month: Number(month),
+            monthName: MONTH_NAMES[Number(month)] || month,
+            emps,
+          })),
+      }));
   }, [filtered]);
 
   const formatCurrency = (val: number) =>
@@ -208,12 +238,12 @@ export default function Empreendimentos() {
         {/* Tabs */}
         <Tabs defaultValue="lista">
           <TabsList>
-            <TabsTrigger value="lista">Lista</TabsTrigger>
+            <TabsTrigger value="lista">Empreendimentos</TabsTrigger>
             <TabsTrigger value="calendario">Calendário de Entregas</TabsTrigger>
             <TabsTrigger value="importacoes">Histórico de Importações</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="lista" className="space-y-4">
+          <TabsContent value="lista" className="space-y-6">
             {/* Search */}
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -225,6 +255,67 @@ export default function Empreendimentos() {
               />
             </div>
 
+            {/* Top 10 próximos Habite-ses */}
+            {top10Habiteses.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    Top 10 — Próximos Habite-ses para Atuar
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    {top10Habiteses.map((emp, idx) => (
+                      <div
+                        key={emp.id}
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer border border-transparent hover:border-border transition-colors"
+                        onClick={() => setSelectedEmp(emp)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={cn(
+                            "text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
+                            emp.diasRestantes <= 0 ? "bg-destructive/10 text-destructive" :
+                            emp.diasRestantes <= 30 ? "bg-orange-100 text-orange-700" :
+                            "bg-muted text-muted-foreground"
+                          )}>
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="font-medium text-sm line-clamp-1">{emp.nome_empreendimento}</span>
+                            <span className="text-muted-foreground text-xs ml-0 block">
+                              {emp.construtora} — {emp.cidade}/{emp.estado}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="text-xs font-medium">
+                              {emp.mes_ano_habitese}
+                            </p>
+                            <p className={cn(
+                              "text-[10px]",
+                              emp.diasRestantes <= 0 ? "text-destructive font-semibold" :
+                              emp.diasRestantes <= 30 ? "text-orange-600" :
+                              "text-muted-foreground"
+                            )}>
+                              {emp.diasRestantes <= 0 
+                                ? `${Math.abs(emp.diasRestantes)}d atrasado` 
+                                : `em ${emp.diasRestantes}d`}
+                            </p>
+                          </div>
+                          <Badge className={cn("text-[10px]", statusEmpreendimentoColors[emp.status as EmpreendimentoStatus])}>
+                            {statusEmpreendimentoLabels[emp.status as EmpreendimentoStatus]}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Card grid */}
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -235,91 +326,70 @@ export default function Empreendimentos() {
                 <p>Nenhum empreendimento encontrado.</p>
               </div>
             ) : (
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Empreendimento</TableHead>
-                      <TableHead>Construtora</TableHead>
-                      <TableHead>Cidade/UF</TableHead>
-                      <TableHead>Habite-se</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>VGV</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((emp) => (
-                      <TableRow
-                        key={emp.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedEmp(emp)}
-                      >
-                        <TableCell className="font-medium">{emp.nome_empreendimento}</TableCell>
-                        <TableCell>{emp.construtora}</TableCell>
-                        <TableCell>{emp.cidade}/{emp.estado}</TableCell>
-                        <TableCell>{emp.mes_ano_habitese || "—"}</TableCell>
-                        <TableCell className="text-sm">
-                          {tipoEmpreendimentoLabels[emp.tipo_empreendimento as TipoEmpreendimento] || emp.tipo_empreendimento}
-                        </TableCell>
-                        <TableCell>{emp.vgv_estimado ? formatCurrency(emp.vgv_estimado) : "—"}</TableCell>
-                        <TableCell>
-                          <Badge className={statusEmpreendimentoColors[emp.status as EmpreendimentoStatus]}>
-                            {statusEmpreendimentoLabels[emp.status as EmpreendimentoStatus]}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filtered.map((emp) => (
+                  <EmpreendimentoCard
+                    key={emp.id}
+                    empreendimento={emp}
+                    onClick={setSelectedEmp}
+                  />
+                ))}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="calendario" className="space-y-4">
-            {byMonth.length === 0 ? (
+          <TabsContent value="calendario" className="space-y-6">
+            {calendarByYear.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p>Nenhum empreendimento com data de Habite-se definida.</p>
               </div>
             ) : (
-              byMonth.map(([monthYear, emps]) => (
-                <Card key={monthYear}>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-primary" />
-                      {monthYear} — {emps.length} empreendimento{emps.length > 1 ? "s" : ""}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-2">
-                    <div className="space-y-2">
-                      {emps.map((emp) => (
-                        <div
-                          key={emp.id}
-                          className="flex items-center justify-between p-2 rounded hover:bg-muted/50 cursor-pointer"
-                          onClick={() => setSelectedEmp(emp)}
-                        >
-                          <div>
-                            <span className="font-medium text-sm">{emp.nome_empreendimento}</span>
-                            <span className="text-muted-foreground text-xs ml-2">
-                              {emp.construtora} — {emp.cidade}/{emp.estado}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {emp.vgv_estimado && (
-                              <span className="text-xs text-muted-foreground">
-                                {formatCurrency(emp.vgv_estimado)}
-                              </span>
-                            )}
-                            <Badge className={`text-xs ${statusEmpreendimentoColors[emp.status as EmpreendimentoStatus]}`}>
-                              {statusEmpreendimentoLabels[emp.status as EmpreendimentoStatus]}
+              calendarByYear.map(({ year, months }) => (
+                <div key={year} className="space-y-3">
+                  <h2 className="text-lg font-bold text-foreground flex items-center gap-2 sticky top-0 bg-background py-2 z-10">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    {year}
+                    <Badge variant="secondary" className="ml-2">
+                      {months.reduce((sum, m) => sum + m.emps.length, 0)} empreendimentos
+                    </Badge>
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {months.map(({ month, monthName, emps }) => (
+                      <Card key={month} className="overflow-hidden">
+                        <CardHeader className="py-3 bg-muted/30">
+                          <CardTitle className="text-sm flex items-center justify-between">
+                            <span>{monthName}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {emps.length}
                             </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <div className="divide-y">
+                            {emps.map((emp) => (
+                              <div
+                                key={emp.id}
+                                className="flex items-center justify-between p-3 hover:bg-muted/30 cursor-pointer transition-colors"
+                                onClick={() => setSelectedEmp(emp)}
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm line-clamp-1">{emp.nome_empreendimento}</p>
+                                  <p className="text-xs text-muted-foreground line-clamp-1">
+                                    {emp.construtora} — {emp.cidade}/{emp.estado}
+                                  </p>
+                                </div>
+                                <Badge className={cn("text-[10px] flex-shrink-0 ml-2", statusEmpreendimentoColors[emp.status as EmpreendimentoStatus])}>
+                                  {statusEmpreendimentoLabels[emp.status as EmpreendimentoStatus]}
+                                </Badge>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               ))
             )}
           </TabsContent>
