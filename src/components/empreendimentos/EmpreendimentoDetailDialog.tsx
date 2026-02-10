@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, UserPlus, Trash2, ExternalLink, Search, Users } from "lucide-react";
+import { Loader2, UserPlus, Trash2, ExternalLink, Search, Users, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import type { Empreendimento, EmpreendimentoDecisor } from "@/types/empreendimentos";
+import { ManualDecisorSearchDialog } from "./ManualDecisorSearchDialog";
+import { AssignEmpreendimentoDialog } from "./AssignEmpreendimentoDialog";
 import {
   statusEmpreendimentoLabels,
   statusEmpreendimentoColors,
@@ -53,6 +55,8 @@ export function EmpreendimentoDetailDialog({
   const [searchResults, setSearchResults] = useState<{ prospects: any[]; leads: any[] } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [manualSearchOpen, setManualSearchOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const emp = empreendimento;
 
@@ -144,13 +148,20 @@ export function EmpreendimentoDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
+         <DialogTitle className="flex items-center gap-3">
             {emp.nome_empreendimento}
             <Badge className={statusEmpreendimentoColors[emp.status as EmpreendimentoStatus]}>
               {statusEmpreendimentoLabels[emp.status as EmpreendimentoStatus]}
             </Badge>
           </DialogTitle>
-          <DialogDescription>{emp.construtora} — {emp.cidade}/{emp.estado}</DialogDescription>
+          <DialogDescription>
+            {emp.construtora} — {emp.cidade}/{emp.estado}
+            {emp.consultor_responsavel_nome && (
+              <span className="ml-2 text-xs">
+                • Consultor: <strong>{emp.consultor_responsavel_nome}</strong>
+              </span>
+            )}
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="info">
@@ -231,10 +242,23 @@ export function EmpreendimentoDetailDialog({
 
           <TabsContent value="decisores" className="space-y-4">
             {canEdit && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={handleSearchDecisores} disabled={isSearching}>
                   {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-                  Buscar decisores por empresa
+                  Buscar por construtora
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setManualSearchOpen(true)}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Buscar decisor manualmente
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setAssignOpen(true)}
+                  disabled={decisores.length === 0}
+                  title={decisores.length === 0 ? "Vincule ao menos um decisor antes de atribuir" : ""}
+                >
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Atribuir a consultor
                 </Button>
               </div>
             )}
@@ -336,6 +360,21 @@ export function EmpreendimentoDetailDialog({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      <ManualDecisorSearchDialog
+        open={manualSearchOpen}
+        onOpenChange={setManualSearchOpen}
+        empreendimentoId={emp.id}
+        existingDecisores={decisores}
+        onAddDecisor={onAddDecisor}
+      />
+
+      <AssignEmpreendimentoDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        empreendimento={emp}
+        onUpdate={onUpdate}
+      />
     </Dialog>
   );
 }
