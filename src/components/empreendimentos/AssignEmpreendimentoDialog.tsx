@@ -50,16 +50,49 @@ export function AssignEmpreendimentoDialog({
     setIsLoading(false);
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     const consultor = consultores.find((c) => c.user_id === selectedConsultor);
     if (!consultor) return;
 
+    // 1. Update the empreendimento itself
     onUpdate({
       id: empreendimento.id,
       consultor_responsavel_id: consultor.user_id,
       consultor_responsavel_nome: consultor.nome,
       status: empreendimento.status === "mapeado" ? "em_contato" : empreendimento.status,
     } as any);
+
+    // 2. Propagate consultant to all linked decisores
+    const { data: decisores } = await supabase
+      .from("empreendimento_decisores")
+      .select("id, prospect_id, lead_id, tipo_vinculo")
+      .eq("empreendimento_id", empreendimento.id);
+
+    if (decisores && decisores.length > 0) {
+      // Update decisores records
+      await supabase
+        .from("empreendimento_decisores")
+        .update({
+          consultor_responsavel_id: consultor.user_id,
+          consultor_responsavel_nome: consultor.nome,
+        })
+        .eq("empreendimento_id", empreendimento.id);
+
+      // Update underlying prospect records (keeps them as prospects, does NOT convert to contato ativo)
+      const prospectIds = decisores
+        .filter((d) => d.tipo_vinculo === "prospect" && d.prospect_id)
+        .map((d) => d.prospect_id!);
+
+      if (prospectIds.length > 0) {
+        await supabase
+          .from("prospects")
+          .update({
+            consultor_responsavel_id: consultor.user_id,
+            consultor_responsavel_nome: consultor.nome,
+          })
+          .in("id", prospectIds);
+      }
+    }
 
     toast({ title: `Empreendimento atribuído a ${consultor.nome}` });
     onOpenChange(false);
