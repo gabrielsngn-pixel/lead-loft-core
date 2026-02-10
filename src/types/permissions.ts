@@ -31,6 +31,7 @@ export const leadFieldPermissions: FieldPermission[] = [
   { field: "telefone", label: "Telefone", editableBy: ["sdr", "consultor", "gestor", "master"] },
   { field: "cidade", label: "Cidade", editableBy: ["sdr", "consultor", "gestor", "master"] },
   { field: "estado", label: "Estado", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "linkedin", label: "LinkedIn", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
   // Business fields - editable by all (governança fica apenas nos campos protegidos)
   { field: "nomeFantasia", label: "Nome Fantasia", editableBy: ["sdr", "consultor", "gestor", "master"] },
