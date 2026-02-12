@@ -16,6 +16,8 @@ import {
   Minus,
   BarChart3,
   Briefcase,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +77,9 @@ export default function ResumoExecutivo() {
   if (!editingNote && noteText !== data.headNote && data.headNote) {
     setNoteText(data.headNote);
   }
+
+  const [movimentacoesOpen, setMovimentacoesOpen] = useState(true);
+  const [compromissosOpen, setCompromissosOpen] = useState(true);
 
   const handleSaveNote = async () => {
     await data.saveHeadNote(noteText);
@@ -151,11 +156,7 @@ export default function ResumoExecutivo() {
               <p className="text-sm leading-relaxed text-foreground/90 italic">
                 {data.aiSections.resumoGeral}
               </p>
-            ) : (
-              <p className="text-sm text-muted-foreground italic text-center">
-                Clique em "Gerar Insights" para produzir o texto executivo automaticamente.
-              </p>
-            )}
+            ) : null}
           </CardContent>
         </Card>
 
@@ -311,56 +312,105 @@ export default function ResumoExecutivo() {
           )}
         </div>
 
-        {/* 5. Contas Estratégicas */}
+        {/* 5. Movimentações e Próximos Compromissos */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-5 h-5 text-[#FF774A]" />
             <h3 className="font-display text-lg font-semibold">Contas Estratégicas da Semana</h3>
           </div>
-          {data.contasEstrategicasData.length > 0 ? (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Última Reunião</TableHead>
-                      <TableHead>Próxima Reunião</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.contasEstrategicasData.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.empresa}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {statusLabels[row.status] || row.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {row.ultimaReuniao
-                            ? row.ultimaReuniao.toLocaleDateString("pt-BR")
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {row.proximaReuniao
-                            ? row.proximaReuniao.toLocaleDateString("pt-BR")
-                            : "—"}
-                        </TableCell>
+
+          {/* Movimentações da Semana */}
+          <Card className="mb-3">
+            <CardHeader className="py-3 px-4 cursor-pointer" onClick={() => setMovimentacoesOpen(!movimentacoesOpen)}>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#115644]" />
+                  Movimentações da Semana
+                  <Badge variant="secondary" className="text-xs ml-1">{data.reunioesSemana.length}</Badge>
+                </CardTitle>
+                {movimentacoesOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+            {movimentacoesOpen && (
+              <CardContent className="p-0 pt-0">
+                {data.reunioesSemana.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Empresa</TableHead>
+                        <TableHead>Contato</TableHead>
+                        <TableHead>Consultor</TableHead>
+                        <TableHead>Data</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {data.reunioesSemana.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium">{row.empresa}</TableCell>
+                          <TableCell className="text-sm">{row.contato}</TableCell>
+                          <TableCell className="text-sm">{row.consultor}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.data.toLocaleDateString("pt-BR")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="py-6 text-center text-muted-foreground text-sm">
+                    Nenhuma reunião realizada nesta semana.
+                  </div>
+                )}
               </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Nenhuma interação estratégica registrada.
+            )}
+          </Card>
+
+          {/* Próximos Compromissos */}
+          <Card>
+            <CardHeader className="py-3 px-4 cursor-pointer" onClick={() => setCompromissosOpen(!compromissosOpen)}>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#FF774A]" />
+                  Próximos Compromissos
+                  <Badge variant="secondary" className="text-xs ml-1">{data.reunioesProximaSemana.length}</Badge>
+                </CardTitle>
+                {compromissosOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+            {compromissosOpen && (
+              <CardContent className="p-0 pt-0">
+                {data.reunioesProximaSemana.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Empresa</TableHead>
+                        <TableHead>Contato</TableHead>
+                        <TableHead>Consultor</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.reunioesProximaSemana.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium">{row.empresa}</TableCell>
+                          <TableCell className="text-sm">{row.contato}</TableCell>
+                          <TableCell className="text-sm">{row.consultor}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.data.toLocaleDateString("pt-BR")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="py-6 text-center text-muted-foreground text-sm">
+                    Nenhuma reunião agendada para a próxima semana.
+                  </div>
+                )}
               </CardContent>
-            </Card>
-          )}
+            )}
+          </Card>
+
           {data.aiSections?.contasEstrategicas && (
             <Card className="mt-3 bg-muted/30 border-0">
               <CardContent className="py-3">
@@ -378,7 +428,7 @@ export default function ResumoExecutivo() {
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#115644]" />
               <h3 className="font-display text-lg font-semibold">
-                Leitura Estratégica do Head Comercial
+                Leitura Estratégica
               </h3>
             </div>
             {!editingNote && (
