@@ -18,6 +18,8 @@ import {
   Briefcase,
   ChevronDown,
   ChevronRight,
+  Percent,
+  UserCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -211,14 +213,14 @@ export default function ResumoExecutivo() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <MetricCard
-              label="Prospects na Base"
-              value={String(data.totalProspects)}
+              label="Prospects Não Convertidos"
+              value={String(data.prospectsNaoConvertidos)}
               icon={<Users className="w-4 h-4" />}
             />
             <MetricCard
-              label="Novos Prospects (7d)"
-              value={String(data.novosProspects)}
-              icon={<ArrowUpRight className="w-4 h-4" />}
+              label="Taxa Conversão Prospects"
+              value={`${data.taxaConversaoProspects.toFixed(1)}%`}
+              icon={<Percent className="w-4 h-4" />}
             />
             <MetricCard
               label="Contatos Ativos"
@@ -226,20 +228,19 @@ export default function ResumoExecutivo() {
               icon={<Users className="w-4 h-4" />}
             />
             <MetricCard
-              label="Reuniões Agendadas"
-              value={String(data.reunioesAgendadas)}
-              icon={<Calendar className="w-4 h-4" />}
+              label="Taxa Qualificação"
+              value={`${data.taxaQualificacao.toFixed(1)}%`}
+              icon={<Percent className="w-4 h-4" />}
             />
             <MetricCard
               label="Reuniões Realizadas"
-              value={String(data.reunioesRealizadas)}
+              value={String(data.reunioesRealizadasContatos)}
               icon={<Calendar className="w-4 h-4" />}
             />
             <MetricCard
-              label="Contratos Fechados"
-              value={String(data.contratosFechados)}
-              icon={<Handshake className="w-4 h-4" />}
-              highlight={data.contratosFechados > 0}
+              label="Contatos Únicos"
+              value={String(data.contatosUnicosComReuniao)}
+              icon={<UserCheck className="w-4 h-4" />}
             />
           </div>
           {data.aiSections?.pulsoComercial && (

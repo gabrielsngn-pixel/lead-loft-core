@@ -119,6 +119,39 @@ export function useExecutiveSummary() {
   // Computed metrics
   const contatos = useMemo(() => leads.filter(l => l.responsavelId), [leads]);
 
+  // Prospect metrics for Pulso Comercial
+  const prospectsNaoConvertidos = useMemo(
+    () => prospects.filter(p => p.status !== "convertido").length,
+    [prospects]
+  );
+  const taxaConversaoProspects = useMemo(
+    () => prospects.length > 0
+      ? ((prospects.filter(p => p.status === "convertido").length / prospects.length) * 100)
+      : 0,
+    [prospects]
+  );
+
+  // Contatos ativos metrics
+  const taxaQualificacao = useMemo(() => {
+    if (contatos.length === 0) return 0;
+    const qualificados = contatos.filter(c => c.status === "qualificado" || c.status === "proposta" || c.status === "ganho").length;
+    return (qualificados / contatos.length) * 100;
+  }, [contatos]);
+
+  const reunioesRealizadasContatos = useMemo(
+    () => contatos.filter(c => c.ultimaReuniao).length,
+    [contatos]
+  );
+
+  const contatosUnicosComReuniao = useMemo(() => {
+    const uniqueCompanies = new Set(
+      contatos
+        .filter(c => c.ultimaReuniao)
+        .map(c => c.razaoSocial || c.nomeFantasia || c.id)
+    );
+    return uniqueCompanies.size;
+  }, [contatos]);
+
   const META_VGV = 1_000_000_000;
   const META_UNIDADES = 2500;
 
@@ -277,6 +310,12 @@ export function useExecutiveSummary() {
     reunioesRealizadas: dashMetrics.reunioesRealizadas7Dias,
     reunioesAgendadas: dashMetrics.reunioesAgendadas7Dias,
     contratosFechados,
+    // New Pulso Comercial metrics
+    prospectsNaoConvertidos,
+    taxaConversaoProspects,
+    taxaQualificacao,
+    reunioesRealizadasContatos,
+    contatosUnicosComReuniao,
     // Esteira
     totalVgvProjetos,
     totalUnidadesProjetos,
