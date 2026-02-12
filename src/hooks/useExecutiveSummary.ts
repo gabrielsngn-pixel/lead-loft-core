@@ -293,6 +293,14 @@ export function useExecutiveSummary() {
 
   const loading = leadsLoading || negsLoading || prospectsLoading || projetosLoading;
 
+  const updateAiSection = useCallback((key: keyof AiSections, value: string) => {
+    setAiSections(prev => prev ? { ...prev, [key]: value } : null);
+  }, []);
+
+  const deleteAiSection = useCallback((key: keyof AiSections) => {
+    setAiSections(prev => prev ? { ...prev, [key]: "" } : null);
+  }, []);
+
   return {
     loading,
     semanaAno,
@@ -334,6 +342,8 @@ export function useExecutiveSummary() {
     aiSections,
     aiLoading,
     generateAiSummary,
+    updateAiSection,
+    deleteAiSection,
     // Meta
     META_VGV,
     META_UNIDADES,
