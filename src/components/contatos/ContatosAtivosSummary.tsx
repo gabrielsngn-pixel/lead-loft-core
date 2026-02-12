@@ -37,11 +37,14 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
   const meetingTotals = useMemo(() => {
     let realizadas = 0;
     let futuras = 0;
+    let contatosComReuniao = 0;
     contacts.forEach((c) => {
+      const temReuniao = !!(c.ultimaReuniao || c.proximaReuniao);
       if (c.ultimaReuniao) realizadas++;
       if (c.proximaReuniao) futuras++;
+      if (temReuniao) contatosComReuniao++;
     });
-    return { total: realizadas + futuras, realizadas, futuras };
+    return { total: realizadas + futuras, realizadas, futuras, contatosUnicos: contatosComReuniao };
   }, [contacts]);
 
   const meetingsByConsultor = useMemo(() => {
@@ -123,7 +126,7 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                   <p className="text-3xl font-display font-bold tracking-tight text-foreground">
                     {meetingTotals.total}
                   </p>
-                  <div className="flex gap-3 mt-1.5">
+                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                       {meetingTotals.realizadas} realizadas
@@ -131,6 +134,10 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="w-3.5 h-3.5 text-secondary" />
                       {meetingTotals.futuras} futuras
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="w-3.5 h-3.5 text-foreground/60" />
+                      {meetingTotals.contatosUnicos} contatos
                     </span>
                   </div>
                 </div>
