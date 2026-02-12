@@ -53,6 +53,7 @@ import {
   Trash2,
   UserPlus,
   Loader2,
+  Edit,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -85,24 +86,46 @@ const Leads = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [tipoFilter, setTipoFilter] = useState<string>("all");
+  const [cidadeFilter, setCidadeFilter] = useState<string>("all");
+  const [consultorFilter, setConsultorFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<"prioridade" | "dataUltimaInteracao">("dataUltimaInteracao");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
 
-  // Only show unassigned leads (repository = leads without responsavel)
-  const unassignedLeads = leads.filter((lead) => !lead.responsavelId);
+  // Get unique cities and consultants for filters
+  const uniqueCities = useMemo(() => {
+    const cities = new Set(leads.map((l) => l.cidade).filter(Boolean));
+    return Array.from(cities).sort();
+  }, [leads]);
 
-  const filteredLeads = unassignedLeads.filter((lead) => {
+  const uniqueConsultants = useMemo(() => {
+    const consultantMap = new Map<string, string>();
+    leads.forEach((l) => {
+      if (l.responsavelId && l.responsavelNome) {
+        consultantMap.set(l.responsavelId, l.responsavelNome);
+      }
+    });
+    return Array.from(consultantMap.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [leads]);
+
+  const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.razaoSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.nomeFantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.cnpj.includes(searchTerm);
+      lead.cnpj.includes(searchTerm) ||
+      lead.nomeContato?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+    const matchesTipo = tipoFilter === "all" || lead.tipoEmpresa === tipoFilter;
+    const matchesCidade = cidadeFilter === "all" || lead.cidade === cidadeFilter;
+    const matchesConsultor =
+      consultorFilter === "all" ||
+      (consultorFilter === "unassigned" ? !lead.responsavelId : lead.responsavelId === consultorFilter);
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesTipo && matchesCidade && matchesConsultor;
   });
 
   const sortedLeads = [...filteredLeads].sort((a, b) => {
@@ -154,19 +177,24 @@ const Leads = () => {
 
   const handleExport = () => {
     const csvContent = [
-      ["Razão Social", "Nome Fantasia", "CNPJ", "Email", "Cidade", "Estado", "Status", "Prioridade"],
+      ["Empresa", "Nome Fantasia", "CNPJ", "Contato", "Email", "Telefone", "Cidade", "Estado", "Consultor", "Origem", "Status", "Prioridade", "Comentários"],
       ...sortedLeads.map((lead) => [
         lead.razaoSocial,
         lead.nomeFantasia || "",
         lead.cnpj,
+        lead.nomeContato || "",
         lead.email,
+        lead.telefone,
         lead.cidade,
         lead.estado,
+        lead.responsavelNome || "",
+        lead.origem,
         statusConfig[lead.status].label,
         priorityConfig[lead.prioridade].label,
+        lead.observacoes || "",
       ]),
     ]
-      .map((row) => row.join(","))
+      .map((row) => row.map(cell => `"${cell}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv" });
@@ -179,7 +207,7 @@ const Leads = () => {
 
   if (loading) {
     return (
-      <AppLayout title="Repositório de Leads" subtitle="Leads não atribuídos disponíveis para apropriação">
+      <AppLayout title="Repositório de Leads" subtitle="Base completa de leads com consultores atribuídos">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -188,57 +216,63 @@ const Leads = () => {
   }
 
   return (
-    <AppLayout title="Repositório de Leads" subtitle="Leads não atribuídos disponíveis para apropriação">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
-          <p className="stat-label">Total no Repositório</p>
-          <p className="stat-value">{unassignedLeads.length}</p>
-        </div>
-        <div className="stat-card">
-          <p className="stat-label">Prioridade Alta</p>
-          <p className="stat-value text-destructive">{unassignedLeads.filter(l => l.prioridade === "alta").length}</p>
-        </div>
-        <div className="stat-card">
-          <p className="stat-label">Novos (últimos 7 dias)</p>
-          <p className="stat-value">
-            {unassignedLeads.filter(l => {
-              const sevenDaysAgo = new Date();
-              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-              return l.dataCriacao > sevenDaysAgo;
-            }).length}
-          </p>
-        </div>
-      </div>
-
+    <AppLayout title="Repositório de Leads" subtitle="Base completa de leads com consultores atribuídos">
       {/* Filters */}
-      <div className="stat-card mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por razão social, email, CNPJ..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {Object.entries(statusConfig).map(([key, cfg]) => (
-                <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[150px] h-9 text-sm">
+            <SelectValue placeholder="Todos Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Status</SelectItem>
+            {Object.entries(statusConfig).map(([key, cfg]) => (
+              <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={tipoFilter} onValueChange={setTipoFilter}>
+          <SelectTrigger className="w-[150px] h-9 text-sm">
+            <SelectValue placeholder="Todos Tipos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Tipos</SelectItem>
+            {Object.entries(companyTypeConfig).map(([key, cfg]) => (
+              <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={cidadeFilter} onValueChange={setCidadeFilter}>
+          <SelectTrigger className="w-[160px] h-9 text-sm">
+            <SelectValue placeholder="Todas Cidades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas Cidades</SelectItem>
+            {uniqueCities.map((city) => (
+              <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={consultorFilter} onValueChange={setConsultorFilter}>
+          <SelectTrigger className="w-[170px] h-9 text-sm">
+            <SelectValue placeholder="Todos Consultores" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Consultores</SelectItem>
+            <SelectItem value="unassigned">Sem consultor</SelectItem>
+            {uniqueConsultants.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="ml-auto">
+          <Badge variant="secondary" className="text-sm px-3 py-1">
+            {sortedLeads.length} leads
+          </Badge>
         </div>
       </div>
 
@@ -248,27 +282,27 @@ const Leads = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Empresa</TableHead>
+              <TableHead>Cidade</TableHead>
               <TableHead>CNPJ</TableHead>
-              <TableHead>Cidade/UF</TableHead>
+              <TableHead>Contato</TableHead>
+              <TableHead>Consultor</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Status Inicial</TableHead>
+              <TableHead>Status Atual</TableHead>
               <TableHead>
                 <button onClick={() => toggleSort("prioridade")} className="flex items-center gap-1">
                   Prioridade <ArrowUpDown className="w-3 h-3" />
                 </button>
               </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <button onClick={() => toggleSort("dataUltimaInteracao")} className="flex items-center gap-1">
-                  Última Interação <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </TableHead>
+              <TableHead>Comentários</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
-                  Nenhum lead disponível no repositório
+                <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                  Nenhum lead encontrado
                 </TableCell>
               </TableRow>
             ) : (
@@ -278,20 +312,33 @@ const Leads = () => {
                   <TableRow key={lead.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <TypeIcon className="w-4 h-4 text-muted-foreground" />
+                        <TypeIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">{lead.nomeFantasia || lead.razaoSocial}</p>
-                          {lead.nomeFantasia && (
-                            <p className="text-xs text-muted-foreground">{lead.razaoSocial}</p>
-                          )}
+                          <p className="text-xs text-muted-foreground">{lead.estado}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{lead.cnpj}</TableCell>
-                    <TableCell className="text-sm">{lead.cidade}/{lead.estado}</TableCell>
+                    <TableCell className="text-sm">{lead.cidade}</TableCell>
+                    <TableCell className="text-sm font-mono text-xs">{lead.cnpj}</TableCell>
                     <TableCell>
-                      <Badge className={cn("text-xs", priorityConfig[lead.prioridade].className)}>
-                        {priorityConfig[lead.prioridade].label}
+                      <div>
+                        <p className="text-sm">{lead.nomeContato || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{lead.email}</p>
+                        <p className="text-xs text-muted-foreground">{lead.telefone}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{lead.responsavelNome || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {lead.origem}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={cn("text-xs", statusConfig["novo"].className)}>
+                        {statusConfig["novo"].label}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -299,21 +346,28 @@ const Leads = () => {
                         {statusConfig[lead.status].label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {format(lead.dataUltimaInteracao, "dd/MM/yyyy")}
+                    <TableCell>
+                      <Badge className={cn("text-xs", priorityConfig[lead.prioridade].className)}>
+                        {priorityConfig[lead.prioridade].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                      {lead.observacoes || "—"}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleClaim(lead)}>
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            Apropriar
-                          </DropdownMenuItem>
+                          {!lead.responsavelId && (
+                            <DropdownMenuItem onClick={() => handleClaim(lead)}>
+                              <UserPlus className="w-4 h-4 mr-2" />
+                              Apropriar
+                            </DropdownMenuItem>
+                          )}
                           {isGestor && (
                             <DropdownMenuItem
                               onClick={() => handleDeleteClick(lead)}
