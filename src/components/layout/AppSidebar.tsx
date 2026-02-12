@@ -19,6 +19,7 @@ import {
   FolderOpen,
   UserSearch,
   Layers,
+  FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -57,10 +58,10 @@ const settingsItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { isGestor, profile, signOut } = useAuth();
+  const { isGestor, isMaster, profile, signOut } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -163,6 +164,26 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {isMaster && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/resumo-executivo"
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                          "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                          collapsed && "justify-center px-2"
+                        )}
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground"
+                      >
+                        <FileText className="w-5 h-5 flex-shrink-0" />
+                        {!collapsed && (
+                          <span className="text-sm font-medium">Resumo Executivo</span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

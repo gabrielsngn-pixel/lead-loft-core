@@ -384,6 +384,42 @@ export type Database = {
         }
         Relationships: []
       }
+      executive_weekly_notes: {
+        Row: {
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          id: string
+          nota_head: string | null
+          semana_ano: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          id?: string
+          nota_head?: string | null
+          semana_ano: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          id?: string
+          nota_head?: string | null
+          semana_ano?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           atualizado_por: string | null
