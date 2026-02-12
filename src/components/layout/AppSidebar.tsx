@@ -17,7 +17,6 @@ import {
   FolderOpen,
   UserSearch,
   Layers,
-  FileInput,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -42,7 +41,6 @@ const mainMenuItems = [
   { title: "Viabilidade", url: "/viabilidade", icon: Calculator },
   { title: "Esteira de Projetos", url: "/esteira-projetos", icon: Layers },
   { title: "Empreendimentos", url: "/empreendimentos", icon: Building2 },
-  { title: "Repositório de Leads", url: "/leads", icon: FileInput },
   { title: "Negociações", url: "/negociacoes", icon: Handshake },
   { title: "Calendário", url: "/calendario", icon: Calendar },
   { title: "Central de Materiais", url: "/materiais", icon: BookOpen },

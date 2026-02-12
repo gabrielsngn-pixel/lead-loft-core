@@ -76,10 +76,6 @@ import {
   ChevronRight,
   Linkedin,
   UserMinus,
-  Users,
-  UserCheck,
-  TrendingUp,
-  BarChart3,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -474,101 +470,6 @@ const Contatos = () => {
           <Shield className="w-3 h-3" />
           {roleLabels[currentUser.role]}
         </Badge>
-      </div>
-
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Users className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Contatos Ativos</p>
-            <p className="text-lg font-bold">{activeContacts.length}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <UserCheck className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Consultores Ativos</p>
-            <p className="text-lg font-bold">{consultants.length}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Calendar className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Total de Reuniões</p>
-            <p className="text-lg font-bold">{activeContacts.filter(c => c.ultimaReuniao || c.proximaReuniao).length}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Consultant Distribution + Status Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Contatos por Consultor */}
-        <div className="stat-card">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Contatos por Consultor</h3>
-          <div className="space-y-2">
-            {consultants
-              .map(c => ({
-                ...c,
-                count: activeContacts.filter(l => l.responsavelId === c.id).length,
-              }))
-              .sort((a, b) => b.count - a.count)
-              .map(c => {
-                const maxCount = Math.max(...consultants.map(ct => activeContacts.filter(l => l.responsavelId === ct.id).length), 1);
-                const widthPercent = (c.count / maxCount) * 100;
-                return (
-                  <div key={c.id} className="flex items-center gap-3">
-                    <span className="text-sm w-24 truncate text-foreground font-medium">{c.nome.split(" ")[0]}</span>
-                    <div className="flex-1 h-6 bg-muted rounded-md overflow-hidden">
-                      <div
-                        className="h-full bg-primary/70 rounded-md transition-all"
-                        style={{ width: `${Math.max(widthPercent, 4)}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-semibold w-8 text-right">{c.count}</span>
-                  </div>
-                );
-              })}
-            {consultants.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhum consultor</p>
-            )}
-          </div>
-        </div>
-
-        {/* Abertura por Status */}
-        <div className="stat-card">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Abertura por Status</h3>
-          <div className="flex items-end gap-3 h-32">
-            {Object.entries(statusConfig).map(([key, cfg]) => {
-              const count = activeContacts.filter(c => c.status === key).length;
-              const maxCount = Math.max(...Object.keys(statusConfig).map(k => activeContacts.filter(c => c.status === k).length), 1);
-              const heightPercent = (count / maxCount) * 100;
-              return (
-                <div key={key} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold">{count}</span>
-                  <div
-                    className={cn(
-                      "w-full rounded-t-md transition-all",
-                      key === "novo" && "bg-blue-500",
-                      key === "qualificado" && "bg-amber-500",
-                      key === "proposta" && "bg-purple-500",
-                      key === "ganho" && "bg-emerald-500",
-                      key === "perdido" && "bg-destructive",
-                    )}
-                    style={{ height: `${Math.max(heightPercent, 4)}%` }}
-                  />
-                  <span className="text-[10px] text-muted-foreground text-center leading-tight">{cfg.label}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Filters Bar */}
