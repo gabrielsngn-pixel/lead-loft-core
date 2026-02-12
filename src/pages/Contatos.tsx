@@ -83,7 +83,6 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MetricCard } from "@/components/dashboard/MetricCard";
 
 const statusConfig: Record<LeadStatus, { label: string; className: string }> = {
   novo: { label: "Novo", className: "badge-new" },
@@ -478,50 +477,83 @@ const Contatos = () => {
       </div>
 
       {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          title="Total de Contatos"
-          value={activeContacts.length}
-          icon={<Users className="w-6 h-6" />}
-          tooltip="Número total de contatos ativos na base"
-        />
-        <MetricCard
-          title="Consultores Ativos"
-          value={consultants.length}
-          icon={<UserCheck className="w-6 h-6" />}
-          variant="primary"
-          tooltip="Quantidade de consultores com contatos atribuídos"
-        />
-        <MetricCard
-          title="Total de Reuniões"
-          value={activeContacts.filter(c => c.ultimaReuniao || c.proximaReuniao).length}
-          icon={<Calendar className="w-6 h-6" />}
-          variant="secondary"
-          tooltip="Contatos com reunião realizada ou agendada"
-        />
-        <MetricCard
-          title="Abertura por Status"
-          value={`${Object.entries(statusConfig).map(([key, cfg]) => `${cfg.label}: ${activeContacts.filter(c => c.status === key).length}`).join(" | ")}`}
-          icon={<BarChart3 className="w-6 h-6" />}
-          tooltip="Distribuição dos contatos ativos por status atual"
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Contatos Ativos</p>
+            <p className="text-lg font-bold">{activeContacts.length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <UserCheck className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Consultores</p>
+            <p className="text-lg font-bold">{consultants.length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Calendar className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Reuniões</p>
+            <p className="text-lg font-bold">{activeContacts.filter(c => c.ultimaReuniao || c.proximaReuniao).length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <BarChart3 className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Por Consultor</p>
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {consultants.slice(0, 3).map(c => {
+                const count = activeContacts.filter(l => l.responsavelId === c.id).length;
+                return (
+                  <Badge key={c.id} variant="secondary" className="text-[10px] py-0 px-1.5">
+                    {c.nome.split(" ")[0]}: {count}
+                  </Badge>
+                );
+              })}
+              {consultants.length > 3 && (
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5">+{consultants.length - 3}</Badge>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Contatos por Consultor */}
+      {/* Status Chart */}
       <div className="stat-card mb-6">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Contatos por Consultor</h3>
-        <div className="flex flex-wrap gap-3">
-          {consultants.map(c => {
-            const count = activeContacts.filter(l => l.responsavelId === c.id).length;
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Abertura por Status</h3>
+        <div className="flex items-end gap-2 h-24">
+          {Object.entries(statusConfig).map(([key, cfg]) => {
+            const count = activeContacts.filter(c => c.status === key).length;
+            const maxCount = Math.max(...Object.keys(statusConfig).map(k => activeContacts.filter(c => c.status === k).length), 1);
+            const heightPercent = (count / maxCount) * 100;
             return (
-              <Badge key={c.id} variant="secondary" className="text-sm py-1 px-3">
-                {c.nome}: {count}
-              </Badge>
+              <div key={key} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-xs font-semibold">{count}</span>
+                <div
+                  className={cn(
+                    "w-full rounded-t-md transition-all",
+                    key === "novo" && "bg-blue-500",
+                    key === "qualificado" && "bg-amber-500",
+                    key === "proposta" && "bg-purple-500",
+                    key === "ganho" && "bg-emerald-500",
+                    key === "perdido" && "bg-destructive",
+                  )}
+                  style={{ height: `${Math.max(heightPercent, 4)}%` }}
+                />
+                <span className="text-[10px] text-muted-foreground text-center leading-tight">{cfg.label}</span>
+              </div>
             );
           })}
-          {consultants.length === 0 && (
-            <span className="text-sm text-muted-foreground">Nenhum consultor com contatos</span>
-          )}
         </div>
       </div>
 
