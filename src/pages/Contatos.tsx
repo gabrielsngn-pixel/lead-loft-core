@@ -76,9 +76,14 @@ import {
   ChevronRight,
   Linkedin,
   UserMinus,
+  Users,
+  UserCheck,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { MetricCard } from "@/components/dashboard/MetricCard";
 
 const statusConfig: Record<LeadStatus, { label: string; className: string }> = {
   novo: { label: "Novo", className: "badge-new" },
@@ -470,6 +475,54 @@ const Contatos = () => {
           <Shield className="w-3 h-3" />
           {roleLabels[currentUser.role]}
         </Badge>
+      </div>
+
+      {/* Summary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <MetricCard
+          title="Total de Contatos"
+          value={activeContacts.length}
+          icon={<Users className="w-6 h-6" />}
+          tooltip="Número total de contatos ativos na base"
+        />
+        <MetricCard
+          title="Consultores Ativos"
+          value={consultants.length}
+          icon={<UserCheck className="w-6 h-6" />}
+          variant="primary"
+          tooltip="Quantidade de consultores com contatos atribuídos"
+        />
+        <MetricCard
+          title="Total de Reuniões"
+          value={activeContacts.filter(c => c.ultimaReuniao || c.proximaReuniao).length}
+          icon={<Calendar className="w-6 h-6" />}
+          variant="secondary"
+          tooltip="Contatos com reunião realizada ou agendada"
+        />
+        <MetricCard
+          title="Abertura por Status"
+          value={`${Object.entries(statusConfig).map(([key, cfg]) => `${cfg.label}: ${activeContacts.filter(c => c.status === key).length}`).join(" | ")}`}
+          icon={<BarChart3 className="w-6 h-6" />}
+          tooltip="Distribuição dos contatos ativos por status atual"
+        />
+      </div>
+
+      {/* Contatos por Consultor */}
+      <div className="stat-card mb-6">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Contatos por Consultor</h3>
+        <div className="flex flex-wrap gap-3">
+          {consultants.map(c => {
+            const count = activeContacts.filter(l => l.responsavelId === c.id).length;
+            return (
+              <Badge key={c.id} variant="secondary" className="text-sm py-1 px-3">
+                {c.nome}: {count}
+              </Badge>
+            );
+          })}
+          {consultants.length === 0 && (
+            <span className="text-sm text-muted-foreground">Nenhum consultor com contatos</span>
+          )}
+        </div>
       </div>
 
       {/* Filters Bar */}
