@@ -2,11 +2,9 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  Users,
   UserCheck,
   Handshake,
   Calendar,
-  FileInput,
   Settings,
   ChevronLeft,
   Building2,
@@ -39,8 +37,6 @@ import { useAuth } from "@/hooks/useAuth";
 const mainMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Prospects", url: "/prospects", icon: UserSearch },
-  { title: "Novo Lead", url: "/leads/novo", icon: FileInput },
-  { title: "Repositório de Leads", url: "/leads", icon: Users },
   { title: "Contatos Ativos", url: "/contatos", icon: UserCheck },
   { title: "Viabilidade", url: "/viabilidade", icon: Calculator },
   { title: "Esteira de Projetos", url: "/esteira-projetos", icon: Layers },
