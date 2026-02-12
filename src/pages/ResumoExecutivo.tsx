@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
 import { cn } from "@/lib/utils";
+import { AiInsightBlock } from "@/components/resumo/AiInsightBlock";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -157,9 +158,11 @@ export default function ResumoExecutivo() {
             </div>
             <Separator className="my-4" />
             {data.aiSections?.resumoGeral ? (
-              <p className="text-sm leading-relaxed text-foreground/90 italic">
-                {data.aiSections.resumoGeral}
-              </p>
+              <AiInsightBlock
+                text={data.aiSections.resumoGeral}
+                onUpdate={(v) => data.updateAiSection("resumoGeral", v)}
+                onDelete={() => data.deleteAiSection("resumoGeral")}
+              />
             ) : null}
           </CardContent>
         </Card>
@@ -244,13 +247,11 @@ export default function ResumoExecutivo() {
             />
           </div>
           {data.aiSections?.pulsoComercial && (
-            <Card className="mt-3 bg-muted/30 border-0">
-              <CardContent className="py-3">
-                <p className="text-sm leading-relaxed text-foreground/80 italic">
-                  {data.aiSections.pulsoComercial}
-                </p>
-              </CardContent>
-            </Card>
+            <AiInsightBlock
+              text={data.aiSections.pulsoComercial}
+              onUpdate={(v) => data.updateAiSection("pulsoComercial", v)}
+              onDelete={() => data.deleteAiSection("pulsoComercial")}
+            />
           )}
         </div>
 
@@ -305,13 +306,11 @@ export default function ResumoExecutivo() {
             </Card>
           )}
           {data.aiSections?.esteiraProjetos && (
-            <Card className="mt-3 bg-muted/30 border-0">
-              <CardContent className="py-3">
-                <p className="text-sm leading-relaxed text-foreground/80 italic">
-                  {data.aiSections.esteiraProjetos}
-                </p>
-              </CardContent>
-            </Card>
+            <AiInsightBlock
+              text={data.aiSections.esteiraProjetos}
+              onUpdate={(v) => data.updateAiSection("esteiraProjetos", v)}
+              onDelete={() => data.deleteAiSection("esteiraProjetos")}
+            />
           )}
         </div>
 
@@ -415,13 +414,11 @@ export default function ResumoExecutivo() {
           </Card>
 
           {data.aiSections?.contasEstrategicas && (
-            <Card className="mt-3 bg-muted/30 border-0">
-              <CardContent className="py-3">
-                <p className="text-sm leading-relaxed text-foreground/80 italic">
-                  {data.aiSections.contasEstrategicas}
-                </p>
-              </CardContent>
-            </Card>
+            <AiInsightBlock
+              text={data.aiSections.contasEstrategicas}
+              onUpdate={(v) => data.updateAiSection("contasEstrategicas", v)}
+              onDelete={() => data.deleteAiSection("contasEstrategicas")}
+            />
           )}
         </div>
 
