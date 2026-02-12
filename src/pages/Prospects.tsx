@@ -12,6 +12,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Upload, 
+  Download,
   Search, 
   Loader2, 
   Users, 
@@ -19,6 +20,7 @@ import {
   AlertCircle,
   TrendingUp,
 } from "lucide-react";
+import { format } from "date-fns";
 import { useProspects } from "@/hooks/useProspects";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -256,12 +258,40 @@ const Prospects = () => {
             ))}
           </SelectContent>
         </Select>
-        {isMaster && (
-          <Button onClick={() => setImportDialogOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />
-            Importar Prospects
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => {
+            const csvContent = [
+              ["Nome Completo", "Cargo", "Empresa", "Email", "Telefone", "LinkedIn", "Status", "Consultor", "Data Importação"].join(","),
+              ...prospects.map(p => [
+                p.nomeCompleto,
+                p.cargo,
+                p.empresa,
+                p.email,
+                p.telefone || "",
+                p.linkedinUrl,
+                PROSPECT_STATUS_CONFIG[p.status]?.label || p.status,
+                p.consultorResponsavelNome || "",
+                format(p.dataImportacao, "dd/MM/yyyy"),
+              ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+            ].join("\n");
+            const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `prospects-${format(new Date(), "yyyy-MM-dd")}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          }}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
           </Button>
-        )}
+          {isMaster && (
+            <Button onClick={() => setImportDialogOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Prospects
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

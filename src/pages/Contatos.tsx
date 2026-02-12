@@ -50,6 +50,7 @@ import { roleLabels } from "@/types/permissions";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { CreateContactDialog, NewContactData, UniqueCompany } from "@/components/contatos/CreateContactDialog";
 import { ContatosAtivosSummary } from "@/components/contatos/ContatosAtivosSummary";
+import { ReassignContactDialog } from "@/components/contatos/ReassignContactDialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -77,6 +78,7 @@ import {
   ChevronRight,
   Linkedin,
   UserMinus,
+  UserPlus,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -104,7 +106,7 @@ const companyTypeConfig: Record<CompanyType, { label: string; icon: typeof Build
 };
 
 const Contatos = () => {
-  const { currentUser } = usePermissions();
+  const { currentUser, isMaster } = usePermissions();
   const { profile } = useAuth();
   const { toast } = useToast();
   const { leads, loading, updateLead, deleteLead, createLead } = useLeads();
@@ -134,6 +136,8 @@ const Contatos = () => {
   const [meetingDescription, setMeetingDescription] = useState("");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
+  const [contactToReassign, setContactToReassign] = useState<Lead | null>(null);
 
   // Get unique companies from all leads for autocomplete
   const uniqueCompanies = useMemo<UniqueCompany[]>(() => {
@@ -340,6 +344,25 @@ const Contatos = () => {
     } finally {
       setUnassignDialogOpen(false);
       setContactToUnassign(null);
+    }
+  };
+
+  const handleReassignClick = (contact: Lead) => {
+    setContactToReassign(contact);
+    setReassignDialogOpen(true);
+  };
+
+  const handleReassign = async (contact: Lead, consultorId: string, consultorNome: string) => {
+    try {
+      await updateLead({
+        ...contact,
+        responsavelId: consultorId,
+        responsavelNome: consultorNome,
+      });
+      toast({ title: "Contato reatribuído", description: `Contato transferido para ${consultorNome}.` });
+    } catch {
+      toast({ title: "Erro ao reatribuir contato", variant: "destructive" });
+      throw new Error("Falha");
     }
   };
 
@@ -711,6 +734,12 @@ const Contatos = () => {
                                               Marcar reunião realizada
                                             </DropdownMenuItem>
                                           )}
+                                          {isMaster && (
+                                            <DropdownMenuItem onClick={() => handleReassignClick(contact)}>
+                                              <UserPlus className="w-4 h-4 mr-2" />
+                                              Atribuir a consultor
+                                            </DropdownMenuItem>
+                                          )}
                                           <DropdownMenuItem onClick={() => handleUnassignClick(contact)}>
                                             <UserMinus className="w-4 h-4 mr-2" />
                                             Desapropriar contato
@@ -815,6 +844,12 @@ const Contatos = () => {
                                 <DropdownMenuItem onClick={() => handleOpenMarkMeetingDoneDialog(contact)}>
                                   <CalendarCheck className="w-4 h-4 mr-2" />
                                   Marcar reunião realizada
+                                </DropdownMenuItem>
+                              )}
+                              {isMaster && (
+                                <DropdownMenuItem onClick={() => handleReassignClick(contact)}>
+                                  <UserPlus className="w-4 h-4 mr-2" />
+                                  Atribuir a consultor
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={() => handleUnassignClick(contact)}>
@@ -969,6 +1004,14 @@ const Contatos = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reassign Contact Dialog (Master only) */}
+      <ReassignContactDialog
+        open={reassignDialogOpen}
+        onOpenChange={setReassignDialogOpen}
+        contact={contactToReassign}
+        onReassign={handleReassign}
+      />
     </AppLayout>
   );
 };
