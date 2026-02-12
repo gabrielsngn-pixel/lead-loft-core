@@ -17,9 +17,9 @@ interface ContatosAtivosSummaryProps {
   contacts: Lead[];
 }
 
-const NAVY = "hsl(220, 50%, 30%)";
-const GREEN = "hsl(162, 55%, 35%)";
-const MUTED_NAVY = "hsl(220, 30%, 75%)";
+const LOFT_GREEN = "hsl(158, 70%, 25%)"; // #115644
+const LOFT_ORANGE = "hsl(14, 100%, 60%)"; // #FF774A
+const MUTED_GRAY = "hsl(0, 0%, 85%)";
 
 const tooltipStyle = {
   borderRadius: "10px",
@@ -72,21 +72,7 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
     return Math.round((qualificados / totalContacts) * 100);
   }, [contacts, totalContacts]);
 
-  const StackedLabel = ({ x, y, width, value, payload }: any) => {
-    if (!value) return null;
-    return (
-      <text
-        x={x + width / 2}
-        y={y + 14}
-        textAnchor="middle"
-        fill="white"
-        fontSize={10}
-        fontWeight={600}
-      >
-        {value}%
-      </text>
-    );
-  };
+  const StackedLabel = () => null; // Label removido
 
   return (
     <div className="space-y-4 mb-6">
@@ -166,7 +152,6 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                 barSize={36}
                 margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
               >
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
@@ -191,16 +176,11 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                     return item ? `${label} — ${item.totalContatos} contatos` : label;
                   }}
                 />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: "11px", paddingTop: "6px" }}
-                />
                 <Bar
                   dataKey="qualificados"
                   name="Qualificados"
                   stackId="a"
-                  fill={GREEN}
+                  fill={LOFT_GREEN}
                   radius={[0, 0, 0, 0]}
                   label={<StackedLabel />}
                 />
@@ -208,7 +188,7 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                   dataKey="outros"
                   name="Outros"
                   stackId="a"
-                  fill={MUTED_NAVY}
+                  fill={MUTED_GRAY}
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
