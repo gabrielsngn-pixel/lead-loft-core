@@ -7,6 +7,7 @@ import { StatusPieChart } from "@/components/dashboard/StatusPieChart";
 import { ContactsWithoutActionAlert } from "@/components/dashboard/ContactsWithoutActionAlert";
 import { ScheduledMeetingsCard } from "@/components/dashboard/ScheduledMeetingsCard";
 import { CompletedMeetingsCard } from "@/components/dashboard/CompletedMeetingsCard";
+import { TomorrowMeetingsAlert } from "@/components/dashboard/TomorrowMeetingsAlert";
 
 import { useLeads } from "@/hooks/useLeads";
 import { useNegotiations } from "@/hooks/useNegotiations";
@@ -69,6 +70,9 @@ const Dashboard = () => {
 
   return (
     <AppLayout title="Dashboard Executivo" subtitle="Visão gerencial do CRM">
+      {/* Tomorrow Meetings Alert */}
+      <TomorrowMeetingsAlert contatos={metrics.contatosAtivos} />
+
       {/* Row 1 - Métricas de Prospecção */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard
