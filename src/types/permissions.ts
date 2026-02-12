@@ -47,6 +47,7 @@ export const leadFieldPermissions: FieldPermission[] = [
   // Dates - editable by all
   { field: "proximaAtividade", label: "Próxima Atividade", editableBy: ["sdr", "consultor", "gestor", "master"] },
   { field: "proximaReuniao", label: "Próxima Reunião", editableBy: ["sdr", "consultor", "gestor", "master"] },
+  { field: "ultimaReuniao", label: "Última Reunião", editableBy: ["sdr", "consultor", "gestor", "master"] },
   
   // Values - editable by all (se o campo estiver em uso em alguma tela)
   { field: "valorEstimado", label: "Valor Estimado", editableBy: ["sdr", "consultor", "gestor", "master"] },

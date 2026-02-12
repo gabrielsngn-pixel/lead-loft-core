@@ -109,9 +109,10 @@ export function EditLeadDialog({
       if (!prev) return prev;
       let newValue: any = value;
       
-      // Convert date strings to Date objects for date fields
+      // Convert date strings to Date objects for date fields (use local timezone to avoid day shift)
       if ((fieldName === 'ultimaReuniao' || fieldName === 'proximaReuniao') && value) {
-        newValue = new Date(value);
+        const [year, month, day] = value.split('-').map(Number);
+        newValue = new Date(year, month - 1, day);
       } else if ((fieldName === 'ultimaReuniao' || fieldName === 'proximaReuniao') && !value) {
         newValue = undefined;
       }
