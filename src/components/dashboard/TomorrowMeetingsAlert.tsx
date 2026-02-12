@@ -1,18 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Lead } from "@/types/crm";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Users, Clock, X, ChevronUp, ChevronDown } from "lucide-react";
 import { format, addDays, startOfDay, endOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface TomorrowMeetingsAlertProps {
   contatos: Lead[];
@@ -20,7 +12,8 @@ interface TomorrowMeetingsAlertProps {
 
 export function TomorrowMeetingsAlert({ contatos }: TomorrowMeetingsAlertProps) {
   const { profile, isMaster, isGestor } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const tomorrow = addDays(new Date(), 1);
   const tomorrowStart = startOfDay(tomorrow);
@@ -31,29 +24,17 @@ export function TomorrowMeetingsAlert({ contatos }: TomorrowMeetingsAlertProps) 
     return c.proximaReuniao >= tomorrowStart && c.proximaReuniao <= tomorrowEnd;
   });
 
-  // For consultores: only show their own meetings
   const isConsultorOrSDR = !isMaster && !isGestor;
   const relevantMeetings = isConsultorOrSDR
     ? tomorrowMeetings.filter((c) => c.responsavelId === profile?.user_id)
     : tomorrowMeetings;
 
-  // Only show once per session
-  useEffect(() => {
-    if (relevantMeetings.length === 0) return;
-    const sessionKey = `tomorrow_meetings_alert_${format(new Date(), "yyyy-MM-dd")}`;
-    if (!sessionStorage.getItem(sessionKey)) {
-      setOpen(true);
-      sessionStorage.setItem(sessionKey, "shown");
-    }
-  }, [relevantMeetings.length]);
-
-  if (relevantMeetings.length === 0) return null;
+  if (relevantMeetings.length === 0 || dismissed) return null;
 
   const title = isMaster || isGestor
-    ? "Seus consultores têm reuniões agendadas para amanhã"
-    : "Você tem reuniões agendadas para amanhã";
+    ? "Consultores com reuniões amanhã"
+    : "Suas reuniões amanhã";
 
-  // Group by consultant for master/gestor view
   const byConsultor = new Map<string, Lead[]>();
   relevantMeetings.forEach((m) => {
     const key = m.responsavelNome || "Sem consultor";
@@ -62,55 +43,71 @@ export function TomorrowMeetingsAlert({ contatos }: TomorrowMeetingsAlertProps) 
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            Reuniões Amanhã
-          </DialogTitle>
-          <DialogDescription>{title}</DialogDescription>
-        </DialogHeader>
+    <div className="fixed bottom-6 right-6 z-50 animate-bounce-slow">
+      <div className="bg-primary text-primary-foreground rounded-2xl shadow-2xl border border-primary/20 w-80 overflow-hidden">
+        {/* Header - always visible */}
+        <div
+          className="flex items-center justify-between p-3 cursor-pointer select-none"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            <span className="font-semibold text-sm">{title}</span>
+            <Badge variant="secondary" className="text-xs font-bold">
+              {relevantMeetings.length}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1">
+            {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            <button
+              onClick={(e) => { e.stopPropagation(); setDismissed(true); }}
+              className="rounded-full p-0.5 hover:bg-primary-foreground/20 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-        <div className="space-y-3 max-h-80 overflow-y-auto">
-          {(isMaster || isGestor) ? (
-            Array.from(byConsultor.entries()).map(([consultor, meetings]) => (
-              <div key={consultor} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">{consultor}</span>
-                  <Badge variant="secondary" className="text-xs">{meetings.length}</Badge>
-                </div>
-                {meetings.map((m) => (
-                  <div key={m.id} className="ml-6 p-2 rounded-lg bg-muted/30 text-sm">
-                    <div className="font-medium">{m.nomeFantasia || m.razaoSocial}</div>
-                    {m.nomeContato && <div className="text-xs text-muted-foreground">{m.nomeContato}</div>}
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <Clock className="w-3 h-3" />
-                      {m.proximaReuniao && format(m.proximaReuniao, "HH:mm")}
-                    </div>
+        {/* Expanded content */}
+        {expanded && (
+          <div className="bg-background text-foreground p-3 space-y-2 max-h-64 overflow-y-auto border-t border-border">
+            {(isMaster || isGestor) ? (
+              Array.from(byConsultor.entries()).map(([consultor, meetings]) => (
+                <div key={consultor} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="font-medium text-xs">{consultor}</span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{meetings.length}</Badge>
                   </div>
-                ))}
-              </div>
-            ))
-          ) : (
-            relevantMeetings.map((m) => (
-              <div key={m.id} className="p-3 rounded-lg bg-muted/30">
-                <div className="font-medium text-sm">{m.nomeFantasia || m.razaoSocial}</div>
-                {m.nomeContato && <div className="text-xs text-muted-foreground">{m.nomeContato}</div>}
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <Clock className="w-3 h-3" />
-                  {m.proximaReuniao && format(m.proximaReuniao, "HH:mm")}
+                  {meetings.map((m) => (
+                    <div key={m.id} className="ml-5 p-1.5 rounded bg-muted/40 text-xs">
+                      <div className="font-medium">{m.nomeFantasia || m.razaoSocial}</div>
+                      {m.proximaReuniao && (
+                        <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
+                          <Clock className="w-3 h-3" />
+                          {format(m.proximaReuniao, "HH:mm")}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <Button onClick={() => setOpen(false)}>Entendi</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+              ))
+            ) : (
+              relevantMeetings.map((m) => (
+                <div key={m.id} className="p-2 rounded bg-muted/40 text-xs">
+                  <div className="font-medium">{m.nomeFantasia || m.razaoSocial}</div>
+                  {m.proximaReuniao && (
+                    <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      {format(m.proximaReuniao, "HH:mm")}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
