@@ -5,9 +5,10 @@ import { useNegotiations } from "@/hooks/useNegotiations";
 import { useProspects } from "@/hooks/useProspects";
 import { useProspectMetrics } from "@/hooks/useProspectMetrics";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { useMeetings } from "@/hooks/useMeetings";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { getISOWeek } from "date-fns";
+import { getISOWeek, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 
 interface ProjetoAprovado {
   id: string;
@@ -33,6 +34,7 @@ export function useExecutiveSummary() {
   const { leads, loading: leadsLoading } = useLeads();
   const { negotiations, loading: negsLoading } = useNegotiations();
   const { prospects, loading: prospectsLoading } = useProspects();
+  const { meetings, loading: meetingsLoading } = useMeetings();
   const prospectMetrics = useProspectMetrics();
 
   const dashMetrics = useDashboardMetrics({ leads, negotiations });
@@ -172,25 +174,44 @@ export function useExecutiveSummary() {
     }));
   }, [negociacoesAtivas]);
 
-  // Strategic accounts
-  const contasEstrategicasData = useMemo(() => {
-    const recentContacts = contatos
-      .filter(c => c.ultimaReuniao || c.proximaReuniao)
-      .sort((a, b) => {
-        const da = a.ultimaReuniao || a.proximaReuniao || a.dataUltimaInteracao;
-        const db = b.ultimaReuniao || b.proximaReuniao || b.dataUltimaInteracao;
-        return db.getTime() - da.getTime();
+  // Meetings drilldown: this week realized & next week scheduled
+  const reunioesSemana = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    return meetings
+      .filter(m => {
+        const d = m.dataReuniao;
+        return d >= weekStart && d <= weekEnd && m.status === "realizada";
       })
-      .slice(0, 8);
+      .map(m => ({
+        id: m.id,
+        empresa: m.empresa,
+        contato: m.participantes?.[0] || "—",
+        cidade: "",
+        consultor: m.consultorNome,
+        data: m.dataReuniao,
+      }));
+  }, [meetings]);
 
-    return recentContacts.map(c => ({
-      id: c.id,
-      empresa: c.razaoSocial || c.nomeFantasia || "—",
-      status: c.status,
-      ultimaReuniao: c.ultimaReuniao,
-      proximaReuniao: c.proximaReuniao,
-    }));
-  }, [contatos]);
+  const reunioesProximaSemana = useMemo(() => {
+    const now = new Date();
+    const nextWeekStart = startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+    const nextWeekEnd = endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+    return meetings
+      .filter(m => {
+        const d = m.dataReuniao;
+        return d >= nextWeekStart && d <= nextWeekEnd && m.status === "agendada";
+      })
+      .map(m => ({
+        id: m.id,
+        empresa: m.empresa,
+        contato: m.participantes?.[0] || "—",
+        cidade: "",
+        consultor: m.consultorNome,
+        data: m.dataReuniao,
+      }));
+  }, [meetings]);
 
   // Generate AI sections
   const generateAiSummary = useCallback(async () => {
@@ -236,7 +257,7 @@ export function useExecutiveSummary() {
     setAiLoading(false);
   }, [dashMetrics, vgvPercent, totalUnidadesProjetos, prospects, prospectMetrics, contatos, contratosFechados, projetos, totalVgvProjetos, negociacoesAtivas, empresasContatadas, toast]);
 
-  const loading = leadsLoading || negsLoading || prospectsLoading || projetosLoading;
+  const loading = leadsLoading || negsLoading || prospectsLoading || projetosLoading || meetingsLoading;
 
   return {
     loading,
@@ -262,8 +283,9 @@ export function useExecutiveSummary() {
     unidadesPercent,
     totalProjetos: projetos.length,
     esteiraData,
-    // Strategic accounts
-    contasEstrategicasData,
+    // Meetings drilldown
+    reunioesSemana,
+    reunioesProximaSemana,
     // Head note
     headNote,
     saveHeadNote,
