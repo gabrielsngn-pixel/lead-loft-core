@@ -49,6 +49,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { roleLabels } from "@/types/permissions";
 import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { CreateContactDialog, NewContactData, UniqueCompany } from "@/components/contatos/CreateContactDialog";
+import { ContatosAtivosSummary } from "@/components/contatos/ContatosAtivosSummary";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -471,6 +472,9 @@ const Contatos = () => {
           {roleLabels[currentUser.role]}
         </Badge>
       </div>
+
+      {/* Summary Section */}
+      <ContatosAtivosSummary contacts={activeContacts} />
 
       {/* Filters Bar */}
       <div className="stat-card mb-6">
