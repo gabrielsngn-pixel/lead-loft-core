@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lead } from "@/types/crm";
 import { Users, CalendarCheck, CheckCircle2, Clock } from "lucide-react";
@@ -9,17 +9,19 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  Legend,
-  CartesianGrid,
 } from "recharts";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface ContatosAtivosSummaryProps {
   contacts: Lead[];
 }
 
-const LOFT_GREEN = "hsl(158, 70%, 25%)"; // #115644
-const LOFT_ORANGE = "hsl(14, 100%, 60%)"; // #FF774A
-const MUTED_GRAY = "hsl(0, 0%, 85%)";
+const LOFT_GREEN = "#115644";
+const LOFT_ORANGE = "#FF774A";
 
 const tooltipStyle = {
   borderRadius: "10px",
@@ -42,6 +44,21 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
     return { total: realizadas + futuras, realizadas, futuras };
   }, [contacts]);
 
+  const meetingsByConsultor = useMemo(() => {
+    const map = new Map<string, { nome: string; realizadas: number; futuras: number }>();
+    contacts.forEach((c) => {
+      const id = c.responsavelId || "sem";
+      const nome = c.responsavelNome || "Sem consultor";
+      if (!map.has(id)) map.set(id, { nome, realizadas: 0, futuras: 0 });
+      const entry = map.get(id)!;
+      if (c.ultimaReuniao) entry.realizadas++;
+      if (c.proximaReuniao) entry.futuras++;
+    });
+    return Array.from(map.values())
+      .filter((m) => m.realizadas > 0 || m.futuras > 0)
+      .sort((a, b) => (b.realizadas + b.futuras) - (a.realizadas + a.futuras));
+  }, [contacts]);
+
   const stackedData = useMemo(() => {
     const map = new Map<string, { nome: string; total: number; qualificados: number }>();
     contacts.forEach((c) => {
@@ -57,7 +74,7 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
       .map((c) => {
         const pctQual = c.total > 0 ? Math.round((c.qualificados / c.total) * 100) : 0;
         return {
-          name: c.nome.split(" ").slice(0, 2).join(" "),
+          name: c.nome.split(" ")[0],
           qualificados: pctQual,
           outros: 100 - pctQual,
           totalContatos: c.total,
@@ -71,8 +88,6 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
     const qualificados = contacts.filter((c) => c.status === "qualificado").length;
     return Math.round((qualificados / totalContacts) * 100);
   }, [contacts, totalContacts]);
-
-  const StackedLabel = () => null; // Label removido
 
   return (
     <div className="space-y-4 mb-6">
@@ -94,31 +109,60 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-success bg-card rounded-xl shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="p-3 rounded-lg bg-success/10">
-              <CalendarCheck className="w-5 h-5 text-success" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Reuniões
-              </p>
-              <p className="text-3xl font-display font-bold tracking-tight text-foreground">
-                {meetingTotals.total}
-              </p>
-              <div className="flex gap-3 mt-1.5">
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                  {meetingTotals.realizadas} realizadas
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5 text-secondary" />
-                  {meetingTotals.futuras} futuras
-                </span>
+        <HoverCard openDelay={100} closeDelay={200}>
+          <HoverCardTrigger asChild>
+            <Card className="border-l-4 border-l-success bg-card rounded-xl shadow-sm cursor-pointer transition-shadow hover:shadow-md">
+              <CardContent className="flex items-center gap-4 p-5">
+                <div className="p-3 rounded-lg bg-success/10">
+                  <CalendarCheck className="w-5 h-5 text-success" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Reuniões
+                  </p>
+                  <p className="text-3xl font-display font-bold tracking-tight text-foreground">
+                    {meetingTotals.total}
+                  </p>
+                  <div className="flex gap-3 mt-1.5">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      {meetingTotals.realizadas} realizadas
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5 text-secondary" />
+                      {meetingTotals.futuras} futuras
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80 p-0" align="start">
+            <div className="p-4">
+              <h4 className="text-sm font-semibold text-foreground mb-3">Reuniões por Consultor</h4>
+              <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                {meetingsByConsultor.map((m) => (
+                  <div key={m.nome} className="flex items-center justify-between text-xs border-b border-border/50 pb-2 last:border-0">
+                    <span className="font-medium text-foreground truncate mr-2">{m.nome.split(" ").slice(0, 2).join(" ")}</span>
+                    <div className="flex gap-3 shrink-0">
+                      <span className="flex items-center gap-1 text-success">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {m.realizadas}
+                      </span>
+                      <span className="flex items-center gap-1 text-secondary">
+                        <Clock className="w-3 h-3" />
+                        {m.futuras}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {meetingsByConsultor.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Nenhuma reunião registrada</p>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </HoverCardContent>
+        </HoverCard>
 
         <Card className="border-l-4 border-l-primary bg-card rounded-xl shadow-sm">
           <CardContent className="flex items-center gap-5 p-5">
@@ -145,20 +189,18 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 pb-4 px-4">
-          <div className="h-[300px]">
+          <div className="h-[380px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={stackedData}
-                barSize={36}
+                barSize={44}
                 margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
               >
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
+                  tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
                   interval={0}
-                  angle={-20}
-                  textAnchor="end"
-                  height={50}
+                  height={30}
                 />
                 <YAxis
                   domain={[0, 100]}
@@ -182,21 +224,17 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                   stackId="a"
                   fill={LOFT_GREEN}
                   radius={[0, 0, 0, 0]}
-                  label={<StackedLabel />}
                 />
                 <Bar
                   dataKey="outros"
                   name="Outros"
                   stackId="a"
-                  fill={MUTED_GRAY}
+                  fill={LOFT_ORANGE}
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-[11px] text-muted-foreground text-center mt-1">
-            Passe o mouse sobre as barras para ver o total de contatos
-          </p>
         </CardContent>
       </Card>
     </div>
