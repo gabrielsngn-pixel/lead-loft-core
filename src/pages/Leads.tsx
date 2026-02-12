@@ -105,6 +105,7 @@ const exportColumns = [
   { key: "telefone", label: "Telefone", required: true },
   { key: "cidade", label: "Cidade" },
   { key: "estado", label: "Estado" },
+  { key: "responsavelNome", label: "Consultor" },
   { key: "origem", label: "Origem" },
   { key: "status", label: "Status" },
   { key: "prioridade", label: "Prioridade" },
