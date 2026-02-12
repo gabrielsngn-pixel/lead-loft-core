@@ -189,7 +189,7 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 pb-4 px-4">
-          <div className="h-[380px]">
+          <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={stackedData}
@@ -202,11 +202,7 @@ export function ContatosAtivosSummary({ contacts }: ContatosAtivosSummaryProps) 
                   interval={0}
                   height={30}
                 />
-                <YAxis
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                />
+                <YAxis domain={[0, 100]} hide />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: number, name: string, props: any) => {
