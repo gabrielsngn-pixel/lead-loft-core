@@ -52,9 +52,9 @@ function rowToLead(row: LeadRow): Lead {
     linkedin: row.linkedin ?? undefined,
     dataCriacao: new Date(row.data_criacao),
     dataUltimaInteracao: new Date(row.data_ultima_interacao),
-    proximaAtividade: row.proxima_atividade ? new Date(row.proxima_atividade) : undefined,
-    proximaReuniao: row.proxima_reuniao ? new Date(row.proxima_reuniao) : undefined,
-    ultimaReuniao: row.ultima_reuniao ? new Date(row.ultima_reuniao) : undefined,
+    proximaAtividade: row.proxima_atividade ? new Date(row.proxima_atividade.replace('T', ' ')) : undefined,
+    proximaReuniao: row.proxima_reuniao ? new Date(row.proxima_reuniao.replace('T', ' ')) : undefined,
+    ultimaReuniao: row.ultima_reuniao ? new Date(row.ultima_reuniao.replace('T', ' ')) : undefined,
   };
 }
 
