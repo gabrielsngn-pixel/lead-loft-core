@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FileText,
   TrendingUp,
@@ -74,9 +74,11 @@ export default function ResumoExecutivo() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   // Sync note text when data loads
-  if (!editingNote && noteText !== data.headNote && data.headNote) {
-    setNoteText(data.headNote);
-  }
+  useEffect(() => {
+    if (!editingNote && data.headNote) {
+      setNoteText(data.headNote);
+    }
+  }, [data.headNote, editingNote]);
 
   const [movimentacoesOpen, setMovimentacoesOpen] = useState(true);
   const [compromissosOpen, setCompromissosOpen] = useState(true);
