@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
+import Leads from "./pages/Leads";
+import NovoLead from "./pages/NovoLead";
 import Contatos from "./pages/Contatos";
 import Negociacoes from "./pages/Negociacoes";
 import Calendario from "./pages/Calendario";
@@ -45,6 +47,16 @@ const App = () => (
             <Route path="/prospects" element={
               <ProtectedRoute>
                 <Prospects />
+              </ProtectedRoute>
+            } />
+            <Route path="/leads" element={
+              <ProtectedRoute>
+                <Leads />
+              </ProtectedRoute>
+            } />
+            <Route path="/leads/novo" element={
+              <ProtectedRoute>
+                <NovoLead />
               </ProtectedRoute>
             } />
             <Route path="/contatos" element={
