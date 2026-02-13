@@ -138,10 +138,15 @@ export function useExecutiveSummary() {
     return (qualificados / contatos.length) * 100;
   }, [contatos]);
 
-  const reunioesRealizadasContatos = useMemo(
-    () => contatos.filter(c => c.ultimaReuniao).length,
-    [contatos]
-  );
+  const reunioesRealizadasContatos = useMemo(() => {
+    let realizadas = 0;
+    let futuras = 0;
+    contatos.forEach(c => {
+      if (c.ultimaReuniao) realizadas++;
+      if (c.proximaReuniao) futuras++;
+    });
+    return realizadas + futuras;
+  }, [contatos]);
 
   const contatosUnicosComReuniao = useMemo(() => {
     const uniqueCompanies = new Set(
