@@ -289,7 +289,7 @@ export default function ResumoExecutivo() {
                         <TableCell className="font-medium">{row.projeto}</TableCell>
                         <TableCell>{row.empresa}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs" data-pdf-badge>
                             {etapaLabels[row.etapa] || row.etapa}
                           </Badge>
                         </TableCell>
@@ -336,7 +336,7 @@ export default function ResumoExecutivo() {
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#115644]" />
                   Movimentações da Semana
-                  <Badge variant="secondary" className="text-xs ml-1">{data.reunioesSemana.length}</Badge>
+                  <Badge variant="secondary" className="text-xs ml-1" data-pdf-badge>{data.reunioesSemana.length}</Badge>
                 </CardTitle>
                 {movimentacoesOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon /> : <ChevronRight className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon />}
               </div>
@@ -382,7 +382,7 @@ export default function ResumoExecutivo() {
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#FF774A]" />
                   Próximos Compromissos
-                  <Badge variant="secondary" className="text-xs ml-1">{data.reunioesProximaSemana.length}</Badge>
+                  <Badge variant="secondary" className="text-xs ml-1" data-pdf-badge>{data.reunioesProximaSemana.length}</Badge>
                 </CardTitle>
                 {compromissosOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon /> : <ChevronRight className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon />}
               </div>

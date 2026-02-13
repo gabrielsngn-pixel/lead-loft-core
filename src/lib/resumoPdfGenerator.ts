@@ -42,13 +42,13 @@ export async function generateResumoPdf() {
         const clonedHidden = doc.querySelectorAll("[data-pdf-hide]");
         clonedHidden.forEach((el) => ((el as HTMLElement).style.display = "none"));
 
-        // Replace Badge elements with plain text for clean rendering
-        const badges = doc.querySelectorAll("[data-slot='badge']");
+        // Replace Badge elements with plain styled spans for clean PDF rendering
+        const badges = doc.querySelectorAll("[data-pdf-badge]");
         badges.forEach((badge) => {
           const span = doc.createElement("span");
           span.textContent = badge.textContent;
           span.style.cssText =
-            "font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #f1f5f9; color: #334155; font-weight: 500; display: inline-block;";
+            "font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-weight: 600; display: inline-block; line-height: 1.4; vertical-align: middle;";
           badge.replaceWith(span);
         });
 
