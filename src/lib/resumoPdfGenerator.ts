@@ -32,23 +32,39 @@ export async function generateResumoPdf() {
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i];
 
+    // Set a fixed width on the section to prevent layout shrinking during capture
+    const originalWidth = section.style.width;
+    section.style.width = `${section.offsetWidth}px`;
+
     const canvas = await html2canvas(section, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
-      onclone: (doc) => {
+      width: section.offsetWidth,
+      onclone: (doc, clonedEl) => {
         // Hide interactive elements
         const clonedHidden = doc.querySelectorAll("[data-pdf-hide]");
         clonedHidden.forEach((el) => ((el as HTMLElement).style.display = "none"));
 
-        // Replace Badge elements with plain styled spans for clean PDF rendering
+        // Fix metric card labels: increase font size and remove clipping
+        const metricLabels = clonedEl.querySelectorAll("[data-pdf-metric-label]");
+        metricLabels.forEach((el) => {
+          const htmlEl = el as HTMLElement;
+          htmlEl.style.fontSize = "9px";
+          htmlEl.style.letterSpacing = "0.04em";
+          htmlEl.style.overflow = "visible";
+          htmlEl.style.whiteSpace = "nowrap";
+          htmlEl.style.textOverflow = "unset";
+        });
+
+        // Replace Badge elements with green Loft styled spans
         const badges = doc.querySelectorAll("[data-pdf-badge]");
         badges.forEach((badge) => {
           const span = doc.createElement("span");
           span.textContent = badge.textContent;
           span.style.cssText =
-            "font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-weight: 600; display: inline-block; line-height: 1.4; vertical-align: middle;";
+            "font-size: 11px; padding: 3px 10px; border-radius: 4px; background: #115644; color: #ffffff; font-weight: 600; display: inline-block; line-height: 1.4; vertical-align: middle;";
           badge.replaceWith(span);
         });
 
@@ -57,6 +73,9 @@ export async function generateResumoPdf() {
         chevrons.forEach((el) => ((el as HTMLElement).style.display = "none"));
       },
     });
+
+    // Restore original width
+    section.style.width = originalWidth;
 
     const scaleFactor = CONTENT_WIDTH_MM / (canvas.width / 2);
     const heightMM = (canvas.height / 2) * scaleFactor;

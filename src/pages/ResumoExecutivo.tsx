@@ -522,7 +522,7 @@ function MetricCard({
       <CardContent className="p-3">
         <div className="flex items-center gap-1.5 mb-1 text-muted-foreground">
           {icon}
-          <span className="text-[10px] uppercase tracking-wider font-medium truncate">
+          <span className="text-[10px] uppercase tracking-wider font-medium truncate" data-pdf-metric-label>
             {label}
           </span>
         </div>
