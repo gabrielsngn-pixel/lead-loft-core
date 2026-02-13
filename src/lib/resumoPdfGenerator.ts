@@ -38,9 +38,23 @@ export async function generateResumoPdf() {
       backgroundColor: "#ffffff",
       logging: false,
       onclone: (doc) => {
-        // In the cloned document, hide all pdf-hide elements too
+        // Hide interactive elements
         const clonedHidden = doc.querySelectorAll("[data-pdf-hide]");
         clonedHidden.forEach((el) => ((el as HTMLElement).style.display = "none"));
+
+        // Replace Badge elements with plain text for clean rendering
+        const badges = doc.querySelectorAll("[data-slot='badge']");
+        badges.forEach((badge) => {
+          const span = doc.createElement("span");
+          span.textContent = badge.textContent;
+          span.style.cssText =
+            "font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #f1f5f9; color: #334155; font-weight: 500; display: inline-block;";
+          badge.replaceWith(span);
+        });
+
+        // Remove chevron icons (collapse/expand indicators)
+        const chevrons = doc.querySelectorAll("[data-pdf-hide-icon]");
+        chevrons.forEach((el) => ((el as HTMLElement).style.display = "none"));
       },
     });
 
