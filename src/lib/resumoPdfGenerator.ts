@@ -64,7 +64,7 @@ export async function generateResumoPdf() {
           const span = doc.createElement("span");
           span.textContent = badge.textContent;
           span.style.cssText =
-            "font-size: 11px; padding: 3px 10px; border-radius: 4px; background: #115644; color: #ffffff; font-weight: 600; display: inline-block; line-height: 1.4; vertical-align: middle;";
+            "font-size: 11px; padding: 5px 10px 3px 10px; border-radius: 4px; background: #115644; color: #ffffff; font-weight: 600; display: inline-block; line-height: 1.4; vertical-align: middle; margin-top: 2px;";
           badge.replaceWith(span);
         });
 
