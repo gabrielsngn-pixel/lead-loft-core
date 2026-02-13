@@ -117,7 +117,7 @@ export default function ResumoExecutivo() {
     <AppLayout>
       <div className="space-y-6 max-w-5xl mx-auto" id="resumo-pdf-content" ref={reportRef}>
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4" data-pdf-hide>
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#115644]">
               <FileText className="w-6 h-6 text-white" />
@@ -443,6 +443,7 @@ export default function ResumoExecutivo() {
               <Button
                 variant="outline"
                 size="sm"
+                data-pdf-hide
                 onClick={() => {
                   setNoteText(data.headNote);
                   setEditingNote(true);

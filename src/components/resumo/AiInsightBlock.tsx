@@ -20,7 +20,7 @@ export function AiInsightBlock({ text, onUpdate, onDelete }: AiInsightBlockProps
     <Card className="mt-3 bg-muted/30 border-0 group relative">
       <CardContent className="py-3">
         {editing ? (
-          <div className="space-y-2">
+          <div className="space-y-2" data-pdf-hide>
             <Textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -44,12 +44,12 @@ export function AiInsightBlock({ text, onUpdate, onDelete }: AiInsightBlockProps
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="flex items-start gap-2">
+        ) : null}
+        <div className="flex items-start gap-2">
             <p className="text-sm leading-relaxed text-foreground/80 italic flex-1">
               {text}
             </p>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" data-pdf-hide>
               <Button
                 size="icon"
                 variant="ghost"
@@ -68,7 +68,6 @@ export function AiInsightBlock({ text, onUpdate, onDelete }: AiInsightBlockProps
               </Button>
             </div>
           </div>
-        )}
       </CardContent>
     </Card>
   );
