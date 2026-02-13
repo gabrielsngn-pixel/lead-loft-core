@@ -38,6 +38,7 @@ import {
 import { useExecutiveSummary } from "@/hooks/useExecutiveSummary";
 import { cn } from "@/lib/utils";
 import { AiInsightBlock } from "@/components/resumo/AiInsightBlock";
+import { generateResumoPdf } from "@/lib/resumoPdfGenerator";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -91,8 +92,15 @@ export default function ResumoExecutivo() {
     setEditingNote(false);
   };
 
-  const handleExportPdf = () => {
-    window.print();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await generateResumoPdf();
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (data.loading) {
@@ -107,7 +115,7 @@ export default function ResumoExecutivo() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-5xl mx-auto" ref={reportRef}>
+      <div className="space-y-6 max-w-5xl mx-auto" id="resumo-pdf-content" ref={reportRef}>
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -137,15 +145,15 @@ export default function ResumoExecutivo() {
               )}
               Gerar Insights
             </Button>
-            <Button onClick={handleExportPdf} className="gap-2 bg-[#115644] hover:bg-[#115644]/90">
-              <Download className="w-4 h-4" />
+            <Button onClick={handleExportPdf} disabled={exporting} className="gap-2 bg-[#115644] hover:bg-[#115644]/90">
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               Gerar PDF Executivo
             </Button>
           </div>
         </div>
 
         {/* 1. Cabeçalho Institucional */}
-        <Card className="border-[#115644]/20">
+        <Card className="border-[#115644]/20" data-pdf-section>
           <CardContent className="pt-6 pb-6">
             <div className="text-center mb-4">
               <h2 className="font-display text-xl md:text-2xl font-bold text-foreground">
@@ -168,7 +176,7 @@ export default function ResumoExecutivo() {
         </Card>
 
         {/* 2. Diagnóstico Consolidado */}
-        <div>
+        <div data-pdf-section>
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-5 h-5 text-[#115644]" />
             <h3 className="font-display text-lg font-semibold">Diagnóstico Consolidado</h3>
@@ -209,7 +217,7 @@ export default function ResumoExecutivo() {
         </div>
 
         {/* 3. Pulso Comercial */}
-        <div>
+        <div data-pdf-section>
           <div className="flex items-center gap-2 mb-4">
             <Users className="w-5 h-5 text-[#FF774A]" />
             <h3 className="font-display text-lg font-semibold">Pulso Comercial</h3>
@@ -256,7 +264,7 @@ export default function ResumoExecutivo() {
         </div>
 
         {/* 4. Esteira de Projetos */}
-        <div>
+        <div data-pdf-section>
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-[#115644]" />
             <h3 className="font-display text-lg font-semibold">Esteira de Projetos</h3>
@@ -315,7 +323,7 @@ export default function ResumoExecutivo() {
         </div>
 
         {/* 5. Movimentações e Próximos Compromissos */}
-        <div>
+        <div data-pdf-section>
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-5 h-5 text-[#FF774A]" />
             <h3 className="font-display text-lg font-semibold">Contas Estratégicas da Semana</h3>
@@ -423,7 +431,7 @@ export default function ResumoExecutivo() {
         </div>
 
         {/* 6. Leitura do Head Comercial */}
-        <div>
+        <div data-pdf-section>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#115644]" />
@@ -492,19 +500,6 @@ export default function ResumoExecutivo() {
         </div>
       </div>
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          nav, header, button, .sidebar, [data-sidebar] {
-            display: none !important;
-          }
-          .max-w-5xl {
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 20px !important;
-          }
-        }
-      `}</style>
     </AppLayout>
   );
 }
