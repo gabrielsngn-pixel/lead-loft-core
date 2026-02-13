@@ -338,7 +338,7 @@ export default function ResumoExecutivo() {
                   Movimentações da Semana
                   <Badge variant="secondary" className="text-xs ml-1">{data.reunioesSemana.length}</Badge>
                 </CardTitle>
-                {movimentacoesOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                {movimentacoesOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon /> : <ChevronRight className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon />}
               </div>
             </CardHeader>
             {movimentacoesOpen && (
@@ -384,7 +384,7 @@ export default function ResumoExecutivo() {
                   Próximos Compromissos
                   <Badge variant="secondary" className="text-xs ml-1">{data.reunioesProximaSemana.length}</Badge>
                 </CardTitle>
-                {compromissosOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                {compromissosOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon /> : <ChevronRight className="w-4 h-4 text-muted-foreground" data-pdf-hide-icon />}
               </div>
             </CardHeader>
             {compromissosOpen && (
