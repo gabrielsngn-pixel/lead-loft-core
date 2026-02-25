@@ -34,9 +34,10 @@ import { CompanySummaryCard } from "@/components/prospects/CompanySummaryCard";
 import { Prospect, ProspectStatus, PROSPECT_STATUS_CONFIG } from "@/types/prospects";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { subDays, isAfter } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const Prospects = () => {
-  const { isMaster, isGestor } = useAuth();
+  const { isMaster, isGestor, profile } = useAuth();
   const { toast } = useToast();
   const { 
     prospects, 
@@ -188,6 +189,86 @@ const Prospects = () => {
     }
   };
 
+  // Helper to create activity for master user
+  const createMasterActivity = async (titulo: string, descricao: string) => {
+    if (!profile) return;
+    // Find master user
+    const { data: masterProfiles } = await supabase
+      .from("profiles")
+      .select("user_id, nome")
+      .eq("role", "master")
+      .limit(1);
+
+    const master = masterProfiles?.[0];
+    if (!master) return;
+
+    await supabase.from("activities").insert({
+      tipo: "tarefa",
+      categoria: "comercial",
+      titulo,
+      descricao,
+      data_agendada: new Date().toISOString(),
+      concluida: false,
+      responsavel_id: master.user_id,
+      responsavel_nome: master.nome,
+      status_andamento: "em_andamento",
+      criado_por: profile.user_id,
+      criado_por_nome: profile.nome,
+    });
+  };
+
+  // Action 1: Excluir prospect (request deletion + activity for master)
+  const handleRequestDelete = async (prospect: Prospect) => {
+    if (!confirm(`Confirma a solicitação de exclusão do prospect "${prospect.nomeCompleto}" (${prospect.empresa})?`)) return;
+    try {
+      if (isMaster) {
+        await deleteProspect(prospect.id);
+      } else {
+        // Non-master: mark as descartado
+        await updateProspectStatus(prospect.id, "descartado");
+      }
+      await createMasterActivity(
+        `Exclusão de prospect - ${prospect.empresa}`,
+        `Prospect "${prospect.nomeCompleto}" (${prospect.cargo}) da empresa ${prospect.empresa} foi excluído por ${profile?.nome}. Motivo: duplicidade ou dados indevidos.`
+      );
+      toast({ title: "Prospect excluído", description: "Atividade gerada para o Master." });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Action 2: Cadastrar novo decisor (activity for master)
+  const handleRequestNewDecisor = async (prospect: Prospect) => {
+    try {
+      await createMasterActivity(
+        `Cadastrar novo decisor - ${prospect.empresa}`,
+        `Solicitação de cadastro de novo decisor para a empresa ${prospect.empresa}. Prospect atual: "${prospect.nomeCompleto}" (${prospect.cargo}). Solicitado por ${profile?.nome}.`
+      );
+      toast({ title: "Atividade criada", description: `Atividade para cadastrar novo decisor da ${prospect.empresa} gerada para o Master.` });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Action 3: Excluir + Cadastrar novo decisor
+  const handleRequestDeleteAndNewDecisor = async (prospect: Prospect) => {
+    if (!confirm(`Confirma a exclusão do prospect "${prospect.nomeCompleto}" e solicitação de novo decisor para ${prospect.empresa}?`)) return;
+    try {
+      if (isMaster) {
+        await deleteProspect(prospect.id);
+      } else {
+        await updateProspectStatus(prospect.id, "descartado");
+      }
+      await createMasterActivity(
+        `Cadastrar novo decisor - ${prospect.empresa}`,
+        `Prospect "${prospect.nomeCompleto}" (${prospect.cargo}) da empresa ${prospect.empresa} foi excluído por ${profile?.nome}. Necessário cadastrar novo decisor para esta empresa.`
+      );
+      toast({ title: "Prospect excluído", description: `Atividade para cadastrar novo decisor da ${prospect.empresa} gerada para o Master.` });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout title="Prospects" subtitle="Prospecção ativa de pessoas físicas">
@@ -329,6 +410,9 @@ const Prospects = () => {
                   onAddActivity={handleAddActivity}
                   onAssign={handleAssign}
                   canAssign={isGestor || isMaster}
+                  onRequestDelete={handleRequestDelete}
+                  onRequestNewDecisor={handleRequestNewDecisor}
+                  onRequestDeleteAndNewDecisor={handleRequestDeleteAndNewDecisor}
                 />
               ))}
             </div>

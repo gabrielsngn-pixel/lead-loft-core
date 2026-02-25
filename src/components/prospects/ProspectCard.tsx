@@ -23,6 +23,8 @@ import {
   Calendar,
   FileText,
   Lock,
+  UserPlus,
+  RefreshCw,
 } from "lucide-react";
 import { Prospect, PROSPECT_STATUS_CONFIG } from "@/types/prospects";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +40,9 @@ interface ProspectCardProps {
   onAddActivity: (prospect: Prospect) => void;
   onAssign?: (prospect: Prospect) => void;
   canAssign?: boolean;
+  onRequestDelete?: (prospect: Prospect) => void;
+  onRequestNewDecisor?: (prospect: Prospect) => void;
+  onRequestDeleteAndNewDecisor?: (prospect: Prospect) => void;
 }
 
 export function ProspectCard({
@@ -48,6 +53,9 @@ export function ProspectCard({
   onAddActivity,
   onAssign,
   canAssign = false,
+  onRequestDelete,
+  onRequestNewDecisor,
+  onRequestDeleteAndNewDecisor,
 }: ProspectCardProps) {
   const { isMaster } = useAuth();
   const statusConfig = PROSPECT_STATUS_CONFIG[prospect.status];
@@ -96,8 +104,26 @@ export function ProspectCard({
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="text-muted-foreground"
+                {onRequestDelete && (
+                  <DropdownMenuItem onClick={() => onRequestDelete(prospect)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir prospect
+                  </DropdownMenuItem>
+                )}
+                {onRequestNewDecisor && (
+                  <DropdownMenuItem onClick={() => onRequestNewDecisor(prospect)}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Cadastrar novo decisor
+                  </DropdownMenuItem>
+                )}
+                {onRequestDeleteAndNewDecisor && (
+                  <DropdownMenuItem onClick={() => onRequestDeleteAndNewDecisor(prospect)}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Excluir e cadastrar novo decisor
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                   onClick={() => onUpdateStatus(prospect.id, "em_contato")}
                 >
                   Marcar: Em Contato
