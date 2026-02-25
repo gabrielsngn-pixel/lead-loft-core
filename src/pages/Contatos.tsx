@@ -51,6 +51,8 @@ import { EditLeadDialog } from "@/components/editing/EditLeadDialog";
 import { CreateContactDialog, NewContactData, UniqueCompany } from "@/components/contatos/CreateContactDialog";
 import { ContatosAtivosSummary } from "@/components/contatos/ContatosAtivosSummary";
 import { ReassignContactDialog } from "@/components/contatos/ReassignContactDialog";
+import { FollowUpCell } from "@/components/contatos/FollowUpCell";
+import { useContactFollowups } from "@/hooks/useContactFollowups";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -110,6 +112,7 @@ const Contatos = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const { leads, loading, updateLead, deleteLead, createLead } = useLeads();
+  const { getFollowupsForLead, createFollowup, updateFollowup, deleteFollowup } = useContactFollowups();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -605,6 +608,7 @@ const Contatos = () => {
                 </TableHead>
                 <TableHead className="font-semibold">Última Reunião</TableHead>
                 <TableHead className="font-semibold">Próxima Reunião</TableHead>
+                <TableHead className="font-semibold">Follow-up</TableHead>
                 <TableHead className="font-semibold text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -646,7 +650,7 @@ const Contatos = () => {
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell colSpan={6}></TableCell>
+                          <TableCell colSpan={7}></TableCell>
                         </TableRow>
                         
                         {/* Collapsible content: individual contacts */}
@@ -704,8 +708,17 @@ const Contatos = () => {
                                   </TableCell>
                                   <TableCell className="text-sm">
                                     {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
-                                  </TableCell>
-                                  <TableCell className="text-right">
+                                   </TableCell>
+                                   <TableCell>
+                                     <FollowUpCell
+                                       leadId={contact.id}
+                                       followups={getFollowupsForLead(contact.id)}
+                                       onCreateFollowup={createFollowup}
+                                       onUpdateFollowup={updateFollowup}
+                                       onDeleteFollowup={deleteFollowup}
+                                     />
+                                   </TableCell>
+                                   <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Registrar Atividade" onClick={() => handleOpenActivityDialog(contact)}>
                                         <ClipboardList className="w-4 h-4" />
@@ -816,6 +829,15 @@ const Contatos = () => {
                       </TableCell>
                       <TableCell className="text-sm">
                         {contact.proximaReuniao ? <span className="text-primary font-medium">{format(contact.proximaReuniao, "dd/MM HH:mm")}</span> : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        <FollowUpCell
+                          leadId={contact.id}
+                          followups={getFollowupsForLead(contact.id)}
+                          onCreateFollowup={createFollowup}
+                          onUpdateFollowup={updateFollowup}
+                          onDeleteFollowup={deleteFollowup}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>

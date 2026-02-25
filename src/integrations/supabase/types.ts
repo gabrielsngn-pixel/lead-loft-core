@@ -167,6 +167,50 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_followups: {
+        Row: {
+          anotacoes: string | null
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          data_acao: string
+          id: string
+          lead_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          anotacoes?: string | null
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          data_acao?: string
+          id?: string
+          lead_id: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          anotacoes?: string | null
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          data_acao?: string
+          id?: string
+          lead_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_followups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empreendimento_decisores: {
         Row: {
           cargo: string | null
