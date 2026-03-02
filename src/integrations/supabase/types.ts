@@ -211,6 +211,66 @@ export type Database = {
           },
         ]
       }
+      deleted_contacts: {
+        Row: {
+          cidade: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          estado: string | null
+          excluido_por: string
+          excluido_por_nome: string
+          id: string
+          justificativa: string
+          lead_id: string
+          nome_contato: string | null
+          nome_fantasia: string | null
+          razao_social: string
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          telefone: string | null
+          tipo_empresa: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          excluido_por: string
+          excluido_por_nome: string
+          id?: string
+          justificativa: string
+          lead_id: string
+          nome_contato?: string | null
+          nome_fantasia?: string | null
+          razao_social: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          telefone?: string | null
+          tipo_empresa?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          excluido_por?: string
+          excluido_por_nome?: string
+          id?: string
+          justificativa?: string
+          lead_id?: string
+          nome_contato?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          telefone?: string | null
+          tipo_empresa?: string | null
+        }
+        Relationships: []
+      }
       empreendimento_decisores: {
         Row: {
           cargo: string | null
