@@ -338,20 +338,34 @@ const Calendario = () => {
 
   // Handle "Não aprovar exclusão" — restore contact to consultant's base
   const handleRejectDeletion = async (activity: Activity) => {
-    if (!activity.leadId) {
-      toast({ title: "Erro", description: "Lead não vinculado a esta atividade.", variant: "destructive" });
-      return;
-    }
     setIsSaving(true);
     try {
-      // 1. Find the deleted_contacts record
-      const { data: deletedRecord } = await supabase
-        .from("deleted_contacts")
-        .select("*")
-        .eq("lead_id", activity.leadId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      let deletedRecord: any = null;
+
+      // Try finding by lead_id first
+      if (activity.leadId) {
+        const { data } = await supabase
+          .from("deleted_contacts")
+          .select("*")
+          .eq("lead_id", activity.leadId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        deletedRecord = data;
+      }
+
+      // Fallback: parse company name from title and search by razao_social
+      if (!deletedRecord && activity.titulo.startsWith("Exclusão de contato - ")) {
+        const empresaNome = activity.titulo.replace("Exclusão de contato - ", "");
+        const { data } = await supabase
+          .from("deleted_contacts")
+          .select("*")
+          .ilike("razao_social", `%${empresaNome}%`)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        deletedRecord = data;
+      }
 
       if (!deletedRecord) {
         toast({ title: "Erro", description: "Registro de exclusão não encontrado.", variant: "destructive" });
@@ -368,7 +382,7 @@ const Calendario = () => {
           responsavel_nome: deletedRecord.responsavel_nome,
           data_ultima_interacao: new Date().toISOString(),
         })
-        .eq("id", activity.leadId);
+        .eq("id", deletedRecord.lead_id);
 
       // 3. Remove from deleted_contacts repository
       await supabase.from("deleted_contacts").delete().eq("id", deletedRecord.id);
