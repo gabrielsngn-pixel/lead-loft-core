@@ -81,6 +81,7 @@ import {
   Linkedin,
   UserMinus,
   UserPlus,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -405,6 +406,82 @@ const Contatos = () => {
       toast({ title: "Contato criado", description: "O contato já foi atribuído a você e aparece na lista." });
     } catch {
       toast({ title: "Erro ao criar contato", variant: "destructive" });
+    }
+  };
+
+  // Helper to create activity for master user (same pattern as Prospects)
+  const createMasterActivity = async (titulo: string, descricao: string) => {
+    if (!profile) return;
+    const { data: masterProfiles } = await supabase.rpc("get_master_user");
+    const master = masterProfiles?.[0];
+    if (!master) return;
+
+    await supabase.from("activities").insert({
+      tipo: "tarefa",
+      categoria: "comercial",
+      titulo,
+      descricao,
+      data_agendada: new Date().toISOString(),
+      concluida: false,
+      responsavel_id: master.user_id,
+      responsavel_nome: master.nome,
+      status_andamento: "em_andamento",
+      criado_por: profile.user_id,
+      criado_por_nome: profile.nome,
+    });
+  };
+
+  // Action: Excluir contato + atividade para Master
+  const handleRequestDeleteContact = async (contact: Lead) => {
+    const empresaNome = contact.nomeFantasia || contact.razaoSocial;
+    if (!confirm(`Confirma a solicitação de exclusão do contato "${contact.nomeContato || empresaNome}"?`)) return;
+    try {
+      if (isMaster) {
+        await deleteLead(contact.id);
+      } else {
+        await updateLead({ ...contact, status: "perdido" as any });
+      }
+      await createMasterActivity(
+        `Exclusão de contato - ${empresaNome}`,
+        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile?.nome}. Motivo: duplicidade ou dados indevidos.`
+      );
+      toast({ title: "Contato excluído", description: "Atividade gerada para o Master." });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Action: Cadastrar novo decisor (atividade para Master)
+  const handleRequestNewDecisorContact = async (contact: Lead) => {
+    const empresaNome = contact.nomeFantasia || contact.razaoSocial;
+    try {
+      await createMasterActivity(
+        `Cadastrar novo decisor - ${empresaNome}`,
+        `Solicitação de cadastro de novo decisor para a empresa ${empresaNome}. Contato atual: "${contact.nomeContato || "—"}". Solicitado por ${profile?.nome}.`
+      );
+      toast({ title: "Atividade criada", description: `Atividade para cadastrar novo decisor da ${empresaNome} gerada para o Master.` });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Action: Excluir + Cadastrar novo decisor
+  const handleRequestDeleteAndNewDecisorContact = async (contact: Lead) => {
+    const empresaNome = contact.nomeFantasia || contact.razaoSocial;
+    if (!confirm(`Confirma a exclusão do contato "${contact.nomeContato || empresaNome}" e solicitação de novo decisor para ${empresaNome}?`)) return;
+    try {
+      if (isMaster) {
+        await deleteLead(contact.id);
+      } else {
+        await updateLead({ ...contact, status: "perdido" as any });
+      }
+      await createMasterActivity(
+        `Cadastrar novo decisor - ${empresaNome}`,
+        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile?.nome}. Necessário cadastrar novo decisor para esta empresa.`
+      );
+      toast({ title: "Contato excluído", description: `Atividade para cadastrar novo decisor da ${empresaNome} gerada para o Master.` });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
   };
 
@@ -757,6 +834,18 @@ const Contatos = () => {
                                             <UserMinus className="w-4 h-4 mr-2" />
                                             Desapropriar contato
                                           </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleRequestDeleteContact(contact)}>
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Excluir contato
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleRequestNewDecisorContact(contact)}>
+                                            <UserPlus className="w-4 h-4 mr-2" />
+                                            Cadastrar novo decisor
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleRequestDeleteAndNewDecisorContact(contact)}>
+                                            <RefreshCw className="w-4 h-4 mr-2" />
+                                            Excluir e cadastrar novo decisor
+                                          </DropdownMenuItem>
                                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Excluir
@@ -877,6 +966,18 @@ const Contatos = () => {
                               <DropdownMenuItem onClick={() => handleUnassignClick(contact)}>
                                 <UserMinus className="w-4 h-4 mr-2" />
                                 Desapropriar contato
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRequestDeleteContact(contact)}>
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir contato
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRequestNewDecisorContact(contact)}>
+                                <UserPlus className="w-4 h-4 mr-2" />
+                                Cadastrar novo decisor
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRequestDeleteAndNewDecisorContact(contact)}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Excluir e cadastrar novo decisor
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
                                 <Trash2 className="w-4 h-4 mr-2" />
