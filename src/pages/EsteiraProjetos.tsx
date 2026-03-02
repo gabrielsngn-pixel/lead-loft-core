@@ -52,6 +52,7 @@ interface ProjetoAprovado {
   status_contrato: string | null;
   margem_estimada: number | null;
   simulation_data: any;
+  solicitado_por_nome: string;
 }
 
 const MONTHS_2026 = [
@@ -83,6 +84,7 @@ const EsteiraProjetos = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [incorporadoraFilter, setIncorporadoraFilter] = useState<string>("todas");
+  const [consultorFilter, setConsultorFilter] = useState<string>("todos");
   const [mesRange, setMesRange] = useState<string>("todos");
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [drillDownOpen, setDrillDownOpen] = useState(false);
@@ -96,7 +98,7 @@ const EsteiraProjetos = () => {
     try {
       const { data, error } = await supabase
         .from("viabilidades")
-        .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data")
+        .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
         .eq("status", "aprovado");
 
       if (error) throw error;
@@ -136,6 +138,15 @@ const EsteiraProjetos = () => {
     return Array.from(set).sort();
   }, [projetos]);
 
+  // Get unique consultors
+  const consultores = useMemo(() => {
+    const set = new Set<string>();
+    projetos.forEach((p) => {
+      if (p.solicitado_por_nome) set.add(p.solicitado_por_nome);
+    });
+    return Array.from(set).sort();
+  }, [projetos]);
+
   // Filter projects
   const filteredProjetos = useMemo(() => {
     return projetos.filter((p) => {
@@ -143,6 +154,7 @@ const EsteiraProjetos = () => {
         const sc = p.status_contrato || "nao_enviado";
         if (sc !== statusFilter) return false;
       }
+      if (consultorFilter !== "todos" && p.solicitado_por_nome !== consultorFilter) return false;
       if (incorporadoraFilter !== "todas" && p.empresa_nome !== incorporadoraFilter) return false;
       if (mesRange !== "todos" && p.data_habitese) {
         const month = new Date(p.data_habitese).getMonth();
@@ -151,7 +163,7 @@ const EsteiraProjetos = () => {
       }
       return true;
     });
-  }, [projetos, statusFilter, incorporadoraFilter, mesRange]);
+  }, [projetos, statusFilter, incorporadoraFilter, consultorFilter, mesRange]);
 
   // Group by month
   const monthlyData = useMemo(() => {
@@ -282,6 +294,18 @@ const EsteiraProjetos = () => {
             <SelectItem value="todas">Todas</SelectItem>
             {incorporadoras.map((inc) => (
               <SelectItem key={inc} value={inc}>{inc}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={consultorFilter} onValueChange={setConsultorFilter}>
+          <SelectTrigger className="w-[200px] h-9">
+            <SelectValue placeholder="Consultor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Consultores</SelectItem>
+            {consultores.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
         </Select>
