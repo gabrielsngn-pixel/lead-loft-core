@@ -53,6 +53,7 @@ import { ContatosAtivosSummary } from "@/components/contatos/ContatosAtivosSumma
 import { ReassignContactDialog } from "@/components/contatos/ReassignContactDialog";
 import { FollowUpCell } from "@/components/contatos/FollowUpCell";
 import { useContactFollowups } from "@/hooks/useContactFollowups";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -81,7 +82,6 @@ import {
   Linkedin,
   UserMinus,
   UserPlus,
-  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -124,8 +124,6 @@ const Contatos = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [editingContact, setEditingContact] = useState<Lead | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [contactToDelete, setContactToDelete] = useState<Lead | null>(null);
   const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
   const [contactToUnassign, setContactToUnassign] = useState<Lead | null>(null);
 
@@ -138,6 +136,12 @@ const Contatos = () => {
   const [meetingDate, setMeetingDate] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
   const [meetingDescription, setMeetingDescription] = useState("");
+
+  // Delete with justification dialog
+  const [deleteJustifyDialogOpen, setDeleteJustifyDialogOpen] = useState(false);
+  const [contactToDeleteJustify, setContactToDeleteJustify] = useState<Lead | null>(null);
+  const [deleteJustification, setDeleteJustification] = useState("");
+  const [deletingContact, setDeletingContact] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
@@ -287,23 +291,6 @@ const Contatos = () => {
     }
   };
 
-  const handleDeleteClick = (contact: Lead) => {
-    setContactToDelete(contact);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!contactToDelete) return;
-    try {
-      await deleteLead(contactToDelete.id);
-      toast({ title: "Contato excluído" });
-    } catch {
-      toast({ title: "Erro ao excluir contato", variant: "destructive" });
-    } finally {
-      setDeleteDialogOpen(false);
-      setContactToDelete(null);
-    }
-  };
 
   const handleUnassignClick = (contact: Lead) => {
     setContactToUnassign(contact);
@@ -431,57 +418,58 @@ const Contatos = () => {
     });
   };
 
-  // Action: Excluir contato + atividade para Master
-  const handleRequestDeleteContact = async (contact: Lead) => {
+  // Action: Excluir contato — abre diálogo de justificativa
+  const handleOpenDeleteJustifyDialog = (contact: Lead) => {
+    setContactToDeleteJustify(contact);
+    setDeleteJustification("");
+    setDeleteJustifyDialogOpen(true);
+  };
+
+  // Confirmar exclusão com justificativa
+  const handleConfirmDeleteWithJustification = async () => {
+    if (!contactToDeleteJustify || !profile || !deleteJustification.trim()) {
+      toast({ title: "Justificativa obrigatória", variant: "destructive" });
+      return;
+    }
+    setDeletingContact(true);
+    const contact = contactToDeleteJustify;
     const empresaNome = contact.nomeFantasia || contact.razaoSocial;
-    if (!confirm(`Confirma a solicitação de exclusão do contato "${contact.nomeContato || empresaNome}"?`)) return;
     try {
-      if (isMaster) {
-        await deleteLead(contact.id);
-      } else {
-        await updateLead({ ...contact, status: "perdido" as any });
-      }
+      // 1. Salvar no repositório de exclusões
+      await supabase.from("deleted_contacts").insert({
+        lead_id: contact.id,
+        razao_social: contact.razaoSocial,
+        nome_fantasia: contact.nomeFantasia || null,
+        nome_contato: contact.nomeContato || null,
+        email: contact.email,
+        telefone: contact.telefone,
+        cnpj: contact.cnpj,
+        cidade: contact.cidade,
+        estado: contact.estado,
+        tipo_empresa: contact.tipoEmpresa,
+        responsavel_id: contact.responsavelId || null,
+        responsavel_nome: contact.responsavelNome || null,
+        justificativa: deleteJustification.trim(),
+        excluido_por: profile.user_id,
+        excluido_por_nome: profile.nome,
+      });
+
+      // 2. Marcar como perdido (soft delete)
+      await updateLead({ ...contact, status: "perdido" as any });
+
+      // 3. Criar atividade para o Master
       await createMasterActivity(
         `Exclusão de contato - ${empresaNome}`,
-        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile?.nome}. Motivo: duplicidade ou dados indevidos.`
+        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile.nome}. Justificativa: ${deleteJustification.trim()}`
       );
-      toast({ title: "Contato excluído", description: "Atividade gerada para o Master." });
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    }
-  };
 
-  // Action: Cadastrar novo decisor (atividade para Master)
-  const handleRequestNewDecisorContact = async (contact: Lead) => {
-    const empresaNome = contact.nomeFantasia || contact.razaoSocial;
-    try {
-      await createMasterActivity(
-        `Cadastrar novo decisor - ${empresaNome}`,
-        `Solicitação de cadastro de novo decisor para a empresa ${empresaNome}. Contato atual: "${contact.nomeContato || "—"}". Solicitado por ${profile?.nome}.`
-      );
-      toast({ title: "Atividade criada", description: `Atividade para cadastrar novo decisor da ${empresaNome} gerada para o Master.` });
+      setDeleteJustifyDialogOpen(false);
+      toast({ title: "Contato excluído", description: "Registro salvo e atividade gerada para o Master." });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
-    }
-  };
-
-  // Action: Excluir + Cadastrar novo decisor
-  const handleRequestDeleteAndNewDecisorContact = async (contact: Lead) => {
-    const empresaNome = contact.nomeFantasia || contact.razaoSocial;
-    if (!confirm(`Confirma a exclusão do contato "${contact.nomeContato || empresaNome}" e solicitação de novo decisor para ${empresaNome}?`)) return;
-    try {
-      if (isMaster) {
-        await deleteLead(contact.id);
-      } else {
-        await updateLead({ ...contact, status: "perdido" as any });
-      }
-      await createMasterActivity(
-        `Cadastrar novo decisor - ${empresaNome}`,
-        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile?.nome}. Necessário cadastrar novo decisor para esta empresa.`
-      );
-      toast({ title: "Contato excluído", description: `Atividade para cadastrar novo decisor da ${empresaNome} gerada para o Master.` });
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setDeletingContact(false);
+      setContactToDeleteJustify(null);
     }
   };
 
@@ -834,21 +822,9 @@ const Contatos = () => {
                                             <UserMinus className="w-4 h-4 mr-2" />
                                             Desapropriar contato
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleRequestDeleteContact(contact)}>
+                                          <DropdownMenuItem onClick={() => handleOpenDeleteJustifyDialog(contact)}>
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Excluir contato
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleRequestNewDecisorContact(contact)}>
-                                            <UserPlus className="w-4 h-4 mr-2" />
-                                            Cadastrar novo decisor
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleRequestDeleteAndNewDecisorContact(contact)}>
-                                            <RefreshCw className="w-4 h-4 mr-2" />
-                                            Excluir e cadastrar novo decisor
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Excluir
                                           </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
@@ -967,21 +943,9 @@ const Contatos = () => {
                                 <UserMinus className="w-4 h-4 mr-2" />
                                 Desapropriar contato
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleRequestDeleteContact(contact)}>
+                              <DropdownMenuItem onClick={() => handleOpenDeleteJustifyDialog(contact)}>
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Excluir contato
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleRequestNewDecisorContact(contact)}>
-                                <UserPlus className="w-4 h-4 mr-2" />
-                                Cadastrar novo decisor
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleRequestDeleteAndNewDecisorContact(contact)}>
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Excluir e cadastrar novo decisor
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(contact)}>
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1015,21 +979,39 @@ const Contatos = () => {
       {/* Edit Dialog */}
       <EditLeadDialog lead={editingContact} open={editDialogOpen} onOpenChange={setEditDialogOpen} onSave={handleSaveContact} />
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o contato <strong>{contactToDelete?.nomeContato || contactToDelete?.nomeFantasia || contactToDelete?.razaoSocial}</strong>? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete with Justification Dialog */}
+      <Dialog open={deleteJustifyDialogOpen} onOpenChange={setDeleteJustifyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Contato</DialogTitle>
+            <DialogDescription>
+              Você está excluindo o contato <strong>{contactToDeleteJustify?.nomeContato || contactToDeleteJustify?.nomeFantasia || contactToDeleteJustify?.razaoSocial}</strong>. Informe o motivo da exclusão.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Justificativa *</Label>
+              <Textarea
+                value={deleteJustification}
+                onChange={(e) => setDeleteJustification(e.target.value)}
+                placeholder="Ex: Dados duplicados, contato inativo, empresa encerrou atividades..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteJustifyDialogOpen(false)} disabled={deletingContact}>Cancelar</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDeleteWithJustification} 
+              disabled={!deleteJustification.trim() || deletingContact}
+            >
+              {deletingContact ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Confirmar Exclusão
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Unassign Confirmation Dialog */}
       <AlertDialog open={unassignDialogOpen} onOpenChange={setUnassignDialogOpen}>
