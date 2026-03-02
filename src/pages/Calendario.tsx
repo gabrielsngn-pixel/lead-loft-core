@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  Undo2,
 } from "lucide-react";
 import { 
   format, 
@@ -330,6 +332,67 @@ const Calendario = () => {
     }
   };
 
+  // Helper: check if activity is a deletion activity
+  const isDeletionActivity = (activity: Activity) =>
+    activity.titulo.startsWith("Exclusão de contato");
+
+  // Handle "Não aprovar exclusão" — restore contact to consultant's base
+  const handleRejectDeletion = async (activity: Activity) => {
+    if (!activity.leadId) {
+      toast({ title: "Erro", description: "Lead não vinculado a esta atividade.", variant: "destructive" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      // 1. Find the deleted_contacts record
+      const { data: deletedRecord } = await supabase
+        .from("deleted_contacts")
+        .select("*")
+        .eq("lead_id", activity.leadId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!deletedRecord) {
+        toast({ title: "Erro", description: "Registro de exclusão não encontrado.", variant: "destructive" });
+        setIsSaving(false);
+        return;
+      }
+
+      // 2. Restore lead status to "qualificado" and re-assign to original consultant
+      await supabase
+        .from("leads")
+        .update({
+          status: "qualificado",
+          responsavel_id: deletedRecord.responsavel_id,
+          responsavel_nome: deletedRecord.responsavel_nome,
+          data_ultima_interacao: new Date().toISOString(),
+        })
+        .eq("id", activity.leadId);
+
+      // 3. Remove from deleted_contacts repository
+      await supabase.from("deleted_contacts").delete().eq("id", deletedRecord.id);
+
+      // 4. Mark activity as concluded
+      await updateActivity(activity.id, {
+        concluida: true,
+        statusAndamento: "concluida",
+        dataConclusao: new Date(),
+        descricao: (activity.descricao || "") + `\n\n❌ Exclusão NÃO APROVADA por ${profile?.nome}. Contato devolvido para ${deletedRecord.responsavel_nome || "consultor"}.`,
+      });
+
+      toast({
+        title: "Exclusão não aprovada",
+        description: `Contato devolvido para a base de ${deletedRecord.responsavel_nome || "consultor"}.`,
+      });
+    } catch (err: any) {
+      console.error("Erro ao rejeitar exclusão:", err);
+      toast({ title: "Erro ao restaurar contato", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Group activities by category
   const activitiesByCategory = filteredActivities.reduce((acc, activity) => {
     if (!acc[activity.categoria]) {
@@ -492,10 +555,22 @@ const Calendario = () => {
                     >
                       {activity.titulo}
                     </p>
-                    {activity.responsavelNome && (
+                     {activity.responsavelNome && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {activity.responsavelNome}
                       </p>
+                    )}
+                    {isDeletionActivity(activity) && !activity.concluida && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                        disabled={isSaving}
+                        onClick={() => handleRejectDeletion(activity)}
+                      >
+                        <Undo2 className="w-3 h-3 mr-1" />
+                        Não aprovar exclusão
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -569,6 +644,18 @@ const Calendario = () => {
                         <Badge className={cn("text-xs", categoryColors[activity.categoria])}>
                           {categoryLabels[activity.categoria]}
                         </Badge>
+                        {isDeletionActivity(activity) && !activity.concluida && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                            disabled={isSaving}
+                            onClick={() => handleRejectDeletion(activity)}
+                          >
+                            <Undo2 className="w-3 h-3 mr-1" />
+                            Não aprovar
+                          </Button>
+                        )}
                       </div>
                     );
                   })}
@@ -686,6 +773,18 @@ const Calendario = () => {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
+                            {isDeletionActivity(activity) && !activity.concluida && (
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive border-destructive/30 hover:bg-destructive/10" 
+                                title="Não aprovar exclusão"
+                                disabled={isSaving}
+                                onClick={() => handleRejectDeletion(activity)}
+                              >
+                                <Undo2 className="w-4 h-4" />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="icon" 
