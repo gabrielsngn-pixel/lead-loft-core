@@ -399,7 +399,7 @@ const Contatos = () => {
   };
 
   // Helper to create activity for master user (same pattern as Prospects)
-  const createMasterActivity = async (titulo: string, descricao: string) => {
+  const createMasterActivity = async (titulo: string, descricao: string, leadId?: string) => {
     if (!profile) return;
     const { data: masterProfiles } = await supabase.rpc("get_master_user");
     const master = masterProfiles?.[0];
@@ -417,6 +417,7 @@ const Contatos = () => {
       status_andamento: "em_andamento",
       criado_por: profile.user_id,
       criado_por_nome: profile.nome,
+      lead_id: leadId || null,
     });
   };
 
@@ -463,7 +464,8 @@ const Contatos = () => {
       // 3. Criar atividade para o Master
       await createMasterActivity(
         `Exclusão de contato - ${empresaNome}`,
-        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile.nome}. Justificativa: ${deleteJustification.trim()}`
+        `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile.nome}. Justificativa: ${deleteJustification.trim()}`,
+        contact.id
       );
 
       // 4. Se também deve cadastrar novo decisor
