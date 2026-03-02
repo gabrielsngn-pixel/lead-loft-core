@@ -60,8 +60,10 @@ const MONTHS_2026 = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-const META_VGV = 1_000_000_000;
-const META_UNIDADES = 2500;
+const META_VGV_TOTAL = 1_000_000_000;
+const META_UNIDADES_TOTAL = 2500;
+const META_VGV_CONSULTOR = 333_000_000;
+const META_UNIDADES_CONSULTOR = 833;
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -200,6 +202,10 @@ const EsteiraProjetos = () => {
     const totalUnidades = filteredProjetos.reduce((sum, p) => sum + getUnidades(p), 0);
     return { totalVGV, totalUnidades };
   }, [filteredProjetos]);
+
+  const isConsultorView = consultorFilter !== "todos";
+  const META_VGV = isConsultorView ? META_VGV_CONSULTOR : META_VGV_TOTAL;
+  const META_UNIDADES = isConsultorView ? META_UNIDADES_CONSULTOR : META_UNIDADES_TOTAL;
 
   const vgvPercent = (totals.totalVGV / META_VGV) * 100;
   const unidadesPercent = (totals.totalUnidades / META_UNIDADES) * 100;
