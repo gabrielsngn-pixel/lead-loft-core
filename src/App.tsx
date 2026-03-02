@@ -23,6 +23,7 @@ import AcessoPendente from "./pages/AcessoPendente";
 import EsteiraProjetos from "./pages/EsteiraProjetos";
 import Empreendimentos from "./pages/Empreendimentos";
 import ResumoExecutivo from "./pages/ResumoExecutivo";
+import ContatosExcluidos from "./pages/ContatosExcluidos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -122,6 +123,11 @@ const App = () => (
             <Route path="/resumo-executivo" element={
               <ProtectedRoute allowedRoles={["master"]}>
                 <ResumoExecutivo />
+              </ProtectedRoute>
+            } />
+            <Route path="/contatos-excluidos" element={
+              <ProtectedRoute allowedRoles={["master"]}>
+                <ContatosExcluidos />
               </ProtectedRoute>
             } />
 

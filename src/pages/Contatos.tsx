@@ -82,6 +82,7 @@ import {
   Linkedin,
   UserMinus,
   UserPlus,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -142,6 +143,7 @@ const Contatos = () => {
   const [contactToDeleteJustify, setContactToDeleteJustify] = useState<Lead | null>(null);
   const [deleteJustification, setDeleteJustification] = useState("");
   const [deletingContact, setDeletingContact] = useState(false);
+  const [deleteAlsoNewDecisor, setDeleteAlsoNewDecisor] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
@@ -422,6 +424,7 @@ const Contatos = () => {
   const handleOpenDeleteJustifyDialog = (contact: Lead) => {
     setContactToDeleteJustify(contact);
     setDeleteJustification("");
+    setDeleteAlsoNewDecisor(false);
     setDeleteJustifyDialogOpen(true);
   };
 
@@ -463,6 +466,14 @@ const Contatos = () => {
         `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile.nome}. Justificativa: ${deleteJustification.trim()}`
       );
 
+      // 4. Se também deve cadastrar novo decisor
+      if (deleteAlsoNewDecisor) {
+        await createMasterActivity(
+          `Cadastrar novo decisor - ${empresaNome}`,
+          `Contato "${contact.nomeContato || "—"}" da empresa ${empresaNome} foi excluído por ${profile.nome}. Necessário cadastrar novo decisor para esta empresa.`
+        );
+      }
+
       setDeleteJustifyDialogOpen(false);
       toast({ title: "Contato excluído", description: "Registro salvo e atividade gerada para o Master." });
     } catch (error: any) {
@@ -471,6 +482,29 @@ const Contatos = () => {
       setDeletingContact(false);
       setContactToDeleteJustify(null);
     }
+  };
+
+  // Action: Cadastrar novo decisor (atividade para Master)
+  const handleRequestNewDecisorContact = async (contact: Lead) => {
+    const empresaNome = contact.nomeFantasia || contact.razaoSocial;
+    try {
+      await createMasterActivity(
+        `Cadastrar novo decisor - ${empresaNome}`,
+        `Solicitação de cadastro de novo decisor para a empresa ${empresaNome}. Contato atual: "${contact.nomeContato || "—"}". Solicitado por ${profile?.nome}.`
+      );
+      toast({ title: "Atividade criada", description: `Atividade para cadastrar novo decisor da ${empresaNome} gerada para o Master.` });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Action: Excluir + Cadastrar novo decisor
+  const handleRequestDeleteAndNewDecisorContact = async (contact: Lead) => {
+    setContactToDeleteJustify(contact);
+    setDeleteJustification("");
+    setDeleteJustifyDialogOpen(true);
+    // Flag to also create "novo decisor" activity after delete
+    setDeleteAlsoNewDecisor(true);
   };
 
   const handleOpenActivityDialog = (contact: Lead) => {
@@ -826,6 +860,14 @@ const Contatos = () => {
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Excluir contato
                                           </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleRequestNewDecisorContact(contact)}>
+                                            <UserPlus className="w-4 h-4 mr-2" />
+                                            Cadastrar novo decisor
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleRequestDeleteAndNewDecisorContact(contact)}>
+                                            <RefreshCw className="w-4 h-4 mr-2" />
+                                            Excluir e cadastrar novo decisor
+                                          </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     </div>
@@ -946,6 +988,14 @@ const Contatos = () => {
                               <DropdownMenuItem onClick={() => handleOpenDeleteJustifyDialog(contact)}>
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Excluir contato
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRequestNewDecisorContact(contact)}>
+                                <UserPlus className="w-4 h-4 mr-2" />
+                                Cadastrar novo decisor
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRequestDeleteAndNewDecisorContact(contact)}>
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Excluir e cadastrar novo decisor
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
