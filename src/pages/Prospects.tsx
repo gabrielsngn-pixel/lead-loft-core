@@ -192,12 +192,9 @@ const Prospects = () => {
   // Helper to create activity for master user
   const createMasterActivity = async (titulo: string, descricao: string) => {
     if (!profile) return;
-    // Find master user
+    // Find master user using security definer function (bypasses RLS)
     const { data: masterProfiles } = await supabase
-      .from("profiles")
-      .select("user_id, nome")
-      .eq("role", "master")
-      .limit(1);
+      .rpc("get_master_user");
 
     const master = masterProfiles?.[0];
     if (!master) return;
