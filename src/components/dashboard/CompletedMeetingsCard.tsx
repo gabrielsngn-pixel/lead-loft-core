@@ -91,7 +91,12 @@ export function CompletedMeetingsCard({ contatos }: CompletedMeetingsCardProps) 
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
-                        {contact.ultimaReuniao && format(contact.ultimaReuniao, "EEEE, dd/MM", { locale: ptBR })}
+                        {(() => {
+                          const meetingDate = (contact.ultimaReuniao && contact.ultimaReuniao >= sevenDaysAgo && contact.ultimaReuniao <= today)
+                            ? contact.ultimaReuniao
+                            : contact.proximaReuniao;
+                          return meetingDate ? format(meetingDate, "EEEE, dd/MM", { locale: ptBR }) : "";
+                        })()}
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">
