@@ -25,14 +25,18 @@ export function CompletedMeetingsCard({ contatos }: CompletedMeetingsCardProps) 
   const sevenDaysAgo = startOfDay(subDays(today, 7));
   
   // Get all contacts with meetings completed in the last 7 days
+  // Check both ultimaReuniao AND proximaReuniao (when date already passed)
   const contatosComReuniaoRealizada = contatos
     .filter(c => {
-      if (!c.ultimaReuniao) return false;
-      return c.ultimaReuniao >= sevenDaysAgo && c.ultimaReuniao <= today;
+      const ultimaNoRange = c.ultimaReuniao && c.ultimaReuniao >= sevenDaysAgo && c.ultimaReuniao <= today;
+      const proximaJaPassou = c.proximaReuniao && c.proximaReuniao >= sevenDaysAgo && c.proximaReuniao <= today;
+      return ultimaNoRange || proximaJaPassou;
     })
     .sort((a, b) => {
-      if (!a.ultimaReuniao || !b.ultimaReuniao) return 0;
-      return b.ultimaReuniao.getTime() - a.ultimaReuniao.getTime();
+      const dateA = a.ultimaReuniao && a.ultimaReuniao >= sevenDaysAgo ? a.ultimaReuniao : a.proximaReuniao;
+      const dateB = b.ultimaReuniao && b.ultimaReuniao >= sevenDaysAgo ? b.ultimaReuniao : b.proximaReuniao;
+      if (!dateA || !dateB) return 0;
+      return dateB.getTime() - dateA.getTime();
     });
 
   const count = contatosComReuniaoRealizada.length;
@@ -87,7 +91,12 @@ export function CompletedMeetingsCard({ contatos }: CompletedMeetingsCardProps) 
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
-                        {contact.ultimaReuniao && format(contact.ultimaReuniao, "EEEE, dd/MM", { locale: ptBR })}
+                        {(() => {
+                          const meetingDate = (contact.ultimaReuniao && contact.ultimaReuniao >= sevenDaysAgo && contact.ultimaReuniao <= today)
+                            ? contact.ultimaReuniao
+                            : contact.proximaReuniao;
+                          return meetingDate ? format(meetingDate, "EEEE, dd/MM", { locale: ptBR }) : "";
+                        })()}
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">
