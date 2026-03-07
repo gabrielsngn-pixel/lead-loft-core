@@ -61,10 +61,12 @@ export function useDashboardMetrics({ leads, negotiations }: DashboardMetricsInp
         }, 0) / valorPipeline
       : 0;
     
-    // 7. Reuniões realizadas (últimos 7 dias) - baseado em ultimaReuniao dos contatos
-    const reunioesRealizadas7Dias = contatosAtivos.filter(c => 
-      c.ultimaReuniao && c.ultimaReuniao >= sevenDaysAgo && c.ultimaReuniao <= today
-    ).length;
+    // 7. Reuniões realizadas (últimos 7 dias) - baseado em ultimaReuniao E proximaReuniao (quando já passou)
+    const reunioesRealizadas7Dias = contatosAtivos.filter(c => {
+      const ultimaNoRange = c.ultimaReuniao && c.ultimaReuniao >= sevenDaysAgo && c.ultimaReuniao <= today;
+      const proximaJaPassou = c.proximaReuniao && c.proximaReuniao >= sevenDaysAgo && c.proximaReuniao <= today;
+      return ultimaNoRange || proximaJaPassou;
+    }).length;
     
     // 8. Reuniões agendadas (próximos 7 dias) - baseado em proximaReuniao dos contatos
     // Inclui reuniões de hoje até 7 dias no futuro (intervalo inclusivo)
