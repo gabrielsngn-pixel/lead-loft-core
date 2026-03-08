@@ -184,9 +184,6 @@ export function ImportProspectsDialog({
         throw new Error("Nenhum registro válido encontrado no arquivo");
       }
 
-      if (rows.length > 25) {
-        throw new Error(`Máximo de 25 registros por importação. O arquivo contém ${rows.length} registros.`);
-      }
 
       const importResult = await onImport(rows);
       setResult(importResult);
