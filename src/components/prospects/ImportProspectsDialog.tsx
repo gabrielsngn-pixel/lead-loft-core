@@ -209,8 +209,7 @@ export function ImportProspectsDialog({
         <DialogHeader>
           <DialogTitle>Importar Prospects do Apollo</DialogTitle>
           <DialogDescription>
-            Importe prospects diretamente do Apollo.io usando o arquivo CSV exportado. 
-            Máximo de 25 registros por importação.
+            Importe prospects diretamente do Apollo.io usando o arquivo CSV exportado.
           </DialogDescription>
         </DialogHeader>
 
