@@ -130,9 +130,6 @@ export function useProspects() {
       throw new Error("Apenas usuários Master podem importar prospects");
     }
 
-    if (rows.length > 25) {
-      throw new Error("Máximo de 25 registros por importação");
-    }
 
     // Get existing emails and linkedin URLs for deduplication
     const { data: existingProspects } = await supabase
