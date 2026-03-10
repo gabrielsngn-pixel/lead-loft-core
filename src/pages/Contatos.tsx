@@ -245,11 +245,13 @@ const Contatos = () => {
 
   const handleExport = () => {
     const csvContent = [
-      ["Nome Contato", "Empresa", "Tipo", "Consultor", "Status", "Prioridade", "Última Interação", "Próxima Reunião"],
+      ["Nome Contato", "Empresa", "Tipo", "Telefone", "Email", "Consultor", "Status", "Prioridade", "Última Interação", "Próxima Reunião"],
       ...sortedContacts.map((lead) => [
         lead.nomeContato || "",
         lead.nomeFantasia || lead.razaoSocial,
         companyTypeConfig[lead.tipoEmpresa].label,
+        lead.telefone || "",
+        lead.email || "",
         lead.responsavelNome || "",
         statusConfig[lead.status].label,
         priorityConfig[lead.prioridade].label,
