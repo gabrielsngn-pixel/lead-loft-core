@@ -317,10 +317,10 @@ interface LeadOption {
 interface CreateMinutaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: (data: Parameters<typeof import("@/hooks/useMinutas").useMinutas>["0"]["createMinuta"]["mutate"] extends (arg: infer A) => void ? A : never) => void;
+  onCreate: (data: any) => void;
 }
 
-function CreateMinutaDialog({ open, onOpenChange, onCreate }: { open: boolean; onOpenChange: (open: boolean) => void; onCreate: (data: any) => void }) {
+function CreateMinutaDialog({ open, onOpenChange, onCreate }: CreateMinutaDialogProps) {
   const { profile } = useAuth();
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string>("");
