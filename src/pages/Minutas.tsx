@@ -681,9 +681,10 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
 // ==========================================
 
 export default function Minutas() {
-  const { minutas, isLoading, updateMinuta } = useMinutas();
+  const { minutas, isLoading, updateMinuta, createMinuta } = useMinutas();
   const [selectedMinuta, setSelectedMinuta] = useState<Minuta | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredMinutas = minutas.filter(
@@ -701,6 +702,10 @@ export default function Minutas() {
     setSelectedMinuta(updated);
   };
 
+  const handleCreate = (data: any) => {
+    createMinuta.mutate(data);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -711,7 +716,13 @@ export default function Minutas() {
               Contratos editáveis gerados a partir do simulador de viabilidade
             </p>
           </div>
-          <Badge variant="secondary">{minutas.length} minutas</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">{minutas.length} minutas</Badge>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Minuta
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
