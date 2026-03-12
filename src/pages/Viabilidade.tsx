@@ -90,6 +90,8 @@ import {
   ResultadosSidebar,
 } from "@/components/simulador";
 import { ContratoLoftDialog } from "@/components/contrato/ContratoLoft";
+import { getDefaultClausulas } from "@/hooks/useMinutas";
+import { generateContractNumber } from "@/lib/contractPdfGenerator";
 
 interface ViabilidadeRow {
   id: string;
