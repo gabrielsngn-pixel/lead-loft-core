@@ -152,15 +152,14 @@ export function useMinutas() {
 
   const updateMinuta = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Minuta> & { id: string }) => {
-      const { error } = await supabase
-        .from("minutas")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("minutas") as any)
         .update({
-          ...updates,
-          clausulas: updates.clausulas as unknown as Record<string, unknown>[],
+          clausulas: updates.clausulas,
           atualizado_por: profile?.user_id,
           atualizado_por_nome: profile?.nome,
           updated_at: new Date().toISOString(),
-        } as Record<string, unknown>)
+        })
         .eq("id", id);
       if (error) throw error;
     },
