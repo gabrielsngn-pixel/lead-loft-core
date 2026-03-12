@@ -611,7 +611,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
@@ -651,7 +651,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
           </div>
         </div>
 
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto min-h-0">
           <div className="py-4">
             {isEditing ? (
               <ClausulaEditor clausulas={editedClausulas} onChange={setEditedClausulas} />
@@ -670,7 +670,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
