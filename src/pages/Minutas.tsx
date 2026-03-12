@@ -592,11 +592,35 @@ interface MinutaDetailDialogProps {
 
 function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetailDialogProps) {
   const [editedClausulas, setEditedClausulas] = useState<Clausula[]>([]);
+  const [editedFields, setEditedFields] = useState({
+    nome_empreendimento: "",
+    empresa_nome: "",
+    nome_fantasia: "",
+    cnpj: "",
+    endereco: "",
+    cidade: "",
+    estado: "",
+    representante_legal: "",
+    cpf_representante: "",
+    dados_projeto: {} as Record<string, unknown>,
+  });
   const [isEditing, setIsEditing] = useState(false);
 
   const handleOpen = (isOpen: boolean) => {
     if (isOpen && minuta) {
       setEditedClausulas([...minuta.clausulas]);
+      setEditedFields({
+        nome_empreendimento: minuta.nome_empreendimento,
+        empresa_nome: minuta.empresa_nome,
+        nome_fantasia: minuta.nome_fantasia || "",
+        cnpj: minuta.cnpj || "",
+        endereco: minuta.endereco || "",
+        cidade: minuta.cidade || "",
+        estado: minuta.estado || "",
+        representante_legal: minuta.representante_legal || "",
+        cpf_representante: minuta.cpf_representante || "",
+        dados_projeto: (minuta.dados_projeto || {}) as Record<string, unknown>,
+      });
       setIsEditing(false);
     }
     onOpenChange(isOpen);
@@ -605,8 +629,32 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
   if (!minuta) return null;
 
   const handleSave = () => {
-    onSave({ ...minuta, clausulas: editedClausulas });
+    onSave({
+      ...minuta,
+      ...editedFields,
+      nome_fantasia: editedFields.nome_fantasia || null,
+      cnpj: editedFields.cnpj || null,
+      endereco: editedFields.endereco || null,
+      cidade: editedFields.cidade || null,
+      estado: editedFields.estado || null,
+      representante_legal: editedFields.representante_legal || null,
+      cpf_representante: editedFields.cpf_representante || null,
+      clausulas: editedClausulas,
+    });
     setIsEditing(false);
+  };
+
+  const projeto = editedFields.dados_projeto;
+
+  const updateField = (field: string, value: string) => {
+    setEditedFields((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateProjeto = (field: string, value: number) => {
+    setEditedFields((prev) => ({
+      ...prev,
+      dados_projeto: { ...prev.dados_projeto, [field]: value },
+    }));
   };
 
   return (
@@ -627,12 +675,24 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
             onClick={() => {
               if (!isEditing) {
                 setEditedClausulas([...minuta.clausulas]);
+                setEditedFields({
+                  nome_empreendimento: minuta.nome_empreendimento,
+                  empresa_nome: minuta.empresa_nome,
+                  nome_fantasia: minuta.nome_fantasia || "",
+                  cnpj: minuta.cnpj || "",
+                  endereco: minuta.endereco || "",
+                  cidade: minuta.cidade || "",
+                  estado: minuta.estado || "",
+                  representante_legal: minuta.representante_legal || "",
+                  cpf_representante: minuta.cpf_representante || "",
+                  dados_projeto: (minuta.dados_projeto || {}) as Record<string, unknown>,
+                });
               }
               setIsEditing(!isEditing);
             }}
           >
             <Pencil className="w-4 h-4 mr-1" />
-            {isEditing ? "Editando..." : "Editar Cláusulas"}
+            {isEditing ? "Editando..." : "Editar Contrato"}
           </Button>
           {isEditing && (
             <Button size="sm" onClick={handleSave}>
@@ -643,7 +703,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportMinutaPdf(isEditing ? { ...minuta, clausulas: editedClausulas } : minuta)}
+              onClick={() => exportMinutaPdf(isEditing ? { ...minuta, ...editedFields, clausulas: editedClausulas } as Minuta : minuta)}
             >
               <Download className="w-4 h-4 mr-1" />
               Exportar PDF
@@ -652,22 +712,122 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="py-4">
+          <div className="py-4 space-y-6">
             {isEditing ? (
-              <ClausulaEditor clausulas={editedClausulas} onChange={setEditedClausulas} />
+              <>
+                {/* Editable header fields */}
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm" style={{ color: "hsl(var(--primary))" }}>
+                      Dados da Contratante (Incorporadora)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Razão Social</Label>
+                        <Input value={editedFields.empresa_nome} onChange={(e) => updateField("empresa_nome", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Nome Fantasia</Label>
+                        <Input value={editedFields.nome_fantasia} onChange={(e) => updateField("nome_fantasia", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">CNPJ</Label>
+                        <Input value={editedFields.cnpj} onChange={(e) => updateField("cnpj", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Endereço / Sede</Label>
+                        <Input value={editedFields.endereco} onChange={(e) => updateField("endereco", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Cidade</Label>
+                        <Input value={editedFields.cidade} onChange={(e) => updateField("cidade", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Estado</Label>
+                        <Input value={editedFields.estado} onChange={(e) => updateField("estado", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Representante Legal</Label>
+                        <Input value={editedFields.representante_legal} onChange={(e) => updateField("representante_legal", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">CPF do Representante</Label>
+                        <Input value={editedFields.cpf_representante} onChange={(e) => updateField("cpf_representante", e.target.value)} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Editable project data */}
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm" style={{ color: "hsl(var(--primary))" }}>
+                      Dados do Empreendimento / Projeto
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Nome do Empreendimento</Label>
+                        <Input value={editedFields.nome_empreendimento} onChange={(e) => updateField("nome_empreendimento", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">VGV Total (R$)</Label>
+                        <Input type="number" value={Number(projeto.vgvTotal || 0)} onChange={(e) => updateProjeto("vgvTotal", Number(e.target.value))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Unidades</Label>
+                        <Input type="number" value={Number(projeto.unidades || 0)} onChange={(e) => updateProjeto("unidades", Number(e.target.value))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Ticket Médio (R$)</Label>
+                        <Input type="number" value={Number(projeto.ticketMedio || 0)} onChange={(e) => updateProjeto("ticketMedio", Number(e.target.value))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Comissão Incorporador (%)</Label>
+                        <Input type="number" value={Number(projeto.comissaoIncorporador || 0)} onChange={(e) => updateProjeto("comissaoIncorporador", Number(e.target.value))} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Editable clauses */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3" style={{ color: "hsl(var(--primary))" }}>
+                    Cláusulas do Contrato
+                  </h3>
+                  <ClausulaEditor clausulas={editedClausulas} onChange={setEditedClausulas} />
+                </div>
+              </>
             ) : (
-              <div className="space-y-6">
-                {minuta.clausulas.map((clausula) => (
-                  <div key={clausula.id}>
-                    <h3 className="font-bold text-sm mb-2" style={{ color: "hsl(var(--primary))" }}>
-                      {clausula.titulo}
-                    </h3>
-                    <p className="text-sm whitespace-pre-line text-muted-foreground leading-relaxed">
-                      {clausula.conteudo}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <>
+                {/* Read-only header */}
+                <Card className="border-muted">
+                  <CardContent className="pt-4 space-y-1 text-sm">
+                    <p><strong>Empresa:</strong> {minuta.empresa_nome}{minuta.nome_fantasia ? ` (${minuta.nome_fantasia})` : ""}</p>
+                    <p><strong>CNPJ:</strong> {minuta.cnpj || "—"}</p>
+                    <p><strong>Endereço:</strong> {[minuta.endereco, minuta.cidade, minuta.estado].filter(Boolean).join(", ") || "—"}</p>
+                    <p><strong>Representante:</strong> {minuta.representante_legal || "—"} {minuta.cpf_representante ? `(CPF: ${minuta.cpf_representante})` : ""}</p>
+                    <p><strong>Empreendimento:</strong> {minuta.nome_empreendimento}</p>
+                  </CardContent>
+                </Card>
+
+                {/* Read-only clauses */}
+                <div className="space-y-6">
+                  {minuta.clausulas.map((clausula) => (
+                    <div key={clausula.id}>
+                      <h3 className="font-bold text-sm mb-2" style={{ color: "hsl(var(--primary))" }}>
+                        {clausula.titulo}
+                      </h3>
+                      <p className="text-sm whitespace-pre-line text-muted-foreground leading-relaxed">
+                        {clausula.conteudo}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
