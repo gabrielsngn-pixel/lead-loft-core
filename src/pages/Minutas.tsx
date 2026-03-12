@@ -299,6 +299,287 @@ function ClausulaEditor({ clausulas, onChange }: ClausulaEditorProps) {
 }
 
 // ==========================================
+// CREATE MINUTA DIALOG
+// ==========================================
+
+interface LeadOption {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string;
+  email: string;
+  telefone: string;
+  cidade: string;
+  estado: string;
+  nome_contato: string | null;
+}
+
+interface CreateMinutaDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreate: (data: Parameters<typeof import("@/hooks/useMinutas").useMinutas>["0"]["createMinuta"]["mutate"] extends (arg: infer A) => void ? A : never) => void;
+}
+
+function CreateMinutaDialog({ open, onOpenChange, onCreate }: { open: boolean; onOpenChange: (open: boolean) => void; onCreate: (data: any) => void }) {
+  const { profile } = useAuth();
+  const [leads, setLeads] = useState<LeadOption[]>([]);
+  const [selectedLeadId, setSelectedLeadId] = useState<string>("");
+  const [leadSearch, setLeadSearch] = useState("");
+  const [formData, setFormData] = useState({
+    nome_empreendimento: "Empreendimento Exemplo",
+    representante_legal: "",
+    cpf_representante: "",
+    endereco: "",
+    // Mock project data
+    vgvTotal: 50000000,
+    unidades: 200,
+    ticketMedio: 250000,
+    comissaoIncorporador: 0,
+    hasRegistro: false,
+  });
+
+  useEffect(() => {
+    if (open) {
+      supabase
+        .from("leads")
+        .select("id, razao_social, nome_fantasia, cnpj, email, telefone, cidade, estado, nome_contato")
+        .order("razao_social")
+        .then(({ data }) => {
+          if (data) setLeads(data as LeadOption[]);
+        });
+    }
+  }, [open]);
+
+  const selectedLead = leads.find((l) => l.id === selectedLeadId);
+
+  const filteredLeads = leads.filter(
+    (l) =>
+      l.razao_social.toLowerCase().includes(leadSearch.toLowerCase()) ||
+      (l.nome_fantasia || "").toLowerCase().includes(leadSearch.toLowerCase()) ||
+      l.cnpj.includes(leadSearch)
+  );
+
+  const handleSelectLead = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    const lead = leads.find((l) => l.id === leadId);
+    if (lead) {
+      setFormData((prev) => ({
+        ...prev,
+        endereco: `${lead.cidade}/${lead.estado}`,
+        representante_legal: lead.nome_contato || "",
+      }));
+    }
+  };
+
+  const handleCreate = () => {
+    if (!selectedLead || !profile) return;
+
+    const numero = `LOFT-${Date.now().toString(36).toUpperCase()}`;
+    const clausulas = getDefaultClausulas(formData.hasRegistro);
+
+    onCreate({
+      negotiation_id: null,
+      viabilidade_id: null,
+      nome_empreendimento: formData.nome_empreendimento,
+      empresa_nome: selectedLead.razao_social,
+      cnpj: selectedLead.cnpj,
+      endereco: formData.endereco,
+      cidade: selectedLead.cidade,
+      estado: selectedLead.estado,
+      representante_legal: formData.representante_legal || null,
+      cpf_representante: formData.cpf_representante || null,
+      nome_fantasia: selectedLead.nome_fantasia,
+      dados_projeto: {
+        vgvTotal: formData.vgvTotal,
+        unidades: formData.unidades,
+        ticketMedio: formData.ticketMedio,
+        comissaoIncorporador: formData.comissaoIncorporador,
+      },
+      clausulas,
+      numero_contrato: numero,
+      data_assinatura: new Date().toISOString(),
+      criado_por: profile.user_id,
+      criado_por_nome: profile.nome,
+    });
+
+    onOpenChange(false);
+    setSelectedLeadId("");
+    setLeadSearch("");
+    setFormData({
+      nome_empreendimento: "Empreendimento Exemplo",
+      representante_legal: "",
+      cpf_representante: "",
+      endereco: "",
+      vgvTotal: 50000000,
+      unidades: 200,
+      ticketMedio: 250000,
+      comissaoIncorporador: 0,
+      hasRegistro: false,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="w-5 h-5 text-primary" />
+            Criar Nova Minuta
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          {/* Company selection */}
+          <div className="space-y-2">
+            <Label className="font-semibold">Selecionar Empresa (Contato Ativo)</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por razão social, nome fantasia ou CNPJ..."
+                value={leadSearch}
+                onChange={(e) => setLeadSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <ScrollArea className="max-h-40 border rounded-md">
+              {filteredLeads.length === 0 ? (
+                <p className="p-4 text-sm text-muted-foreground text-center">Nenhuma empresa encontrada</p>
+              ) : (
+                <div className="p-1">
+                  {filteredLeads.map((lead) => (
+                    <button
+                      key={lead.id}
+                      type="button"
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedLeadId === lead.id
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "hover:bg-muted"
+                      }`}
+                      onClick={() => handleSelectLead(lead.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{lead.razao_social}</p>
+                          <p className="text-xs text-muted-foreground">
+                            CNPJ: {lead.cnpj} • {lead.cidade}/{lead.estado}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+
+          {selectedLead && (
+            <>
+              {/* Auto-filled company data */}
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="pt-4 space-y-1 text-sm">
+                  <p><strong>Empresa:</strong> {selectedLead.razao_social}</p>
+                  {selectedLead.nome_fantasia && <p><strong>Nome Fantasia:</strong> {selectedLead.nome_fantasia}</p>}
+                  <p><strong>CNPJ:</strong> {selectedLead.cnpj}</p>
+                  <p><strong>Localização:</strong> {selectedLead.cidade}/{selectedLead.estado}</p>
+                </CardContent>
+              </Card>
+
+              {/* Editable fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Nome do Empreendimento</Label>
+                  <Input
+                    value={formData.nome_empreendimento}
+                    onChange={(e) => setFormData((p) => ({ ...p, nome_empreendimento: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Endereço</Label>
+                  <Input
+                    value={formData.endereco}
+                    onChange={(e) => setFormData((p) => ({ ...p, endereco: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Representante Legal</Label>
+                  <Input
+                    value={formData.representante_legal}
+                    onChange={(e) => setFormData((p) => ({ ...p, representante_legal: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>CPF do Representante</Label>
+                  <Input
+                    value={formData.cpf_representante}
+                    onChange={(e) => setFormData((p) => ({ ...p, cpf_representante: e.target.value }))}
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+              </div>
+
+              {/* Mock project data */}
+              <div>
+                <Label className="font-semibold">Dados do Projeto (editáveis)</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">VGV Total (R$)</Label>
+                    <Input
+                      type="number"
+                      value={formData.vgvTotal}
+                      onChange={(e) => setFormData((p) => ({ ...p, vgvTotal: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Unidades</Label>
+                    <Input
+                      type="number"
+                      value={formData.unidades}
+                      onChange={(e) => setFormData((p) => ({ ...p, unidades: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Ticket Médio (R$)</Label>
+                    <Input
+                      type="number"
+                      value={formData.ticketMedio}
+                      onChange={(e) => setFormData((p) => ({ ...p, ticketMedio: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Comissão Inc. (%)</Label>
+                    <Input
+                      type="number"
+                      value={formData.comissaoIncorporador}
+                      onChange={(e) => setFormData((p) => ({ ...p, comissaoIncorporador: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <input
+                    type="checkbox"
+                    id="hasRegistro"
+                    checked={formData.hasRegistro}
+                    onChange={(e) => setFormData((p) => ({ ...p, hasRegistro: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Label htmlFor="hasRegistro" className="text-sm">Incluir cláusula de Registro</Label>
+                </div>
+              </div>
+
+              <Button onClick={handleCreate} className="w-full" disabled={!formData.nome_empreendimento}>
+                <FileText className="w-4 h-4 mr-2" />
+                Criar Minuta
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ==========================================
 // MINUTA DETAIL DIALOG
 // ==========================================
 
