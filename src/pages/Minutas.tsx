@@ -1,0 +1,523 @@
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useMinutas, type Minuta, type Clausula } from "@/hooks/useMinutas";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  FileText,
+  Pencil,
+  Trash2,
+  Plus,
+  GripVertical,
+  Download,
+  Eye,
+  ArrowUp,
+  ArrowDown,
+  Search,
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// ==========================================
+// PDF GENERATION
+// ==========================================
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+function formatPercent(value: number): string {
+  return `${value.toFixed(2)}%`;
+}
+
+function generateMinutaHtml(minuta: Minuta): string {
+  const dataFormatada = minuta.data_assinatura
+    ? format(new Date(minuta.data_assinatura), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+    : format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+
+  const enderecoCompleto = [minuta.endereco, minuta.cidade, minuta.estado]
+    .filter(Boolean)
+    .join(", ");
+
+  const projeto = (minuta.dados_projeto || {}) as Record<string, number | boolean | string>;
+
+  const clausulasHtml = minuta.clausulas
+    .map(
+      (c) => `
+    <h2 class="section-title">${c.titulo}</h2>
+    <div style="margin-bottom: 24px; white-space: pre-line;">${c.conteudo}</div>
+  `
+    )
+    .join("\n");
+
+  const condicoesRows = [
+    `<tr><td>Empreendimento:</td><td class="right">${minuta.nome_empreendimento}</td></tr>`,
+    projeto.vgvTotal ? `<tr><td>Estimativa de VGV Potencial:</td><td class="right">${formatCurrency(Number(projeto.vgvTotal))}</td></tr>` : "",
+    projeto.unidades ? `<tr><td>Estimativa de unidades potenciais:</td><td class="right">${projeto.unidades} unidades</td></tr>` : "",
+    projeto.ticketMedio ? `<tr><td>Ticket médio estimado:</td><td class="right">${formatCurrency(Number(projeto.ticketMedio))}</td></tr>` : "",
+    Number(projeto.comissaoIncorporador) > 0 ? `<tr><td>Comissão da incorporadora:</td><td class="right">${formatPercent(Number(projeto.comissaoIncorporador))}</td></tr>` : "",
+  ].filter(Boolean).join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Minuta_${minuta.empresa_nome.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_")}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; font-size: 11pt; line-height: 1.6; color: #000; background: white; padding: 40px 50px; }
+    h1, h2 { font-weight: 700; }
+    p { margin-bottom: 8px; text-align: justify; }
+    .header { display: flex; justify-content: flex-end; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #FF774A; }
+    .header p { color: #666; font-size: 10pt; }
+    .title { text-align: center; font-size: 14pt; color: #FF774A; font-weight: 700; margin-bottom: 32px; }
+    .box { padding: 16px; margin-bottom: 16px; border-left: 3px solid #FF774A; background: #fafafa; }
+    .section-title { color: #FF774A; font-weight: 700; margin-bottom: 12px; margin-top: 24px; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table td { padding: 12px; }
+    .table tr:not(:last-child) { border-bottom: 1px solid #eee; }
+    .table .right { text-align: right; font-weight: 700; }
+    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 32px 0; }
+    .sig-box { padding: 16px; border: 1px solid #eee; border-radius: 4px; background: #fafafa; }
+    .sig-box .name { color: #FF774A; font-weight: 700; margin-bottom: 4px; }
+    .sig-box .cnpj { font-size: 10pt; margin-bottom: 16px; }
+    .sig-line { border-bottom: 1px solid #000; height: 32px; margin-bottom: 8px; }
+    .footer { text-align: center; padding: 16px; margin-top: 32px; background: #fafafa; border-radius: 4px; }
+    .footer p { font-size: 9pt; font-style: italic; color: #666; }
+    @media print { body { padding: 20px 30px; } @page { margin: 15mm; size: A4; } }
+  </style>
+</head>
+<body>
+  <div class="header"><p>São Paulo, ${dataFormatada}</p></div>
+  <h1 class="title">CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE INTERMEDIAÇÃO DE CRÉDITO IMOBILIÁRIO, REPASSE E REGISTRO</h1>
+
+  <p>Pelo presente instrumento particular e na melhor forma de direito, de um lado:</p>
+  <div class="box">
+    <p><strong>LOFT INTERMEDIADORA LTDA</strong>, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob nº <strong>04.113.052/0001-25</strong>, com sede na cidade de São Paulo/SP, doravante denominada simplesmente "<strong>CONTRATADA</strong>" ou "<strong>LOFT</strong>";</p>
+  </div>
+  <p>E, de outro lado:</p>
+  <div class="box">
+    <p><strong>${minuta.empresa_nome}</strong>${minuta.nome_fantasia ? `, nome fantasia "${minuta.nome_fantasia}"` : ""}, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob nº <strong>${minuta.cnpj || "___"}</strong>, com sede em ${enderecoCompleto || "___"}, neste ato representada por seu(sua) representante legal, <strong>${minuta.representante_legal || "___"}</strong>, portador(a) do CPF nº <strong>${minuta.cpf_representante || "___"}</strong>, doravante denominada simplesmente "<strong>CONTRATANTE</strong>" ou "<strong>INCORPORADORA</strong>";</p>
+  </div>
+  <p style="margin-bottom: 32px;">Têm entre si, justo e acordado, celebrar o presente Contrato de Prestação de Serviços de Intermediação de Crédito Imobiliário, Repasse e Registro, referente ao empreendimento "<strong>${minuta.nome_empreendimento}</strong>".</p>
+
+  ${condicoesRows ? `<div class="box"><table class="table">${condicoesRows}</table></div>` : ""}
+
+  ${clausulasHtml}
+
+  <p style="margin-top: 32px;">E, por estarem assim justas e contratadas, as partes assinam o presente instrumento em 2 (duas) vias de igual teor e forma.</p>
+  <p style="text-align: center; margin: 32px 0;">São Paulo, ${dataFormatada}.</p>
+
+  <h2 style="text-align: center; color: #FF774A; text-decoration: underline; margin-bottom: 24px;">ASSINATURAS</h2>
+  <div class="signatures">
+    <div class="sig-box">
+      <p class="name">LOFT INTERMEDIADORA LTDA</p>
+      <p class="cnpj">CNPJ: 04.113.052/0001-25</p>
+      <div class="sig-line"></div>
+      <p style="font-size: 10pt;">Nome: _________________________</p>
+      <p style="font-size: 10pt;">Cargo: _________________________</p>
+    </div>
+    <div class="sig-box">
+      <p class="name">${minuta.empresa_nome}</p>
+      <p class="cnpj">CNPJ: ${minuta.cnpj || "___"}</p>
+      <div class="sig-line"></div>
+      <p style="font-size: 10pt;">Nome: ${minuta.representante_legal || "___"}</p>
+      <p style="font-size: 10pt;">CPF: ${minuta.cpf_representante || "___"}</p>
+    </div>
+  </div>
+  <h2 style="font-weight: 700; margin-bottom: 16px;">TESTEMUNHAS:</h2>
+  <div class="signatures">
+    <div><div class="sig-line"></div><p style="font-size: 10pt;">Nome: _________________________</p><p style="font-size: 10pt;">CPF: _________________________</p></div>
+    <div><div class="sig-line"></div><p style="font-size: 10pt;">Nome: _________________________</p><p style="font-size: 10pt;">CPF: _________________________</p></div>
+  </div>
+  <div class="footer">
+    <p>"Ao assinar este documento, as partes concordam integralmente com as condições comerciais aprovadas na simulação de viabilidade."</p>
+    <p style="margin-top: 8px; font-style: normal; color: #999;">Contrato #${minuta.numero_contrato}</p>
+  </div>
+</body>
+</html>`;
+}
+
+function exportMinutaPdf(minuta: Minuta) {
+  const html = generateMinutaHtml(minuta);
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+  printWindow.document.write(html);
+  printWindow.document.close();
+  setTimeout(() => {
+    printWindow.print();
+  }, 500);
+}
+
+// ==========================================
+// CLAUSE EDITOR COMPONENT
+// ==========================================
+
+interface ClausulaEditorProps {
+  clausulas: Clausula[];
+  onChange: (clausulas: Clausula[]) => void;
+}
+
+function ClausulaEditor({ clausulas, onChange }: ClausulaEditorProps) {
+  const moveClausula = (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= clausulas.length) return;
+    const updated = [...clausulas];
+    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+    onChange(updated);
+  };
+
+  const updateClausula = (index: number, field: "titulo" | "conteudo", value: string) => {
+    const updated = [...clausulas];
+    updated[index] = { ...updated[index], [field]: value };
+    onChange(updated);
+  };
+
+  const removeClausula = (index: number) => {
+    onChange(clausulas.filter((_, i) => i !== index));
+  };
+
+  const addClausula = () => {
+    onChange([
+      ...clausulas,
+      {
+        id: crypto.randomUUID(),
+        titulo: "NOVA CLÁUSULA",
+        conteudo: "",
+      },
+    ]);
+  };
+
+  return (
+    <div className="space-y-4">
+      {clausulas.map((clausula, index) => (
+        <Card key={clausula.id} className="border-border/50">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <Input
+                value={clausula.titulo}
+                onChange={(e) => updateClausula(index, "titulo", e.target.value)}
+                className="font-semibold text-sm border-none shadow-none px-0 h-auto focus-visible:ring-0"
+                style={{ color: "hsl(var(--primary))" }}
+              />
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => moveClausula(index, "up")}
+                  disabled={index === 0}
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => moveClausula(index, "down")}
+                  disabled={index === clausulas.length - 1}
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir cláusula?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. A cláusula "{clausula.titulo}" será removida.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => removeClausula(index)}>Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Textarea
+              value={clausula.conteudo}
+              onChange={(e) => updateClausula(index, "conteudo", e.target.value)}
+              className="min-h-[120px] text-sm"
+              placeholder="Conteúdo da cláusula..."
+            />
+          </CardContent>
+        </Card>
+      ))}
+
+      <Button variant="outline" onClick={addClausula} className="w-full border-dashed">
+        <Plus className="w-4 h-4 mr-2" />
+        Adicionar Cláusula
+      </Button>
+    </div>
+  );
+}
+
+// ==========================================
+// MINUTA DETAIL DIALOG
+// ==========================================
+
+interface MinutaDetailDialogProps {
+  minuta: Minuta | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (minuta: Minuta) => void;
+}
+
+function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetailDialogProps) {
+  const [editedClausulas, setEditedClausulas] = useState<Clausula[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleOpen = (isOpen: boolean) => {
+    if (isOpen && minuta) {
+      setEditedClausulas([...minuta.clausulas]);
+      setIsEditing(false);
+    }
+    onOpenChange(isOpen);
+  };
+
+  if (!minuta) return null;
+
+  const handleSave = () => {
+    onSave({ ...minuta, clausulas: editedClausulas });
+    setIsEditing(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            {minuta.nome_empreendimento} — {minuta.empresa_nome}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">Contrato #{minuta.numero_contrato}</p>
+        </DialogHeader>
+
+        <div className="flex items-center gap-2 border-b pb-3">
+          <Button
+            variant={isEditing ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              if (!isEditing) {
+                setEditedClausulas([...minuta.clausulas]);
+              }
+              setIsEditing(!isEditing);
+            }}
+          >
+            <Pencil className="w-4 h-4 mr-1" />
+            {isEditing ? "Editando..." : "Editar Cláusulas"}
+          </Button>
+          {isEditing && (
+            <Button size="sm" onClick={handleSave}>
+              Salvar Alterações
+            </Button>
+          )}
+          <div className="ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportMinutaPdf(isEditing ? { ...minuta, clausulas: editedClausulas } : minuta)}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Exportar PDF
+            </Button>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1">
+          <div className="py-4">
+            {isEditing ? (
+              <ClausulaEditor clausulas={editedClausulas} onChange={setEditedClausulas} />
+            ) : (
+              <div className="space-y-6">
+                {minuta.clausulas.map((clausula) => (
+                  <div key={clausula.id}>
+                    <h3 className="font-bold text-sm mb-2" style={{ color: "hsl(var(--primary))" }}>
+                      {clausula.titulo}
+                    </h3>
+                    <p className="text-sm whitespace-pre-line text-muted-foreground leading-relaxed">
+                      {clausula.conteudo}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ==========================================
+// MAIN PAGE
+// ==========================================
+
+export default function Minutas() {
+  const { minutas, isLoading, updateMinuta } = useMinutas();
+  const [selectedMinuta, setSelectedMinuta] = useState<Minuta | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredMinutas = minutas.filter(
+    (m) =>
+      m.nome_empreendimento.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.empresa_nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.numero_contrato.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSave = (updated: Minuta) => {
+    updateMinuta.mutate({
+      id: updated.id,
+      clausulas: updated.clausulas,
+    });
+    setSelectedMinuta(updated);
+  };
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Minutas</h1>
+            <p className="text-muted-foreground text-sm">
+              Contratos editáveis gerados a partir do simulador de viabilidade
+            </p>
+          </div>
+          <Badge variant="secondary">{minutas.length} minutas</Badge>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por empreendimento, empresa ou contrato..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* List */}
+        {isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-48" />
+            ))}
+          </div>
+        ) : filteredMinutas.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <FileText className="w-12 h-12 text-muted-foreground/40 mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-1">
+                {searchTerm ? "Nenhuma minuta encontrada" : "Nenhuma minuta disponível"}
+              </h3>
+              <p className="text-sm text-muted-foreground/70 max-w-md">
+                As minutas são criadas automaticamente ao aprovar um projeto no simulador de viabilidade.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredMinutas.map((minuta) => (
+              <Card
+                key={minuta.id}
+                className="hover:shadow-md transition-shadow cursor-pointer group"
+                onClick={() => {
+                  setSelectedMinuta(minuta);
+                  setDialogOpen(true);
+                }}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 min-w-0">
+                      <CardTitle className="text-sm font-semibold truncate">
+                        {minuta.nome_empreendimento}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground truncate">{minuta.empresa_nome}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs flex-shrink-0">
+                      #{minuta.numero_contrato.split("-").pop()}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span>{minuta.clausulas.length} cláusulas</span>
+                    <span>•</span>
+                    <span>
+                      {format(new Date(minuta.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70">
+                    Criado por {minuta.criado_por_nome}
+                  </p>
+                  <div className="flex items-center gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs">
+                      <Eye className="w-3.5 h-3.5 mr-1" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        exportMinutaPdf(minuta);
+                      }}
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      PDF
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <MinutaDetailDialog
+        minuta={selectedMinuta}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSave={handleSave}
+      />
+    </AppLayout>
+  );
+}
