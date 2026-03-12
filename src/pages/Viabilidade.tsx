@@ -90,6 +90,8 @@ import {
   ResultadosSidebar,
 } from "@/components/simulador";
 import { ContratoLoftDialog } from "@/components/contrato/ContratoLoft";
+import { getDefaultClausulas } from "@/hooks/useMinutas";
+import { generateContractNumber } from "@/lib/contractPdfGenerator";
 
 interface ViabilidadeRow {
   id: string;
@@ -413,11 +415,39 @@ const Viabilidade = () => {
             });
         }
       }
-      
+      // Criar minuta automaticamente
+      const hasRegistro = inputs.registroTipo === "internalizado";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from("minutas") as any).insert({
+        viabilidade_id: selectedViabilidade.id,
+        negotiation_id: selectedViabilidade.empresa_id ? (
+          await supabase.from("negotiations").select("id").eq("viabilidade_id", selectedViabilidade.id).maybeSingle()
+        ).data?.id || null : null,
+        nome_empreendimento: selectedViabilidade.nome_empreendimento,
+        empresa_nome: selectedViabilidade.empresa_nome || "",
+        cnpj: selectedViabilidade.cnpj,
+        endereco: selectedViabilidade.endereco,
+        cidade: selectedViabilidade.cidade,
+        estado: selectedViabilidade.estado,
+        dados_projeto: {
+          vgvTotal: inputs.vgv,
+          unidades: inputs.unidades,
+          ticketMedio: ticketMedio,
+          comissaoIncorporador: inputs.comissaoIncorporador,
+          valorRegistroPorUnidade: inputs.valorRegistroPorUnidade,
+          receitaRegistroTotal: inputs.valorRegistroPorUnidade * inputs.unidades,
+          hasRegistro,
+        },
+        clausulas: getDefaultClausulas(hasRegistro),
+        numero_contrato: generateContractNumber(),
+        criado_por: user.id,
+        criado_por_nome: profile?.nome || "",
+      });
+
       fetchViabilidades();
       toast({
         title: "Viabilidade aprovada!",
-        description: "Negociação criada. O contrato pode ser enviado separadamente.",
+        description: "Negociação e minuta criadas. O contrato pode ser editado na aba Minutas.",
       });
     } catch (error) {
       console.error("Error approving viabilidade:", error);
