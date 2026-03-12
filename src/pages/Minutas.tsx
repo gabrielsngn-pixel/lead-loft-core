@@ -841,7 +841,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
 // ==========================================
 
 export default function Minutas() {
-  const { minutas, isLoading, updateMinuta, createMinuta } = useMinutas();
+  const { minutas, isLoading, updateMinuta, createMinuta, deleteMinuta } = useMinutas();
   const [selectedMinuta, setSelectedMinuta] = useState<Minuta | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
