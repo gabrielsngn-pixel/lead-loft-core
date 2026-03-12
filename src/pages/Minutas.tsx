@@ -858,6 +858,16 @@ export default function Minutas() {
     updateMinuta.mutate({
       id: updated.id,
       clausulas: updated.clausulas,
+      nome_empreendimento: updated.nome_empreendimento,
+      empresa_nome: updated.empresa_nome,
+      cnpj: updated.cnpj,
+      endereco: updated.endereco,
+      cidade: updated.cidade,
+      estado: updated.estado,
+      representante_legal: updated.representante_legal,
+      cpf_representante: updated.cpf_representante,
+      nome_fantasia: updated.nome_fantasia,
+      dados_projeto: updated.dados_projeto,
     });
     setSelectedMinuta(updated);
   };
