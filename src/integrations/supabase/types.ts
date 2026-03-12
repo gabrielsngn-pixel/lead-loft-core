@@ -931,6 +931,96 @@ export type Database = {
           },
         ]
       }
+      minutas: {
+        Row: {
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          cidade: string | null
+          clausulas: Json
+          cnpj: string | null
+          cpf_representante: string | null
+          created_at: string
+          criado_por: string
+          criado_por_nome: string
+          dados_projeto: Json | null
+          data_assinatura: string | null
+          empresa_nome: string
+          endereco: string | null
+          estado: string | null
+          id: string
+          negotiation_id: string | null
+          nome_empreendimento: string
+          nome_fantasia: string | null
+          numero_contrato: string
+          representante_legal: string | null
+          updated_at: string
+          viabilidade_id: string | null
+        }
+        Insert: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cidade?: string | null
+          clausulas?: Json
+          cnpj?: string | null
+          cpf_representante?: string | null
+          created_at?: string
+          criado_por: string
+          criado_por_nome: string
+          dados_projeto?: Json | null
+          data_assinatura?: string | null
+          empresa_nome: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          negotiation_id?: string | null
+          nome_empreendimento: string
+          nome_fantasia?: string | null
+          numero_contrato: string
+          representante_legal?: string | null
+          updated_at?: string
+          viabilidade_id?: string | null
+        }
+        Update: {
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cidade?: string | null
+          clausulas?: Json
+          cnpj?: string | null
+          cpf_representante?: string | null
+          created_at?: string
+          criado_por?: string
+          criado_por_nome?: string
+          dados_projeto?: Json | null
+          data_assinatura?: string | null
+          empresa_nome?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          negotiation_id?: string | null
+          nome_empreendimento?: string
+          nome_fantasia?: string | null
+          numero_contrato?: string
+          representante_legal?: string | null
+          updated_at?: string
+          viabilidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "minutas_negotiation_id_fkey"
+            columns: ["negotiation_id"]
+            isOneToOne: false
+            referencedRelation: "negotiations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "minutas_viabilidade_id_fkey"
+            columns: ["viabilidade_id"]
+            isOneToOne: false
+            referencedRelation: "viabilidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       negotiations: {
         Row: {
           atualizado_por: string | null
