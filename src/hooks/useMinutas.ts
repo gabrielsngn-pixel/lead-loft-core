@@ -115,28 +115,27 @@ export function useMinutas() {
 
   const createMinuta = useMutation({
     mutationFn: async (minuta: Omit<Minuta, "id" | "created_at" | "updated_at" | "atualizado_por" | "atualizado_por_nome">) => {
-      const payload = {
-        negotiation_id: minuta.negotiation_id,
-        viabilidade_id: minuta.viabilidade_id,
-        nome_empreendimento: minuta.nome_empreendimento,
-        empresa_nome: minuta.empresa_nome,
-        cnpj: minuta.cnpj,
-        endereco: minuta.endereco,
-        cidade: minuta.cidade,
-        estado: minuta.estado,
-        representante_legal: minuta.representante_legal,
-        cpf_representante: minuta.cpf_representante,
-        nome_fantasia: minuta.nome_fantasia,
-        dados_projeto: minuta.dados_projeto as unknown as null,
-        clausulas: JSON.parse(JSON.stringify(minuta.clausulas)) as unknown as null,
-        numero_contrato: minuta.numero_contrato,
-        data_assinatura: minuta.data_assinatura,
-        criado_por: minuta.criado_por,
-        criado_por_nome: minuta.criado_por_nome,
-      };
-      const { data, error } = await supabase
-        .from("minutas")
-        .insert([payload])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from("minutas") as any)
+        .insert({
+          negotiation_id: minuta.negotiation_id,
+          viabilidade_id: minuta.viabilidade_id,
+          nome_empreendimento: minuta.nome_empreendimento,
+          empresa_nome: minuta.empresa_nome,
+          cnpj: minuta.cnpj,
+          endereco: minuta.endereco,
+          cidade: minuta.cidade,
+          estado: minuta.estado,
+          representante_legal: minuta.representante_legal,
+          cpf_representante: minuta.cpf_representante,
+          nome_fantasia: minuta.nome_fantasia,
+          dados_projeto: minuta.dados_projeto,
+          clausulas: minuta.clausulas,
+          numero_contrato: minuta.numero_contrato,
+          data_assinatura: minuta.data_assinatura,
+          criado_por: minuta.criado_por,
+          criado_por_nome: minuta.criado_por_nome,
+        })
         .select()
         .single();
       if (error) throw error;
