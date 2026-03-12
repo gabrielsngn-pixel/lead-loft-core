@@ -841,7 +841,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
 // ==========================================
 
 export default function Minutas() {
-  const { minutas, isLoading, updateMinuta, createMinuta } = useMinutas();
+  const { minutas, isLoading, updateMinuta, createMinuta, deleteMinuta } = useMinutas();
   const [selectedMinuta, setSelectedMinuta] = useState<Minuta | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -977,6 +977,38 @@ export default function Minutas() {
                       <Download className="w-3.5 h-3.5 mr-1" />
                       PDF
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Excluir
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir minuta?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            A minuta "{minuta.nome_empreendimento} — {minuta.empresa_nome}" será excluída permanentemente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteMinuta.mutate(minuta.id);
+                            }}
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </Card>
