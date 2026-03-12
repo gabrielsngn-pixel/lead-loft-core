@@ -821,6 +821,12 @@ export default function Minutas() {
         onOpenChange={setDialogOpen}
         onSave={handleSave}
       />
+
+      <CreateMinutaDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreate={handleCreate}
+      />
     </AppLayout>
   );
 }
