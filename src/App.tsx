@@ -131,6 +131,11 @@ const App = () => (
                 <ContatosExcluidos />
               </ProtectedRoute>
             } />
+            <Route path="/minutas" element={
+              <ProtectedRoute>
+                <Minutas />
+              </ProtectedRoute>
+            } />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

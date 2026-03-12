@@ -52,6 +52,7 @@ const mainMenuItems = [
   { title: "Central de Materiais", url: "/materiais", icon: BookOpen },
   { title: "Reuniões & Atas", url: "/reunioes", icon: ClipboardList },
   { title: "Script de Atendimento", url: "/script", icon: MessageSquareText },
+  { title: "Minutas", url: "/minutas", icon: FileText },
 ];
 
 const settingsItems = [
