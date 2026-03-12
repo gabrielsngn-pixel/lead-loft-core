@@ -153,13 +153,25 @@ export function useMinutas() {
   const updateMinuta = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Minuta> & { id: string }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: Record<string, unknown> = {
+        atualizado_por: profile?.user_id,
+        atualizado_por_nome: profile?.nome,
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.clausulas !== undefined) payload.clausulas = updates.clausulas;
+      if (updates.nome_empreendimento !== undefined) payload.nome_empreendimento = updates.nome_empreendimento;
+      if (updates.empresa_nome !== undefined) payload.empresa_nome = updates.empresa_nome;
+      if (updates.cnpj !== undefined) payload.cnpj = updates.cnpj;
+      if (updates.endereco !== undefined) payload.endereco = updates.endereco;
+      if (updates.cidade !== undefined) payload.cidade = updates.cidade;
+      if (updates.estado !== undefined) payload.estado = updates.estado;
+      if (updates.representante_legal !== undefined) payload.representante_legal = updates.representante_legal;
+      if (updates.cpf_representante !== undefined) payload.cpf_representante = updates.cpf_representante;
+      if (updates.nome_fantasia !== undefined) payload.nome_fantasia = updates.nome_fantasia;
+      if (updates.dados_projeto !== undefined) payload.dados_projeto = updates.dados_projeto;
+
       const { error } = await (supabase.from("minutas") as any)
-        .update({
-          clausulas: updates.clausulas,
-          atualizado_por: profile?.user_id,
-          atualizado_por_nome: profile?.nome,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq("id", id);
       if (error) throw error;
     },
