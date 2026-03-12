@@ -24,6 +24,7 @@ import EsteiraProjetos from "./pages/EsteiraProjetos";
 import Empreendimentos from "./pages/Empreendimentos";
 import ResumoExecutivo from "./pages/ResumoExecutivo";
 import ContatosExcluidos from "./pages/ContatosExcluidos";
+import Minutas from "./pages/Minutas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
