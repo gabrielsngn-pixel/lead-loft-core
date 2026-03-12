@@ -670,7 +670,7 @@ function MinutaDetailDialog({ minuta, open, onOpenChange, onSave }: MinutaDetail
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
