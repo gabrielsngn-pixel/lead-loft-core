@@ -136,7 +136,7 @@ export function useMinutas() {
       };
       const { data, error } = await supabase
         .from("minutas")
-        .insert(payload)
+        .insert([payload])
         .select()
         .single();
       if (error) throw error;
