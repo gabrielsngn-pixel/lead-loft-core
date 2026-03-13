@@ -1540,6 +1540,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_approved_consultants: {
+        Args: never
+        Returns: {
+          email: string
+          nome: string
+          role: string
+          user_id: string
+        }[]
+      }
       get_master_user: {
         Args: never
         Returns: {

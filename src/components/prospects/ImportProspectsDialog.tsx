@@ -92,13 +92,7 @@ export function ImportProspectsDialog({
   const fetchConsultants = async () => {
     setFetchingConsultants(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, nome, email, role")
-        .neq("role", "pending")
-        .order("nome");
-
-      console.log("Consultores carregados:", data?.length, "erro:", error);
+      const { data, error } = await supabase.rpc("get_approved_consultants");
 
       if (error) {
         console.error("Erro ao buscar consultores:", error);
