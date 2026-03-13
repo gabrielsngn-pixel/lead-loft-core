@@ -463,7 +463,7 @@ export function ImportProspectsDialog({
           <DialogDescription>
             {step === "review"
               ? `${flaggedRows.length} registro(s) pertencem a empresas já cadastradas. Revise antes de importar.`
-              : "Importe prospects diretamente do Apollo.io usando o arquivo CSV exportado."}
+              : "Importe prospects do Apollo.io usando arquivo CSV ou XLSX exportado."}
           </DialogDescription>
         </DialogHeader>
 
