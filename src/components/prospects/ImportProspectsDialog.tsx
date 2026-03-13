@@ -166,42 +166,22 @@ export function ImportProspectsDialog({
     return result;
   };
 
-  const parseCSV = (text: string): ProspectCSVRow[] => {
-    const lines = text.split("\n").filter((line) => line.trim());
-    if (lines.length < 2) return [];
+  /** Normalize headers from both CSV and XLSX into rows of key-value objects */
+  const normalizeRows = (rawRows: Record<string, string>[]): { rows: ProspectCSVRow[]; consultorLoftValues: string[] } => {
+    if (rawRows.length === 0) return { rows: [], consultorLoftValues: [] };
 
-    const headers = parseCSVLine(lines[0]).map((h) =>
-      h.toLowerCase().replace(/\s+/g, "_")
-    );
+    const consultorLoftValues: string[] = [];
 
-    const requiredMappings: Record<string, string[]> = {
-      first_name: ["first_name"],
-      last_name: ["last_name"],
-      title: ["title"],
-      company_name: ["company_name"],
-      email: ["email"],
-      person_linkedin_url: ["person_linkedin_url"],
-    };
-
-    for (const [key, possibleNames] of Object.entries(requiredMappings)) {
-      const found = possibleNames.some((name) => headers.includes(name));
-      if (!found) {
-        throw new Error(
-          `Coluna obrigatória ausente: ${key.replace(/_/g, " ")}`
-        );
+    const requiredKeys = ["first_name", "last_name", "title", "company_name", "email", "person_linkedin_url"];
+    const sampleKeys = Object.keys(rawRows[0]);
+    for (const key of requiredKeys) {
+      if (!sampleKeys.includes(key)) {
+        throw new Error(`Coluna obrigatória ausente: ${key.replace(/_/g, " ")}`);
       }
     }
 
     const rows: ProspectCSVRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      if (values.length < 6) continue;
-
-      const row: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || "";
-      });
-
+    for (const row of rawRows) {
       const firstName = row["first_name"] || "";
       const lastName = row["last_name"] || "";
       const nomeCompleto = `${firstName} ${lastName}`.trim();
@@ -215,6 +195,10 @@ export function ImportProspectsDialog({
         row["corporate_phone"] ||
         row["company_phone"] ||
         "";
+
+      // Capture "Consultor Loft" column
+      const consultorLoft = row["consultor_loft"] || "";
+      if (consultorLoft) consultorLoftValues.push(consultorLoft);
 
       if (!nomeCompleto || !cargo || !empresa || !email || !linkedinUrl) {
         continue;
@@ -230,16 +214,56 @@ export function ImportProspectsDialog({
       });
     }
 
-    return rows;
+    return { rows, consultorLoftValues };
+  };
+
+  const parseCSVToObjects = (text: string): Record<string, string>[] => {
+    const lines = text.split("\n").filter((line) => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = parseCSVLine(lines[0]).map((h) =>
+      h.toLowerCase().replace(/\s+/g, "_")
+    );
+
+    const objects: Record<string, string>[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      if (values.length < 6) continue;
+      const obj: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        obj[header] = values[index] || "";
+      });
+      objects.push(obj);
+    }
+    return objects;
+  };
+
+  const parseXLSXToObjects = async (file: File): Promise<Record<string, string>[]> => {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
+
+    // Normalize headers to snake_case
+    return jsonData.map((row) => {
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(row)) {
+        const normalizedKey = key.toLowerCase().replace(/\s+/g, "_");
+        normalized[normalizedKey] = String(value ?? "");
+      }
+      return normalized;
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.name.endsWith(".csv")) {
+      const ext = selectedFile.name.split(".").pop()?.toLowerCase();
+      if (ext !== "csv" && ext !== "xlsx" && ext !== "xls") {
         toast({
           title: "Formato inválido",
-          description: "Por favor, selecione um arquivo CSV",
+          description: "Por favor, selecione um arquivo CSV ou XLSX",
           variant: "destructive",
         });
         return;
@@ -248,6 +272,7 @@ export function ImportProspectsDialog({
       setResult(null);
       setStep("upload");
       setReviewRows([]);
+      setDetectedConsultor(null);
     }
   };
 
@@ -256,11 +281,40 @@ export function ImportProspectsDialog({
 
     setLoading(true);
     try {
-      const text = await file.text();
-      const rows = parseCSV(text);
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      let rawRows: Record<string, string>[];
+
+      if (ext === "xlsx" || ext === "xls") {
+        rawRows = await parseXLSXToObjects(file);
+      } else {
+        const text = await file.text();
+        rawRows = parseCSVToObjects(text);
+      }
+
+      const { rows, consultorLoftValues } = normalizeRows(rawRows);
 
       if (rows.length === 0) {
         throw new Error("Nenhum registro válido encontrado no arquivo");
+      }
+
+      // Auto-detect "Consultor Loft" and suggest matching consultant
+      if (consultorLoftValues.length > 0 && !selectedConsultant) {
+        // Get the most common value
+        const counts: Record<string, number> = {};
+        consultorLoftValues.forEach((v) => {
+          const key = v.trim().toLowerCase();
+          counts[key] = (counts[key] || 0) + 1;
+        });
+        const mostCommon = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+
+        // Try to find matching consultant by name (fuzzy)
+        const match = consultants.find(
+          (c) => c.nome.toLowerCase().includes(mostCommon) || mostCommon.includes(c.nome.toLowerCase())
+        );
+        if (match) {
+          setSelectedConsultant(match.id);
+          setDetectedConsultor(match.nome);
+        }
       }
 
       // Fetch existing companies from prospects and leads
@@ -304,7 +358,7 @@ export function ImportProspectsDialog({
         return {
           ...row,
           index,
-          selected: !companyFlag, // Auto-deselect flagged ones
+          selected: !companyFlag,
           companyFlag,
           companyFlagLabel,
         };
@@ -316,7 +370,6 @@ export function ImportProspectsDialog({
       if (flaggedCount > 0) {
         setStep("review");
       } else {
-        // No conflicts, import directly
         await executeImport(reviewed);
       }
     } catch (error: any) {
