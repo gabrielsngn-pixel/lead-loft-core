@@ -47,6 +47,7 @@ interface ReviewRow extends ProspectCSVRow {
   selected: boolean;
   companyFlag?: "prospects" | "contatos" | "both";
   companyFlagLabel?: string;
+  consultorLoft?: string;
 }
 
 interface ImportProspectsDialogProps {
