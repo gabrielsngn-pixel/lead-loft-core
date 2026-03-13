@@ -547,6 +547,15 @@ export function ImportProspectsDialog({
           {/* STEP: Review */}
           {step === "review" && (
             <div className="flex-1 overflow-hidden flex flex-col gap-3 py-2">
+              {/* Detected consultant notice */}
+              {detectedConsultor && (
+                <Alert>
+                  <UserCheck className="h-4 w-4" />
+                  <AlertDescription>
+                    Consultor <strong>{detectedConsultor}</strong> detectado na coluna "Consultor Loft" e pré-selecionado.
+                  </AlertDescription>
+                </Alert>
+              )}
               {/* Summary bar */}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
