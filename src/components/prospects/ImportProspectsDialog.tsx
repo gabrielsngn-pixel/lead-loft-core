@@ -443,9 +443,6 @@ export function ImportProspectsDialog({
     );
   };
 
-  const selectedConsultantObj = consultants.find(
-    (c) => c.id === selectedConsultant
-  );
 
   const flaggedRows = reviewRows.filter((r) => r.companyFlag);
   const unflaggedRows = reviewRows.filter((r) => !r.companyFlag);
