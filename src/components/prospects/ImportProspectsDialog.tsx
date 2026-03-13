@@ -119,6 +119,7 @@ export function ImportProspectsDialog({
       setSelectedConsultant("");
       setStep("upload");
       setReviewRows([]);
+      setDetectedConsultor(null);
       fetchConsultants();
 
       const limit = await checkLimit();
