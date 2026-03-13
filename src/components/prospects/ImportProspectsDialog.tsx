@@ -94,18 +94,20 @@ export function ImportProspectsDialog({
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, nome, email")
+        .select("user_id, nome, email, role")
         .neq("role", "pending")
         .order("nome");
+
+      console.log("Consultores carregados:", data?.length, "erro:", error);
 
       if (error) {
         console.error("Erro ao buscar consultores:", error);
         return;
       }
 
-      setConsultants(
-        (data || []).map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }))
-      );
+      const mapped = (data || []).map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }));
+      console.log("Consultores mapeados:", mapped);
+      setConsultants(mapped);
     } finally {
       setFetchingConsultants(false);
     }
