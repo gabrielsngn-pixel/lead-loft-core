@@ -543,15 +543,29 @@ export function ImportProspectsDialog({
           {/* STEP: Review */}
           {step === "review" && (
             <div className="flex-1 overflow-hidden flex flex-col gap-3 py-2">
-              {/* Detected consultant notice */}
-              {detectedConsultor && (
-                <Alert>
-                  <UserCheck className="h-4 w-4" />
-                  <AlertDescription>
-                    Consultor <strong>{detectedConsultor}</strong> detectado na coluna "Consultor Loft" e pré-selecionado.
-                  </AlertDescription>
-                </Alert>
-              )}
+              {/* Consultant selector in review */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-2 text-xs">
+                  <UserCheck className="w-3.5 h-3.5 text-primary" />
+                  Consultor responsável
+                  {detectedConsultor && (
+                    <Badge variant="outline" className="text-[10px] ml-1">detectado: {detectedConsultor}</Badge>
+                  )}
+                </Label>
+                <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecionar consultor (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (atribuir depois)</SelectItem>
+                    {consultants.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome} ({c.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               {/* Summary bar */}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
