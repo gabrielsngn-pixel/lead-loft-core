@@ -181,6 +181,7 @@ export function useProspects() {
         criado_por_nome: profile.nome,
         ...(consultant
           ? {
+              consultor_responsavel_id: consultant.id,
               consultor_responsavel_nome: consultant.nome,
             }
           : {}),
