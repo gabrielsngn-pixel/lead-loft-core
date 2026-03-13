@@ -366,12 +366,8 @@ export function ImportProspectsDialog({
 
       setReviewRows(reviewed);
 
-      const flaggedCount = reviewed.filter((r) => r.companyFlag).length;
-      if (flaggedCount > 0) {
-        setStep("review");
-      } else {
-        await executeImport(reviewed);
-      }
+      // Always show review step so user can confirm consultant & selection
+      setStep("review");
     } catch (error: any) {
       toast({
         title: "Erro na análise",
