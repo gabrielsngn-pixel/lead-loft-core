@@ -99,16 +99,22 @@ export function ImportProspectsDialog({
         return;
       }
 
-      const mapped = (data || []).map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }));
-      console.log("Consultores mapeados:", mapped);
+      const mapped = (data || [])
+        .filter((d) => d.role === "consultor")
+        .map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }));
+
       setConsultants(mapped);
     } finally {
       setFetchingConsultants(false);
     }
   };
 
-  const handleOpenChange = async (newOpen: boolean) => {
-    if (newOpen) {
+  useEffect(() => {
+    if (!open) return;
+
+    let canceled = false;
+
+    const initializeDialog = async () => {
       setFile(null);
       setResult(null);
       setLimitError(null);
@@ -116,13 +122,23 @@ export function ImportProspectsDialog({
       setStep("upload");
       setReviewRows([]);
       setDetectedConsultor(null);
-      fetchConsultants();
+
+      await fetchConsultants();
 
       const limit = await checkLimit();
-      if (!limit.canImport) {
+      if (!canceled && !limit.canImport) {
         setLimitError(limit.message || "Limite de importação atingido");
       }
-    }
+    };
+
+    void initializeDialog();
+
+    return () => {
+      canceled = true;
+    };
+  }, [open, checkLimit]);
+
+  const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
   };
 
@@ -392,15 +408,7 @@ export function ImportProspectsDialog({
         return;
       }
 
-      const consultant =
-        selectedConsultant && selectedConsultant !== "none"
-          ? consultants.find((c) => c.id === selectedConsultant)
-          : undefined;
-
-      const importResult = await onImport(
-        selectedRows,
-        consultant ? { id: consultant.id, nome: consultant.nome } : undefined
-      );
+      const importResult = await onImport(selectedRows);
       setResult(importResult);
       setStep("result");
 
@@ -435,9 +443,6 @@ export function ImportProspectsDialog({
     );
   };
 
-  const selectedConsultantObj = consultants.find(
-    (c) => c.id === selectedConsultant
-  );
 
   const flaggedRows = reviewRows.filter((r) => r.companyFlag);
   const unflaggedRows = reviewRows.filter((r) => !r.companyFlag);
@@ -500,8 +505,7 @@ export function ImportProspectsDialog({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      O consultor selecionado será definido como proprietário de
-                      todos os prospects importados.
+                      É apenas uma sugestão para triagem; a apropriação do lead acontece na aba Prospects.
                     </p>
                   </div>
 
@@ -680,13 +684,6 @@ export function ImportProspectsDialog({
                     <>
                       {" "}
                       <strong>{result.ignored}</strong> ignorados (duplicados).
-                    </>
-                  )}
-                  {selectedConsultantObj && (
-                    <>
-                      {" "}
-                      Atribuídos a{" "}
-                      <strong>{selectedConsultantObj.nome}</strong>.
                     </>
                   )}
                 </AlertDescription>
