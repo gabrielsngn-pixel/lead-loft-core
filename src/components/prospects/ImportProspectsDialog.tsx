@@ -82,6 +82,7 @@ export function ImportProspectsDialog({
   const [fetchingConsultants, setFetchingConsultants] = useState(false);
   const [step, setStep] = useState<Step>("upload");
   const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
+  const [detectedConsultor, setDetectedConsultor] = useState<string | null>(null);
   const [result, setResult] = useState<{
     imported: number;
     ignored: number;
