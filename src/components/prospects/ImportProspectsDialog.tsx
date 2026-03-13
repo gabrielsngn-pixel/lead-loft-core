@@ -526,7 +526,7 @@ export function ImportProspectsDialog({
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xlsx,.xls"
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -536,7 +536,7 @@ export function ImportProspectsDialog({
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      {file ? file.name : "Selecionar Arquivo CSV"}
+                      {file ? file.name : "Selecionar Arquivo CSV ou XLSX"}
                     </Button>
                   </div>
                 </>
