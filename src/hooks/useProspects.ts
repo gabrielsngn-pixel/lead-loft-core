@@ -121,7 +121,10 @@ export function useProspects() {
     return { canImport: true };
   };
 
-  const importProspects = async (rows: ProspectCSVRow[]): Promise<{
+  const importProspects = async (
+    rows: ProspectCSVRow[],
+    consultant?: { id: string; nome: string }
+  ): Promise<{
     imported: number;
     ignored: number;
     reasons: Record<string, string>;
@@ -129,7 +132,6 @@ export function useProspects() {
     if (!profile || !isMaster) {
       throw new Error("Apenas usuários Master podem importar prospects");
     }
-
 
     // Get existing emails and linkedin URLs for deduplication
     const { data: existingProspects } = await supabase
@@ -156,7 +158,6 @@ export function useProspects() {
         continue;
       }
 
-      // Check within current batch
       if (toInsert.some(p => p.email.toLowerCase() === email)) {
         reasons[row.email] = "Email duplicado no arquivo";
         continue;
@@ -178,6 +179,12 @@ export function useProspects() {
         status: "novo",
         criado_por: profile.user_id,
         criado_por_nome: profile.nome,
+        ...(consultant && consultant.id !== "none"
+          ? {
+              consultor_responsavel_id: consultant.id,
+              consultor_responsavel_nome: consultant.nome,
+            }
+          : {}),
       });
 
       existingEmails.add(email);
