@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,14 +9,29 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Download, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Upload, Download, AlertCircle, CheckCircle, Loader2, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProspectCSVRow } from "@/types/prospects";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Consultant {
+  id: string;
+  nome: string;
+  email: string;
+}
 
 interface ImportProspectsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport: (rows: ProspectCSVRow[]) => Promise<{
+  onImport: (rows: ProspectCSVRow[], consultant?: { id: string; nome: string }) => Promise<{
     imported: number;
     ignored: number;
     reasons: Record<string, string>;
@@ -35,19 +50,45 @@ export function ImportProspectsDialog({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [limitError, setLimitError] = useState<string | null>(null);
+  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [selectedConsultant, setSelectedConsultant] = useState<string>("");
+  const [fetchingConsultants, setFetchingConsultants] = useState(false);
   const [result, setResult] = useState<{
     imported: number;
     ignored: number;
     reasons: Record<string, string>;
   } | null>(null);
 
+  const fetchConsultants = async () => {
+    setFetchingConsultants(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, nome, email")
+        .neq("role", "pending")
+        .order("nome");
+
+      if (error) {
+        console.error("Erro ao buscar consultores:", error);
+        return;
+      }
+
+      setConsultants(
+        (data || []).map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }))
+      );
+    } finally {
+      setFetchingConsultants(false);
+    }
+  };
+
   const handleOpenChange = async (newOpen: boolean) => {
     if (newOpen) {
       setFile(null);
       setResult(null);
       setLimitError(null);
+      setSelectedConsultant("");
+      fetchConsultants();
       
-      // Check import limit
       const limit = await checkLimit();
       if (!limit.canImport) {
         setLimitError(limit.message || "Limite de importação atingido");
@@ -57,7 +98,6 @@ export function ImportProspectsDialog({
   };
 
   const downloadTemplate = () => {
-    // Apollo.io exact header format
     const headers = "First Name,Last Name,Title,Company Name,Company Name for Emails,Email,Email Status,Primary Email Source,Primary Email Verification Source,Email Confidence,Primary Email Catch-all Status,Primary Email Last Verified At,Seniority,Departments,Contact Owner,Work Direct Phone,Home Phone,Mobile Phone,Corporate Phone,Other Phone,Stage,Lists,Last Contacted,Account Owner,# Employees,Industry,Keywords,Person Linkedin Url,Website,Company Linkedin Url,Facebook Url,Twitter Url,City,State,Country,Company Address,Company City,Company State,Company Country,Company Phone,Technologies,Annual Revenue,Total Funding,Latest Funding,Latest Funding Amount,Last Raised At,Subsidiary of,Email Sent,Email Open,Email Bounced,Replied,Demoed,Number of Retail Locations,Apollo Contact Id,Apollo Account Id,Secondary Email,Secondary Email Source,Secondary Email Status,Secondary Email Verification Source,Tertiary Email,Tertiary Email Source,Tertiary Email Status,Tertiary Email Verification Source,Qualify Contact";
     const example = "João,Silva,Diretor Comercial,ABC Incorporadora,ABC Incorporadora,joao@abc.com.br,Verified,Apollo,Apollo,,,2026-01-01T12:00:00+00:00,C suite,,user@email.com,,,11999998888,,,Cold,,,user@email.com,50,real estate,,https://linkedin.com/in/joaosilva,https://abc.com.br,,,,,São Paulo,SP,Brazil,,São Paulo,SP,Brazil,,,,,,,,,,,false,false,false,false,,,,,,,,,,,,";
     const csv = `${headers}\n${example}`;
@@ -75,7 +115,6 @@ export function ImportProspectsDialog({
     const lines = text.split("\n").filter(line => line.trim());
     if (lines.length < 2) return [];
 
-    // Parse headers (handle quoted values)
     const parseCSVLine = (line: string): string[] => {
       const result: string[] = [];
       let current = '';
@@ -98,7 +137,6 @@ export function ImportProspectsDialog({
 
     const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
     
-    // Apollo.io required columns mapping
     const requiredMappings = {
       first_name: ['first_name'],
       last_name: ['last_name'],
@@ -108,7 +146,6 @@ export function ImportProspectsDialog({
       person_linkedin_url: ['person_linkedin_url'],
     };
 
-    // Check for required Apollo columns
     for (const [key, possibleNames] of Object.entries(requiredMappings)) {
       const found = possibleNames.some(name => headers.includes(name));
       if (!found) {
@@ -119,14 +156,13 @@ export function ImportProspectsDialog({
     const rows: ProspectCSVRow[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values = parseCSVLine(lines[i]);
-      if (values.length < 6) continue; // Minimum required columns
+      if (values.length < 6) continue;
 
       const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || "";
       });
 
-      // Map Apollo columns to our format
       const firstName = row['first_name'] || '';
       const lastName = row['last_name'] || '';
       const nomeCompleto = `${firstName} ${lastName}`.trim();
@@ -134,11 +170,8 @@ export function ImportProspectsDialog({
       const empresa = row['company_name'] || '';
       const email = row['email'] || '';
       const linkedinUrl = row['person_linkedin_url'] || '';
-      
-      // Get phone from available columns (priority: mobile > work direct > corporate > company)
       const telefone = row['mobile_phone'] || row['work_direct_phone'] || row['corporate_phone'] || row['company_phone'] || '';
 
-      // Validate required fields
       if (!nomeCompleto || !cargo || !empresa || !email || !linkedinUrl) {
         continue;
       }
@@ -148,7 +181,7 @@ export function ImportProspectsDialog({
         cargo: cargo,
         empresa: empresa,
         email: email,
-        telefone: telefone.replace(/[^\d+]/g, ''), // Clean phone format
+        telefone: telefone.replace(/[^\d+]/g, ''),
         linkedin_url: linkedinUrl,
       });
     }
@@ -184,8 +217,14 @@ export function ImportProspectsDialog({
         throw new Error("Nenhum registro válido encontrado no arquivo");
       }
 
+      const consultant = selectedConsultant
+        ? consultants.find((c) => c.id === selectedConsultant)
+        : undefined;
 
-      const importResult = await onImport(rows);
+      const importResult = await onImport(
+        rows,
+        consultant ? { id: consultant.id, nome: consultant.nome } : undefined
+      );
       setResult(importResult);
       
       toast({
@@ -202,6 +241,8 @@ export function ImportProspectsDialog({
       setLoading(false);
     }
   };
+
+  const selectedConsultantObj = consultants.find((c) => c.id === selectedConsultant);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -221,6 +262,30 @@ export function ImportProspectsDialog({
             </Alert>
           ) : (
             <>
+              {/* Consultant Selector */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-primary" />
+                  Consultor responsável pela base
+                </Label>
+                <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={fetchingConsultants ? "Carregando..." : "Selecionar consultor (opcional)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (atribuir depois)</SelectItem>
+                    {consultants.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome} ({c.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  O consultor selecionado será definido como proprietário de todos os prospects importados.
+                </p>
+              </div>
+
               {/* Download Template */}
               <Button
                 variant="outline"
@@ -259,6 +324,9 @@ export function ImportProspectsDialog({
                       <strong>{result.imported}</strong> prospects importados.
                       {result.ignored > 0 && (
                         <> <strong>{result.ignored}</strong> ignorados (duplicados).</>
+                      )}
+                      {selectedConsultantObj && (
+                        <> Atribuídos a <strong>{selectedConsultantObj.nome}</strong>.</>
                       )}
                     </AlertDescription>
                   </Alert>
