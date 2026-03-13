@@ -99,16 +99,22 @@ export function ImportProspectsDialog({
         return;
       }
 
-      const mapped = (data || []).map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }));
-      console.log("Consultores mapeados:", mapped);
+      const mapped = (data || [])
+        .filter((d) => d.role === "consultor")
+        .map((d) => ({ id: d.user_id, nome: d.nome, email: d.email }));
+
       setConsultants(mapped);
     } finally {
       setFetchingConsultants(false);
     }
   };
 
-  const handleOpenChange = async (newOpen: boolean) => {
-    if (newOpen) {
+  useEffect(() => {
+    if (!open) return;
+
+    let canceled = false;
+
+    const initializeDialog = async () => {
       setFile(null);
       setResult(null);
       setLimitError(null);
@@ -116,13 +122,23 @@ export function ImportProspectsDialog({
       setStep("upload");
       setReviewRows([]);
       setDetectedConsultor(null);
-      fetchConsultants();
+
+      await fetchConsultants();
 
       const limit = await checkLimit();
-      if (!limit.canImport) {
+      if (!canceled && !limit.canImport) {
         setLimitError(limit.message || "Limite de importação atingido");
       }
-    }
+    };
+
+    void initializeDialog();
+
+    return () => {
+      canceled = true;
+    };
+  }, [open, checkLimit]);
+
+  const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
   };
 
