@@ -508,8 +508,7 @@ export function ImportProspectsDialog({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      O consultor selecionado será definido como proprietário de
-                      todos os prospects importados.
+                      É apenas uma sugestão para triagem; a apropriação do lead acontece na aba Prospects.
                     </p>
                   </div>
 
