@@ -408,15 +408,7 @@ export function ImportProspectsDialog({
         return;
       }
 
-      const consultant =
-        selectedConsultant && selectedConsultant !== "none"
-          ? consultants.find((c) => c.id === selectedConsultant)
-          : undefined;
-
-      const importResult = await onImport(
-        selectedRows,
-        consultant ? { id: consultant.id, nome: consultant.nome } : undefined
-      );
+      const importResult = await onImport(selectedRows);
       setResult(importResult);
       setStep("result");
 
