@@ -686,13 +686,6 @@ export function ImportProspectsDialog({
                       <strong>{result.ignored}</strong> ignorados (duplicados).
                     </>
                   )}
-                  {selectedConsultantObj && (
-                    <>
-                      {" "}
-                      Atribuídos a{" "}
-                      <strong>{selectedConsultantObj.nome}</strong>.
-                    </>
-                  )}
                 </AlertDescription>
               </Alert>
 
