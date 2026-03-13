@@ -217,10 +217,12 @@ export function ProspectCard({
           </span>
         </div>
 
-        {/* Converted Info */}
-        {isConverted && prospect.consultorResponsavelNome && (
+        {/* Consultant Info */}
+        {prospect.consultorResponsavelNome && (
           <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
-            Apropriado por: {prospect.consultorResponsavelNome}
+            {isConverted
+              ? `Apropriado por: ${prospect.consultorResponsavelNome}`
+              : `Consultor sugerido: ${prospect.consultorResponsavelNome}`}
           </div>
         )}
       </CardContent>

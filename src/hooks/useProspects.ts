@@ -179,9 +179,8 @@ export function useProspects() {
         status: "novo",
         criado_por: profile.user_id,
         criado_por_nome: profile.nome,
-        ...(consultant && consultant.id !== "none"
+        ...(consultant
           ? {
-              consultor_responsavel_id: consultant.id,
               consultor_responsavel_nome: consultant.nome,
             }
           : {}),
