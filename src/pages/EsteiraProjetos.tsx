@@ -178,6 +178,7 @@ const EsteiraProjetos = () => {
 
       const totalUnidades = monthProjetos.reduce((sum, p) => sum + getUnidades(p), 0);
       const totalVGV = monthProjetos.reduce((sum, p) => sum + (p.vgv_estimado || 0), 0);
+      const totalReceita = monthProjetos.reduce((sum, p) => sum + (p.margem_estimada || 0), 0);
       const assinados = monthProjetos.filter((p) => p.status_contrato === "assinado").length;
       const emAssinatura = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "em_assinatura").length;
       const naoEnviado = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "nao_enviado").length;
