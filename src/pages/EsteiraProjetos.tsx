@@ -53,6 +53,7 @@ interface ProjetoAprovado {
   margem_estimada: number | null;
   simulation_data: any;
   solicitado_por_nome: string;
+  receita_operacional: number;
 }
 
 const MONTHS_2026 = [
