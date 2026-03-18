@@ -178,6 +178,7 @@ const EsteiraProjetos = () => {
 
       const totalUnidades = monthProjetos.reduce((sum, p) => sum + getUnidades(p), 0);
       const totalVGV = monthProjetos.reduce((sum, p) => sum + (p.vgv_estimado || 0), 0);
+      const totalReceita = monthProjetos.reduce((sum, p) => sum + (p.margem_estimada || 0), 0);
       const assinados = monthProjetos.filter((p) => p.status_contrato === "assinado").length;
       const emAssinatura = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "em_assinatura").length;
       const naoEnviado = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "nao_enviado").length;
@@ -189,6 +190,7 @@ const EsteiraProjetos = () => {
         count: monthProjetos.length,
         totalUnidades,
         totalVGV,
+        totalReceita,
         assinados,
         emAssinatura,
         naoEnviado,
@@ -366,6 +368,10 @@ const EsteiraProjetos = () => {
                     <span className="text-muted-foreground">VGV</span>
                     <span className="font-semibold text-primary">{formatCurrency(month.totalVGV)}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Receita Loft</span>
+                    <span className="font-semibold text-success">{formatCurrency(month.totalReceita)}</span>
+                  </div>
                   <div className="flex gap-2 pt-1 flex-wrap">
                     {month.assinados > 0 && (
                       <Badge className="bg-success/10 text-success border-success/20 text-xs">
@@ -412,8 +418,9 @@ const EsteiraProjetos = () => {
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Unidades</TableHead>
                   <TableHead className="text-right">Ticket Médio</TableHead>
-                  <TableHead className="text-right">VGV</TableHead>
-                  <TableHead>Habite-se</TableHead>
+                   <TableHead className="text-right">VGV</TableHead>
+                   <TableHead className="text-right">Receita Loft</TableHead>
+                   <TableHead>Habite-se</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -440,6 +447,7 @@ const EsteiraProjetos = () => {
                       <TableCell className="text-right">{getUnidades(p).toLocaleString("pt-BR")}</TableCell>
                       <TableCell className="text-right">{formatCurrencyFull(getTicketMedio(p))}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrencyFull(p.vgv_estimado || 0)}</TableCell>
+                      <TableCell className="text-right font-semibold text-success">{formatCurrencyFull(p.margem_estimada || 0)}</TableCell>
                       <TableCell>
                         {p.data_habitese
                           ? format(new Date(p.data_habitese), "dd/MM/yyyy", { locale: ptBR })
