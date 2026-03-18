@@ -43,15 +43,20 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 interface ProjetoAprovado {
   id: string;
   nome_empreendimento: string;
   empresa_nome: string | null;
+  cnpj: string | null;
+  cidade: string | null;
+  estado: string | null;
   data_habitese: string | null;
   vgv_estimado: number | null;
   status_contrato: string | null;
   margem_estimada: number | null;
+  comissao_incorporador: number | null;
   simulation_data: any;
   solicitado_por_nome: string;
   receita_operacional: number;
