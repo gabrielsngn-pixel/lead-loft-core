@@ -53,6 +53,7 @@ interface ProjetoAprovado {
   margem_estimada: number | null;
   simulation_data: any;
   solicitado_por_nome: string;
+  receita_operacional: number;
 }
 
 const MONTHS_2026 = [
@@ -98,13 +99,34 @@ const EsteiraProjetos = () => {
   const fetchProjetos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("viabilidades")
-        .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
-        .eq("status", "aprovado");
+      const [viabRes, negRes] = await Promise.all([
+        supabase
+          .from("viabilidades")
+          .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
+          .eq("status", "aprovado"),
+        supabase
+          .from("negotiations")
+          .select("viabilidade_id, valor")
+          .not("viabilidade_id", "is", null),
+      ]);
 
-      if (error) throw error;
-      setProjetos((data || []) as ProjetoAprovado[]);
+      if (viabRes.error) throw viabRes.error;
+      if (negRes.error) throw negRes.error;
+
+      // Build a map viabilidade_id -> sum of valor (receita operacional)
+      const receitaMap = new Map<string, number>();
+      (negRes.data || []).forEach((n) => {
+        if (n.viabilidade_id) {
+          receitaMap.set(n.viabilidade_id, (receitaMap.get(n.viabilidade_id) || 0) + n.valor);
+        }
+      });
+
+      const projetos = (viabRes.data || []).map((v) => ({
+        ...v,
+        receita_operacional: receitaMap.get(v.id) || 0,
+      })) as ProjetoAprovado[];
+
+      setProjetos(projetos);
     } catch (error) {
       console.error("Error fetching projetos:", error);
       toast({
@@ -178,7 +200,7 @@ const EsteiraProjetos = () => {
 
       const totalUnidades = monthProjetos.reduce((sum, p) => sum + getUnidades(p), 0);
       const totalVGV = monthProjetos.reduce((sum, p) => sum + (p.vgv_estimado || 0), 0);
-      const totalReceita = monthProjetos.reduce((sum, p) => sum + (p.margem_estimada || 0), 0);
+      const totalReceita = monthProjetos.reduce((sum, p) => sum + (p.receita_operacional || 0), 0);
       const assinados = monthProjetos.filter((p) => p.status_contrato === "assinado").length;
       const emAssinatura = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "em_assinatura").length;
       const naoEnviado = monthProjetos.filter((p) => (p.status_contrato || "nao_enviado") === "nao_enviado").length;
@@ -447,7 +469,7 @@ const EsteiraProjetos = () => {
                       <TableCell className="text-right">{getUnidades(p).toLocaleString("pt-BR")}</TableCell>
                       <TableCell className="text-right">{formatCurrencyFull(getTicketMedio(p))}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrencyFull(p.vgv_estimado || 0)}</TableCell>
-                      <TableCell className="text-right font-semibold text-success">{formatCurrencyFull(p.margem_estimada || 0)}</TableCell>
+                      <TableCell className="text-right font-semibold text-success">{formatCurrencyFull(p.receita_operacional || 0)}</TableCell>
                       <TableCell>
                         {p.data_habitese
                           ? format(new Date(p.data_habitese), "dd/MM/yyyy", { locale: ptBR })
