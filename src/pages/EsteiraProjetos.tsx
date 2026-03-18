@@ -368,6 +368,10 @@ const EsteiraProjetos = () => {
                     <span className="text-muted-foreground">VGV</span>
                     <span className="font-semibold text-primary">{formatCurrency(month.totalVGV)}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Receita Loft</span>
+                    <span className="font-semibold text-success">{formatCurrency(month.totalReceita)}</span>
+                  </div>
                   <div className="flex gap-2 pt-1 flex-wrap">
                     {month.assinados > 0 && (
                       <Badge className="bg-success/10 text-success border-success/20 text-xs">
