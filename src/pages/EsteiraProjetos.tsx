@@ -6,6 +6,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Download,
   Filter,
   Loader2,
   Target,
@@ -42,15 +43,20 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 interface ProjetoAprovado {
   id: string;
   nome_empreendimento: string;
   empresa_nome: string | null;
+  cnpj: string | null;
+  cidade: string | null;
+  estado: string | null;
   data_habitese: string | null;
   vgv_estimado: number | null;
   status_contrato: string | null;
   margem_estimada: number | null;
+  comissao_incorporador: number | null;
   simulation_data: any;
   solicitado_por_nome: string;
   receita_operacional: number;
@@ -102,7 +108,7 @@ const EsteiraProjetos = () => {
       const [viabRes, negRes] = await Promise.all([
         supabase
           .from("viabilidades")
-          .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
+          .select("id, nome_empreendimento, empresa_nome, cnpj, cidade, estado, data_habitese, vgv_estimado, status_contrato, margem_estimada, comissao_incorporador, simulation_data, solicitado_por_nome")
           .eq("status", "aprovado"),
         supabase
           .from("negotiations")
@@ -249,6 +255,58 @@ const EsteiraProjetos = () => {
     return monthlyData[selectedMonth]?.projetos || [];
   }, [selectedMonth, monthlyData]);
 
+  const exportToExcel = () => {
+    const rows = filteredProjetos.map((p) => {
+      const sim = p.simulation_data as any;
+      const bankMix = sim?.bankMix || {};
+      const caixaSubMix = sim?.caixaSubMix || {};
+      const unidades = sim?.unidades || 0;
+      const vgv = p.vgv_estimado || 0;
+      const ticketMedio = unidades > 0 ? vgv / unidades : 0;
+
+      return {
+        "Empreendimento": p.nome_empreendimento,
+        "Incorporadora": p.empresa_nome || "",
+        "CNPJ": p.cnpj || "",
+        "Cidade": p.cidade || "",
+        "Estado": p.estado || "",
+        "Consultor": p.solicitado_por_nome,
+        "Data Habite-se": p.data_habitese ? format(new Date(p.data_habitese), "dd/MM/yyyy", { locale: ptBR }) : "",
+        "Status Contrato": p.status_contrato === "assinado" ? "Assinado" : p.status_contrato === "em_assinatura" ? "Em assinatura" : "Não enviado",
+        "Unidades": unidades,
+        "Ticket Médio (R$)": Math.round(ticketMedio),
+        "VGV Estimado (R$)": Math.round(vgv),
+        "Comissão Incorporador (%)": p.comissao_incorporador != null ? (p.comissao_incorporador * 100).toFixed(2) : "",
+        "Margem Estimada (%)": p.margem_estimada != null ? p.margem_estimada.toFixed(2) : "",
+        "Receita Operacional Loft (R$)": Math.round(p.receita_operacional),
+        "Mix Itaú (%)": bankMix.itau ?? "",
+        "Mix Santander (%)": bankMix.santander ?? "",
+        "Mix Bradesco (%)": bankMix.bradesco ?? "",
+        "Mix Caixa (%)": bankMix.caixa ?? "",
+        "Caixa - Ind. SPBE (%)": caixaSubMix.individual_spbe ?? "",
+        "Caixa - Aloc. SPBE (%)": caixaSubMix.alocacao_spbe ?? "",
+        "Caixa - Ind. MCMV (%)": caixaSubMix.individual_mcmv ?? "",
+        "Caixa - Aloc. MCMV (%)": caixaSubMix.alocacao_mcmv ?? "",
+        "Comissão Bancária Ponderada (%)": sim?.taxaPonderadaBanco != null ? (sim.taxaPonderadaBanco * 100).toFixed(2) : "",
+        "Registro Tipo": sim?.registroTipo === "parceiro" ? "Parceiro" : sim?.registroTipo === "internalizado" ? "Internalizado" : sim?.registroTipo === "sem_registro" ? "Sem registro" : "",
+        "Remunerar Caixa": sim?.remunerarCaixa === true ? "Sim" : sim?.remunerarCaixa === false ? "Não" : "",
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Projetos Aprovados");
+
+    // Auto-size columns
+    const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+      wch: Math.max(key.length, ...rows.map((r) => String((r as any)[key]).length)) + 2,
+    }));
+    ws["!cols"] = colWidths;
+
+    XLSX.writeFile(wb, `esteira-projetos-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    toast({ title: "Planilha exportada com sucesso!" });
+  };
+
   if (loading) {
     return (
       <AppLayout title="Esteira de Projetos" subtitle="Gestão de VGV e Unidades 2026">
@@ -350,6 +408,11 @@ const EsteiraProjetos = () => {
             <SelectItem value="jul_dez">Jul – Dez</SelectItem>
           </SelectContent>
         </Select>
+
+        <Button variant="outline" size="sm" className="h-9 ml-auto" onClick={exportToExcel} disabled={filteredProjetos.length === 0}>
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Planilha
+        </Button>
       </div>
 
       {/* Calendário Anual – 12 Cards */}
