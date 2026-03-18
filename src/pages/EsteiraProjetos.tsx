@@ -408,6 +408,11 @@ const EsteiraProjetos = () => {
             <SelectItem value="jul_dez">Jul – Dez</SelectItem>
           </SelectContent>
         </Select>
+
+        <Button variant="outline" size="sm" className="h-9 ml-auto" onClick={exportToExcel} disabled={filteredProjetos.length === 0}>
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Planilha
+        </Button>
       </div>
 
       {/* Calendário Anual – 12 Cards */}
