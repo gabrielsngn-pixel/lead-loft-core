@@ -99,13 +99,34 @@ const EsteiraProjetos = () => {
   const fetchProjetos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("viabilidades")
-        .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
-        .eq("status", "aprovado");
+      const [viabRes, negRes] = await Promise.all([
+        supabase
+          .from("viabilidades")
+          .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
+          .eq("status", "aprovado"),
+        supabase
+          .from("negotiations")
+          .select("viabilidade_id, valor")
+          .not("viabilidade_id", "is", null),
+      ]);
 
-      if (error) throw error;
-      setProjetos((data || []) as ProjetoAprovado[]);
+      if (viabRes.error) throw viabRes.error;
+      if (negRes.error) throw negRes.error;
+
+      // Build a map viabilidade_id -> sum of valor (receita operacional)
+      const receitaMap = new Map<string, number>();
+      (negRes.data || []).forEach((n) => {
+        if (n.viabilidade_id) {
+          receitaMap.set(n.viabilidade_id, (receitaMap.get(n.viabilidade_id) || 0) + n.valor);
+        }
+      });
+
+      const projetos = (viabRes.data || []).map((v) => ({
+        ...v,
+        receita_operacional: receitaMap.get(v.id) || 0,
+      })) as ProjetoAprovado[];
+
+      setProjetos(projetos);
     } catch (error) {
       console.error("Error fetching projetos:", error);
       toast({
