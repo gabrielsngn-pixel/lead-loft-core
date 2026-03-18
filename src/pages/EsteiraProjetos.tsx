@@ -469,7 +469,7 @@ const EsteiraProjetos = () => {
                       <TableCell className="text-right">{getUnidades(p).toLocaleString("pt-BR")}</TableCell>
                       <TableCell className="text-right">{formatCurrencyFull(getTicketMedio(p))}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrencyFull(p.vgv_estimado || 0)}</TableCell>
-                      <TableCell className="text-right font-semibold text-success">{formatCurrencyFull(p.margem_estimada || 0)}</TableCell>
+                      <TableCell className="text-right font-semibold text-success">{formatCurrencyFull(p.receita_operacional || 0)}</TableCell>
                       <TableCell>
                         {p.data_habitese
                           ? format(new Date(p.data_habitese), "dd/MM/yyyy", { locale: ptBR })
