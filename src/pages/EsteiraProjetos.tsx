@@ -108,7 +108,7 @@ const EsteiraProjetos = () => {
       const [viabRes, negRes] = await Promise.all([
         supabase
           .from("viabilidades")
-          .select("id, nome_empreendimento, empresa_nome, data_habitese, vgv_estimado, status_contrato, margem_estimada, simulation_data, solicitado_por_nome")
+          .select("id, nome_empreendimento, empresa_nome, cnpj, cidade, estado, data_habitese, vgv_estimado, status_contrato, margem_estimada, comissao_incorporador, simulation_data, solicitado_por_nome")
           .eq("status", "aprovado"),
         supabase
           .from("negotiations")
