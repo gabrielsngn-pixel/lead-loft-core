@@ -190,6 +190,7 @@ const EsteiraProjetos = () => {
         count: monthProjetos.length,
         totalUnidades,
         totalVGV,
+        totalReceita,
         assinados,
         emAssinatura,
         naoEnviado,
