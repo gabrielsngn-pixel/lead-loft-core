@@ -418,8 +418,9 @@ const EsteiraProjetos = () => {
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Unidades</TableHead>
                   <TableHead className="text-right">Ticket Médio</TableHead>
-                  <TableHead className="text-right">VGV</TableHead>
-                  <TableHead>Habite-se</TableHead>
+                   <TableHead className="text-right">VGV</TableHead>
+                   <TableHead className="text-right">Receita Loft</TableHead>
+                   <TableHead>Habite-se</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
