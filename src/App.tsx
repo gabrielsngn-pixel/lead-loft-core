@@ -139,6 +139,21 @@ const App = () => (
                 <Minutas />
               </ProtectedRoute>
             } />
+            <Route path="/comunicacao" element={
+              <ProtectedRoute>
+                <CommunicationPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/inbox" element={
+              <ProtectedRoute>
+                <InboxPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/email-identity" element={
+              <ProtectedRoute>
+                <EmailIdentityPage />
+              </ProtectedRoute>
+            } />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

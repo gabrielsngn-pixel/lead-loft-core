@@ -61,6 +61,7 @@ const mainMenuItems = [
 ];
 
 const settingsItems = [
+  { title: "Identidade Email", url: "/email-identity", icon: Settings2 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
