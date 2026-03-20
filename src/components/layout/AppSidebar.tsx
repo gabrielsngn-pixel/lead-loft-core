@@ -21,6 +21,9 @@ import {
   Layers,
   FileText,
   UserX,
+  Mail,
+  Inbox,
+  Settings2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
