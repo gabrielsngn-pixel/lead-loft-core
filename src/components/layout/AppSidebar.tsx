@@ -21,6 +21,9 @@ import {
   Layers,
   FileText,
   UserX,
+  Mail,
+  Inbox,
+  Settings2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -44,6 +47,8 @@ const mainMenuItems = [
   { title: "Novo Lead", url: "/leads/novo", icon: FileInput },
   { title: "Repositório de Leads", url: "/leads", icon: Users },
   { title: "Contatos Ativos", url: "/contatos", icon: UserCheck },
+  { title: "Comunicação", url: "/comunicacao", icon: Mail },
+  { title: "Inbox", url: "/inbox", icon: Inbox },
   { title: "Viabilidade", url: "/viabilidade", icon: Calculator },
   { title: "Esteira de Projetos", url: "/esteira-projetos", icon: Layers },
   { title: "Empreendimentos", url: "/empreendimentos", icon: Building2 },
@@ -56,6 +61,7 @@ const mainMenuItems = [
 ];
 
 const settingsItems = [
+  { title: "Identidade Email", url: "/email-identity", icon: Settings2 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

@@ -167,6 +167,59 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_dispatch_logs: {
+        Row: {
+          channel: string
+          completed_at: string | null
+          created_at: string
+          failed_count: number
+          id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          template_id: string | null
+          total_leads: number
+          user_id: string
+          user_nome: string | null
+        }
+        Insert: {
+          channel?: string
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          template_id?: string | null
+          total_leads?: number
+          user_id: string
+          user_nome?: string | null
+        }
+        Update: {
+          channel?: string
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          template_id?: string | null
+          total_leads?: number
+          user_id?: string
+          user_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_dispatch_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_followups: {
         Row: {
           anotacoes: string | null
@@ -931,6 +984,130 @@ export type Database = {
           },
         ]
       }
+      message_logs: {
+        Row: {
+          body: string
+          bulk_dispatch_id: string | null
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          lead_id: string | null
+          provider_message_id: string | null
+          read_at: string | null
+          recipient: string | null
+          replied_at: string | null
+          reply_to: string | null
+          sender_email: string | null
+          sender_name: string | null
+          sent_at: string
+          status: string
+          subject: string | null
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          bulk_dispatch_id?: string | null
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          lead_id?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          replied_at?: string | null
+          reply_to?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          bulk_dispatch_id?: string | null
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          lead_id?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          replied_at?: string | null
+          reply_to?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_bulk_dispatch_id_fkey"
+            columns: ["bulk_dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "bulk_dispatch_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       minutas: {
         Row: {
           atualizado_por: string | null
@@ -1130,12 +1307,16 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          email_signature_html: string | null
           id: string
           nome: string
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
+          reply_to_email: string | null
           role: Database["public"]["Enums"]["user_role"]
+          sender_email: string | null
+          sender_name: string | null
           updated_at: string
           user_id: string
         }
@@ -1145,12 +1326,16 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          email_signature_html?: string | null
           id?: string
           nome: string
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          reply_to_email?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          sender_email?: string | null
+          sender_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1160,12 +1345,16 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          email_signature_html?: string | null
           id?: string
           nome?: string
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
+          reply_to_email?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          sender_email?: string | null
+          sender_name?: string | null
           updated_at?: string
           user_id?: string
         }
