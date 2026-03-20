@@ -25,6 +25,9 @@ import Empreendimentos from "./pages/Empreendimentos";
 import ResumoExecutivo from "./pages/ResumoExecutivo";
 import ContatosExcluidos from "./pages/ContatosExcluidos";
 import Minutas from "./pages/Minutas";
+import CommunicationPage from "./pages/CommunicationPage";
+import InboxPage from "./pages/InboxPage";
+import EmailIdentityPage from "./pages/EmailIdentityPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
