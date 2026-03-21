@@ -29,35 +29,40 @@ serve(async (req) => {
     const htmlBody = payload.html || "";
     const timestamp = payload.created_at || new Date().toISOString();
 
-    // Extract provider_message_id from the tagged reply-to address
-    // Format: reply+{provider_message_id}@outreach.loftinsights.com.br
-    let originalMessageId: string | null = null;
+    // Extract reply tag from the tagged reply-to address
+    // Format: reply+{uuid}@outreach.loftinsights.com.br
+    let replyTag: string | null = null;
     for (const addr of toAddresses) {
       const match = addr.match(/reply\+([a-f0-9-]+)@/i);
       if (match) {
-        originalMessageId = match[1];
+        replyTag = match[1];
         break;
       }
     }
 
-    console.log("Parsed inbound — from:", fromEmail, "originalMessageId:", originalMessageId);
+    console.log("Parsed inbound — from:", fromEmail, "replyTag:", replyTag);
 
     let matchedLeadId: string | null = null;
     let matchedUserId: string | null = null;
     let originalSubject: string | null = null;
+    let userRealEmail: string | null = null;
 
-    if (originalMessageId) {
-      // Find the original outbound message by provider_message_id
+    if (replyTag) {
+      // Find the original outbound message by the reply tag stored in reply_to field
       const { data: originalMsg } = await supabaseAdmin
         .from("message_logs")
-        .select("id, lead_id, user_id, subject, recipient, sender_email, sender_name")
-        .eq("provider_message_id", originalMessageId)
+        .select("id, lead_id, user_id, subject, recipient, sender_email, sender_name, reply_to, provider_message_id")
+        .like("reply_to", `reply+${replyTag}@%`)
         .maybeSingle();
 
       if (originalMsg) {
         matchedLeadId = originalMsg.lead_id;
         matchedUserId = originalMsg.user_id;
         originalSubject = originalMsg.subject;
+
+        // Extract user's real email from reply_to field (format: trackable|real)
+        const parts = (originalMsg.reply_to || "").split("|");
+        userRealEmail = parts.length > 1 ? parts[1] : null;
 
         // Update original message status to "replied"
         await supabaseAdmin
@@ -66,9 +71,9 @@ serve(async (req) => {
             status: "replied",
             replied_at: timestamp,
           })
-          .eq("provider_message_id", originalMessageId);
+          .eq("id", originalMsg.id);
 
-        console.log(`Original message ${originalMessageId} marked as replied`);
+        console.log(`Original message ${originalMsg.id} marked as replied`);
       }
     } else {
       // Fallback: try to match by sender email in leads table
@@ -83,10 +88,10 @@ serve(async (req) => {
         matchedLeadId = lead.id;
         matchedUserId = lead.responsavel_id;
 
-        // Also try to update the most recent outbound message to this lead as replied
+        // Update the most recent outbound message to this lead as replied
         const { data: recentMsg } = await supabaseAdmin
           .from("message_logs")
-          .select("provider_message_id")
+          .select("id, reply_to")
           .eq("lead_id", lead.id)
           .eq("channel", "email")
           .in("status", ["sent", "delivered", "read"])
@@ -94,21 +99,26 @@ serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        if (recentMsg?.provider_message_id) {
+        if (recentMsg) {
           await supabaseAdmin
             .from("message_logs")
             .update({
               status: "replied",
               replied_at: timestamp,
             })
-            .eq("provider_message_id", recentMsg.provider_message_id);
+            .eq("id", recentMsg.id);
 
-          console.log(`Fallback match: marked ${recentMsg.provider_message_id} as replied`);
+          // Extract user real email from reply_to
+          const parts = (recentMsg.reply_to || "").split("|");
+          userRealEmail = parts.length > 1 ? parts[1] : null;
+
+          console.log(`Fallback match: marked ${recentMsg.id} as replied`);
         }
       }
     }
 
     // Log the inbound reply as a new message_log entry
+    const senderAddress = fromEmail.match(/<([^>]+)>/)?.[1] || fromEmail;
     const { error: insertError } = await supabaseAdmin
       .from("message_logs")
       .insert({
@@ -120,12 +130,39 @@ serve(async (req) => {
         body: textBody || htmlBody || "(sem conteúdo)",
         status: "replied",
         sender_name: fromEmail,
-        sender_email: fromEmail.match(/<([^>]+)>/)?.[1] || fromEmail,
-        reply_to: fromEmail,
+        sender_email: senderAddress,
+        reply_to: senderAddress,
       });
 
     if (insertError) {
       console.error("Failed to insert inbound message log:", insertError.message);
+    }
+
+    // Forward the reply to the user's real email
+    if (userRealEmail) {
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      if (RESEND_API_KEY) {
+        try {
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+            },
+            body: JSON.stringify({
+              from: "Loft CRM <noreply@outreach.loftinsights.com.br>",
+              to: [userRealEmail],
+              reply_to: senderAddress,
+              subject: `Fwd: ${subject || "Resposta recebida"}`,
+              html: htmlBody || `<pre>${textBody}</pre>`,
+              text: textBody || "(sem conteúdo em texto)",
+            }),
+          });
+          console.log(`Reply forwarded to ${userRealEmail}`);
+        } catch (fwdErr) {
+          console.error("Failed to forward reply:", fwdErr);
+        }
+      }
     }
 
     // Record activity on the lead if matched
@@ -136,7 +173,6 @@ serve(async (req) => {
         .update({ data_ultima_interacao: new Date().toISOString() })
         .eq("id", matchedLeadId);
 
-      // Get lead details for activity
       const { data: lead } = await supabaseAdmin
         .from("leads")
         .select("razao_social, responsavel_id, responsavel_nome")
@@ -161,7 +197,7 @@ serve(async (req) => {
         });
       }
 
-      // Notify the responsible user via email
+      // Notify responsible user
       if (lead?.responsavel_id) {
         const { data: ownerProfile } = await supabaseAdmin
           .from("profiles")
@@ -213,11 +249,11 @@ serve(async (req) => {
       }
     }
 
-    // Also store in webhook events for auditing
+    // Store in webhook events for auditing
     await supabaseAdmin.from("email_webhook_events").insert({
-      provider_message_id: originalMessageId,
+      provider_message_id: replyTag,
       event_type: "email.reply_received",
-      recipient_email: fromEmail.match(/<([^>]+)>/)?.[1] || fromEmail,
+      recipient_email: senderAddress,
       event_timestamp: timestamp,
       raw_payload: payload,
     });
@@ -230,7 +266,7 @@ serve(async (req) => {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Inbound email error:", message);
     return new Response(JSON.stringify({ error: message }), {
-      status: 200, // Return 200 to prevent Resend retries
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
