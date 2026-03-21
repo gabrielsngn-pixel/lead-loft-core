@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const ALLOWED_DOMAINS = ["outreach.loftinsights.com.br"];
+const EXCLUDED_STATUSES = ["perdido", "descartado", "inativo"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,6 +21,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing Authorization header");
@@ -27,6 +29,9 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+
+    // Service role client for audit logging (bypasses RLS)
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const {
       data: { user },
@@ -39,6 +44,46 @@ serve(async (req) => {
 
     if (!to || !subject || !body) {
       throw new Error("Missing required fields: to, subject, body");
+    }
+
+    // ── Ownership & status validation ──
+    if (lead_id) {
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .select("id, responsavel_id, status")
+        .eq("id", lead_id)
+        .maybeSingle();
+
+      if (leadError || !lead) {
+        // Log unauthorized attempt
+        await supabaseAdmin.from("admin_action_logs").insert({
+          admin_user_id: user.id,
+          admin_name: user.email || "unknown",
+          action_type: "email_send_blocked",
+          details: { reason: "lead_not_found", lead_id, to },
+        });
+        throw new Error("Lead não encontrado");
+      }
+
+      if (lead.responsavel_id !== user.id) {
+        await supabaseAdmin.from("admin_action_logs").insert({
+          admin_user_id: user.id,
+          admin_name: user.email || "unknown",
+          action_type: "email_send_blocked",
+          details: { reason: "not_lead_owner", lead_id, to, owner: lead.responsavel_id },
+        });
+        throw new Error("Você não tem permissão para enviar emails para leads de outros consultores");
+      }
+
+      if (EXCLUDED_STATUSES.includes(lead.status)) {
+        await supabaseAdmin.from("admin_action_logs").insert({
+          admin_user_id: user.id,
+          admin_name: user.email || "unknown",
+          action_type: "email_send_blocked",
+          details: { reason: "inactive_lead", lead_id, to, status: lead.status },
+        });
+        throw new Error(`Lead com status '${lead.status}' não pode receber emails`);
+      }
     }
 
     // Load sender identity from profiles
@@ -59,7 +104,6 @@ serve(async (req) => {
     }
 
     // Build final HTML with proper email structure
-    // Don't replace \n with <br/> on rich HTML — it breaks tags
     const isRichHtml = /<[a-z][\s\S]*>/i.test(body);
     const bodyHtml = isRichHtml ? body : body.replace(/\n/g, "<br/>");
 
@@ -84,7 +128,6 @@ serve(async (req) => {
 </html>`;
 
     // Convert data URI images to inline CID attachments.
-    // Gmail clips/strips data:image base64 in HTML, which hides cards/content and shows "Mensagem cortada".
     const inlineAttachments: Array<{
       filename: string;
       content: string;
