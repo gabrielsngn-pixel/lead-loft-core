@@ -61,14 +61,14 @@ serve(async (req) => {
     // Build final HTML with proper email structure
     // Don't replace \n with <br/> on rich HTML — it breaks tags
     const isRichHtml = /<[a-z][\s\S]*>/i.test(body);
-    let bodyHtml = isRichHtml ? body : body.replace(/\n/g, "<br/>");
+    const bodyHtml = isRichHtml ? body : body.replace(/\n/g, "<br/>");
 
     let signatureBlock = "";
     if (profile?.email_signature_html) {
       signatureBlock = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">${profile.email_signature_html}</div>`;
     }
 
-    const finalHtml = `<!DOCTYPE html>
+    const baseHtml = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -83,6 +83,48 @@ serve(async (req) => {
 </body>
 </html>`;
 
+    // Convert data URI images to inline CID attachments.
+    // Gmail clips/strips data:image base64 in HTML, which hides cards/content and shows "Mensagem cortada".
+    const inlineAttachments: Array<{
+      filename: string;
+      content: string;
+      content_type: string;
+      content_id: string;
+    }> = [];
+
+    const extByMime: Record<string, string> = {
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/jpg": "jpg",
+      "image/gif": "gif",
+      "image/webp": "webp",
+      "image/svg+xml": "svg",
+    };
+
+    const finalHtml = baseHtml.replace(
+      /<img([^>]*?)src=["']data:(image\/[a-zA-Z0-9.+-]+);base64,([^"']+)["']([^>]*)>/gi,
+      (_match, before, mime, base64Content, after) => {
+        const cid = `inline-image-${inlineAttachments.length + 1}`;
+        const ext = extByMime[mime.toLowerCase()] || "bin";
+
+        inlineAttachments.push({
+          filename: `${cid}.${ext}`,
+          content: String(base64Content).replace(/\s/g, ""),
+          content_type: mime,
+          content_id: cid,
+        });
+
+        return `<img${before}src="cid:${cid}"${after}>`;
+      }
+    );
+
+    const textFallback = finalHtml
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
     // Send via Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -95,7 +137,9 @@ serve(async (req) => {
         to: [to],
         subject,
         html: finalHtml,
+        text: textFallback,
         reply_to: replyTo,
+        attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
       }),
     });
 
