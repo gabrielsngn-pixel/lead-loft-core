@@ -180,12 +180,9 @@ serve(async (req) => {
       .replace(/\s+/g, " ")
       .trim();
 
-    // Pre-generate a unique tag for inbound reply tracking
-    const replyTag = crypto.randomUUID();
-    const trackableReplyTo = `reply+${replyTag}@outreach.loftinsights.com.br`;
+    const consultantReplyTo = userReplyTo || user.email;
 
-    // Send via Resend — reply_to uses the TRACKABLE address so inbound webhook captures replies
-    // The inbound-email function then forwards the reply to the consultant's real email
+    // Send via Resend — reply_to points to consultant's real email for clean appearance
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -198,11 +195,7 @@ serve(async (req) => {
         subject,
         html: finalHtml,
         text: textFallback,
-        reply_to: trackableReplyTo,
-        headers: {
-          "X-Reply-Tag": replyTag,
-          "X-Original-Reply-To": userReplyTo || user.email,
-        },
+        reply_to: consultantReplyTo,
         attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
         tracking: { opens: true, clicks: true },
       }),
@@ -211,7 +204,7 @@ serve(async (req) => {
     const resendData = await resendResponse.json();
     const emailStatus = resendResponse.ok ? "sent" : "failed";
 
-    // Log to message_logs — store trackable reply tag for inbound matching
+    // Log to message_logs
     await supabase.from("message_logs").insert({
       lead_id: lead_id || null,
       user_id: user.id,
@@ -225,7 +218,7 @@ serve(async (req) => {
       bulk_dispatch_id: bulk_dispatch_id || null,
       sender_name: senderName,
       sender_email: senderEmail,
-      reply_to: `${trackableReplyTo}|${userReplyTo || user.email}`,
+      reply_to: consultantReplyTo,
     });
 
     // Create activity if lead_id provided
