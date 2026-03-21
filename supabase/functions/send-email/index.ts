@@ -180,10 +180,12 @@ serve(async (req) => {
       .replace(/\s+/g, " ")
       .trim();
 
-    // Pre-generate a unique tag for inbound tracking (stored in DB, not exposed to recipient)
+    // Pre-generate a unique tag for inbound reply tracking
     const replyTag = crypto.randomUUID();
+    const trackableReplyTo = `reply+${replyTag}@outreach.loftinsights.com.br`;
 
-    // Send via Resend — reply_to uses the consultant's REAL email so leads reply naturally
+    // Send via Resend — reply_to uses the TRACKABLE address so inbound webhook captures replies
+    // The inbound-email function then forwards the reply to the consultant's real email
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -196,9 +198,10 @@ serve(async (req) => {
         subject,
         html: finalHtml,
         text: textFallback,
-        reply_to: userReplyTo || user.email,
+        reply_to: trackableReplyTo,
         headers: {
           "X-Reply-Tag": replyTag,
+          "X-Original-Reply-To": userReplyTo || user.email,
         },
         attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
         tracking: { opens: true, clicks: true },
@@ -222,7 +225,7 @@ serve(async (req) => {
       bulk_dispatch_id: bulk_dispatch_id || null,
       sender_name: senderName,
       sender_email: senderEmail,
-      reply_to: `${replyTag}|${userReplyTo || user.email}`,
+      reply_to: `${trackableReplyTo}|${userReplyTo || user.email}`,
     });
 
     // Create activity if lead_id provided
