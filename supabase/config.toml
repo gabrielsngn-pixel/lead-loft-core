@@ -2,3 +2,6 @@ project_id = "ybocxoyqcsqewrhhdcbk"
 
 [functions.generate-executive-summary]
 verify_jwt = false
+
+[functions.email-webhook]
+verify_jwt = false

@@ -324,6 +324,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_webhook_events: {
+        Row: {
+          created_at: string
+          event_timestamp: string | null
+          event_type: string
+          id: string
+          provider_message_id: string | null
+          raw_payload: Json | null
+          recipient_email: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_timestamp?: string | null
+          event_type: string
+          id?: string
+          provider_message_id?: string | null
+          raw_payload?: Json | null
+          recipient_email?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_timestamp?: string | null
+          event_type?: string
+          id?: string
+          provider_message_id?: string | null
+          raw_payload?: Json | null
+          recipient_email?: string | null
+        }
+        Relationships: []
+      }
       empreendimento_decisores: {
         Row: {
           cargo: string | null
