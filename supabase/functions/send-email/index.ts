@@ -180,13 +180,10 @@ serve(async (req) => {
       .replace(/\s+/g, " ")
       .trim();
 
-    // Build trackable reply-to: reply+{message_id}@outreach domain
-    // First send to get the message ID, then we'll use it
-    // Instead, pre-generate a unique tag for tracking
+    // Pre-generate a unique tag for inbound tracking (stored in DB, not exposed to recipient)
     const replyTag = crypto.randomUUID();
-    const trackableReplyTo = `reply+${replyTag}@outreach.loftinsights.com.br`;
 
-    // Send via Resend
+    // Send via Resend — reply_to uses the consultant's REAL email so leads reply naturally
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -199,9 +196,9 @@ serve(async (req) => {
         subject,
         html: finalHtml,
         text: textFallback,
-        reply_to: trackableReplyTo,
+        reply_to: userReplyTo || user.email,
         headers: {
-          "X-Original-Reply-To": userReplyTo,
+          "X-Reply-Tag": replyTag,
         },
         attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
         tracking: { opens: true, clicks: true },
