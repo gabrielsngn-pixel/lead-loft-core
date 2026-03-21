@@ -84,7 +84,7 @@ export function CommSettingsTab() {
           </div>
           <div>
             <label className="text-sm font-medium">Email de envio</label>
-            <Input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} placeholder="contato@outreach.loftinsights.com.br" />
+            <Input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} placeholder={defaultSenderEmail || "seunome@outreach.loftinsights.com.br"} />
             {!domainValid && (
               <p className="text-xs text-destructive mt-1">Domínio não permitido. Use: {ALLOWED_DOMAINS.join(", ")}</p>
             )}
