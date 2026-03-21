@@ -58,11 +58,30 @@ serve(async (req) => {
       throw new Error(`Sender domain '${senderDomain}' not allowed. Allowed: ${ALLOWED_DOMAINS.join(", ")}`);
     }
 
-    // Build final HTML with signature
-    let finalHtml = body.replace(/\n/g, "<br/>");
+    // Build final HTML with proper email structure
+    // Don't replace \n with <br/> on rich HTML — it breaks tags
+    const isRichHtml = /<[a-z][\s\S]*>/i.test(body);
+    let bodyHtml = isRichHtml ? body : body.replace(/\n/g, "<br/>");
+
+    let signatureBlock = "";
     if (profile?.email_signature_html) {
-      finalHtml += "<br/><br/>" + profile.email_signature_html;
+      signatureBlock = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">${profile.email_signature_html}</div>`;
     }
+
+    const finalHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a202c;background-color:#ffffff;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    ${bodyHtml}
+    ${signatureBlock}
+  </div>
+</body>
+</html>`;
 
     // Send via Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
