@@ -1,7 +1,7 @@
 import { useEmailMetrics } from "@/hooks/useEmailOutreach";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { Mail, CheckCircle, Eye, MessageSquare } from "lucide-react";
+import { Mail, CheckCircle, Eye } from "lucide-react";
 
 export function CommMetricsTab() {
   const { data: metrics, isLoading } = useEmailMetrics();
