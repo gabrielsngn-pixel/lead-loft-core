@@ -222,7 +222,7 @@ serve(async (req) => {
       bulk_dispatch_id: bulk_dispatch_id || null,
       sender_name: senderName,
       sender_email: senderEmail,
-      reply_to: `${replyTag}|${userReplyTo || user.email}`,
+      reply_to: `${trackableReplyTo}|${userReplyTo || user.email}`,
     });
 
     // Create activity if lead_id provided
