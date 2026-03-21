@@ -96,7 +96,7 @@ serve(async (req) => {
     const senderName = from_name || profile?.sender_name || profile?.nome || "Loft Incorporações";
     const userEmailPrefix = (user.email || "contato").split("@")[0];
     const senderEmail = profile?.sender_email || `${userEmailPrefix}@outreach.loftinsights.com.br`;
-    const replyTo = profile?.reply_to_email || user.email || "";
+    const userReplyTo = profile?.reply_to_email || user.email || "";
 
     // Validate sender email domain
     const senderDomain = senderEmail.split("@")[1];
