@@ -211,7 +211,7 @@ serve(async (req) => {
     const resendData = await resendResponse.json();
     const emailStatus = resendResponse.ok ? "sent" : "failed";
 
-    // Log to message_logs
+    // Log to message_logs — store trackable reply tag for inbound matching
     await supabase.from("message_logs").insert({
       lead_id: lead_id || null,
       user_id: user.id,
@@ -225,7 +225,7 @@ serve(async (req) => {
       bulk_dispatch_id: bulk_dispatch_id || null,
       sender_name: senderName,
       sender_email: senderEmail,
-      reply_to: replyTo,
+      reply_to: `${trackableReplyTo}|${userReplyTo}`,
     });
 
     // Create activity if lead_id provided
