@@ -180,6 +180,12 @@ serve(async (req) => {
       .replace(/\s+/g, " ")
       .trim();
 
+    // Build trackable reply-to: reply+{message_id}@outreach domain
+    // First send to get the message ID, then we'll use it
+    // Instead, pre-generate a unique tag for tracking
+    const replyTag = crypto.randomUUID();
+    const trackableReplyTo = `reply+${replyTag}@outreach.loftinsights.com.br`;
+
     // Send via Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -193,7 +199,10 @@ serve(async (req) => {
         subject,
         html: finalHtml,
         text: textFallback,
-        reply_to: replyTo,
+        reply_to: trackableReplyTo,
+        headers: {
+          "X-Original-Reply-To": userReplyTo,
+        },
         attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
         tracking: { opens: true, clicks: true },
       }),
