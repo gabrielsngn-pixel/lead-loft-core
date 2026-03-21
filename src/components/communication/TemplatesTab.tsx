@@ -13,33 +13,36 @@ import { format } from "date-fns";
 function RichBodyEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+
+  const syncContent = () => {
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
 
   const execCommand = (cmd: string, val?: string) => {
     document.execCommand(cmd, false, val);
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
+    syncContent();
   };
 
-  const handleInsertImage = () => {
-    fileInputRef.current?.click();
+  const insertImageWithSize = (src: string, width = "50%") => {
+    const imgHtml = `<img src="${src}" style="width:${width};max-width:100%;height:auto;border-radius:6px;margin:8px 0;cursor:pointer;" />`;
+    execCommand("insertHTML", imgHtml);
   };
+
+  const handleInsertImage = () => fileInputRef.current?.click();
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      execCommand("insertImage", dataUrl);
-    };
+    reader.onload = (ev) => insertImageWithSize(ev.target?.result as string);
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
   const handleInsertImageUrl = () => {
     const url = prompt("Cole a URL da imagem:");
-    if (url) execCommand("insertImage", url);
+    if (url) insertImageWithSize(url);
   };
 
   const handleInsertLink = () => {
@@ -63,14 +66,29 @@ function RichBodyEditor({ value, onChange }: { value: string; onChange: (v: stri
         const file = item.getAsFile();
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (ev) => {
-          const dataUrl = ev.target?.result as string;
-          execCommand("insertImage", dataUrl);
-        };
+        reader.onload = (ev) => insertImageWithSize(ev.target?.result as string);
         reader.readAsDataURL(file);
         return;
       }
     }
+  };
+
+  const handleEditorClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "IMG") {
+      setSelectedImg(target as HTMLImageElement);
+    } else {
+      setSelectedImg(null);
+    }
+  };
+
+  const resizeSelectedImg = (width: string) => {
+    if (!selectedImg) return;
+    selectedImg.style.width = width;
+    selectedImg.style.maxWidth = "100%";
+    selectedImg.style.height = "auto";
+    syncContent();
+    setSelectedImg(null);
   };
 
   return (
@@ -96,19 +114,31 @@ function RichBodyEditor({ value, onChange }: { value: string; onChange: (v: stri
           <LayoutGrid className="w-3 h-3" /> Card
         </Button>
       </div>
+
+      {selectedImg && (
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-accent/50 border rounded-md text-xs">
+          <span className="text-muted-foreground font-medium">Redimensionar:</span>
+          {["25%", "50%", "75%", "100%"].map((w) => (
+            <Button key={w} type="button" variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => resizeSelectedImg(w)}>
+              {w}
+            </Button>
+          ))}
+          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs ml-auto" onClick={() => setSelectedImg(null)}>✕</Button>
+        </div>
+      )}
+
       <div
         ref={editorRef}
         contentEditable
-        className="min-h-[200px] border border-t-0 rounded-b-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background prose prose-sm max-w-none [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
+        className="min-h-[200px] border border-t-0 rounded-b-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background prose prose-sm max-w-none [&_img]:rounded-md [&_img]:my-2 [&_img]:cursor-pointer"
         dangerouslySetInnerHTML={{ __html: value }}
-        onBlur={() => {
-          if (editorRef.current) onChange(editorRef.current.innerHTML);
-        }}
+        onBlur={syncContent}
         onPaste={handlePaste}
+        onClick={handleEditorClick}
       />
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelected} />
       <p className="text-xs text-muted-foreground">
-        Cole imagens diretamente do clipboard ou insira via botões. Suporta cards, figuras e formatação rica.
+        Cole imagens do clipboard ou insira via botões. Clique em uma imagem para redimensioná-la.
       </p>
     </div>
   );
