@@ -96,7 +96,7 @@ serve(async (req) => {
     const senderName = from_name || profile?.sender_name || profile?.nome || "Loft Incorporações";
     const userEmailPrefix = (user.email || "contato").split("@")[0];
     const senderEmail = profile?.sender_email || `${userEmailPrefix}@outreach.loftinsights.com.br`;
-    const replyTo = profile?.reply_to_email || user.email || "";
+    const userReplyTo = profile?.reply_to_email || user.email || "";
 
     // Validate sender email domain
     const senderDomain = senderEmail.split("@")[1];
@@ -180,6 +180,12 @@ serve(async (req) => {
       .replace(/\s+/g, " ")
       .trim();
 
+    // Build trackable reply-to: reply+{message_id}@outreach domain
+    // First send to get the message ID, then we'll use it
+    // Instead, pre-generate a unique tag for tracking
+    const replyTag = crypto.randomUUID();
+    const trackableReplyTo = `reply+${replyTag}@outreach.loftinsights.com.br`;
+
     // Send via Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -193,7 +199,10 @@ serve(async (req) => {
         subject,
         html: finalHtml,
         text: textFallback,
-        reply_to: replyTo,
+        reply_to: trackableReplyTo,
+        headers: {
+          "X-Original-Reply-To": userReplyTo,
+        },
         attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
         tracking: { opens: true, clicks: true },
       }),
@@ -202,7 +211,7 @@ serve(async (req) => {
     const resendData = await resendResponse.json();
     const emailStatus = resendResponse.ok ? "sent" : "failed";
 
-    // Log to message_logs
+    // Log to message_logs — store trackable reply tag for inbound matching
     await supabase.from("message_logs").insert({
       lead_id: lead_id || null,
       user_id: user.id,
@@ -216,7 +225,7 @@ serve(async (req) => {
       bulk_dispatch_id: bulk_dispatch_id || null,
       sender_name: senderName,
       sender_email: senderEmail,
-      reply_to: replyTo,
+      reply_to: `${trackableReplyTo}|${userReplyTo}`,
     });
 
     // Create activity if lead_id provided
