@@ -13,7 +13,6 @@ export function CommMetricsTab() {
     { title: "Emails Hoje", value: metrics.today, icon: Mail, color: "text-primary" },
     { title: "Total Enviados", value: metrics.total, icon: CheckCircle, color: "text-primary" },
     { title: "Taxa de Abertura", value: `${metrics.openRate}%`, icon: Eye, color: "text-primary" },
-    { title: "Taxa de Resposta", value: `${metrics.replyRate}%`, icon: MessageSquare, color: "text-primary" },
   ];
 
   return (
