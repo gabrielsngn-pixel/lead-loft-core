@@ -49,7 +49,6 @@ export function CommMetricsTab() {
                 <Tooltip />
                 <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" />
                 <Bar dataKey="read" name="Lidos" fill="hsl(var(--accent))" />
-                <Bar dataKey="replied" name="Respondidos" fill="hsl(var(--secondary))" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
