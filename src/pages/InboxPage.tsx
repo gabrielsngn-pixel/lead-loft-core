@@ -45,7 +45,7 @@ export default function InboxPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
-          {["all", "sent", "delivered", "read", "replied", "failed"].map((f) => (
+          {["all", "sent", "delivered", "read", "failed"].map((f) => (
             <Button
               key={f}
               variant={filter === f ? "default" : "outline"}
