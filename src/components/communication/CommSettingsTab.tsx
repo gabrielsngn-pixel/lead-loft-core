@@ -21,10 +21,14 @@ export function CommSettingsTab() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  const defaultSenderEmail = profile
+    ? `${(profile.email || "").split("@")[0]}@outreach.loftinsights.com.br`
+    : "";
+
   useEffect(() => {
     if (profile) {
       setSenderName((profile as any).sender_name || profile.nome || "");
-      setSenderEmail((profile as any).sender_email || "");
+      setSenderEmail((profile as any).sender_email || defaultSenderEmail);
       setReplyTo((profile as any).reply_to_email || profile.email || "");
       setSignatureHtml((profile as any).email_signature_html || "");
     }
@@ -80,7 +84,7 @@ export function CommSettingsTab() {
           </div>
           <div>
             <label className="text-sm font-medium">Email de envio</label>
-            <Input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} placeholder="contato@outreach.loftinsights.com.br" />
+            <Input value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} placeholder={defaultSenderEmail || "seunome@outreach.loftinsights.com.br"} />
             {!domainValid && (
               <p className="text-xs text-destructive mt-1">Domínio não permitido. Use: {ALLOWED_DOMAINS.join(", ")}</p>
             )}
