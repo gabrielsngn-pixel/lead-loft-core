@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Send, Search, Users } from "lucide-react";
+import { Send, Search, Users, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const EXCLUDED_STATUSES = ["perdido", "descartado", "inativo"];
 
 export function BulkDispatchTab() {
   const { user, profile } = useAuth();
@@ -25,16 +28,23 @@ export function BulkDispatchTab() {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, sent: 0, failed: 0 });
 
-  // Fetch contacts (leads with responsavel_id = has owner = contatos ativos)
+  // Fetch only leads owned by the current user, excluding inactive statuses
   const { data: leads } = useQuery({
-    queryKey: ["bulk_leads", search],
+    queryKey: ["bulk_leads", search, user?.id],
     queryFn: async () => {
+      if (!user) return [];
       let query = supabase
         .from("leads")
-        .select("id, razao_social, nome_contato, email, cidade, estado")
-        .not("responsavel_id", "is", null)
+        .select("id, razao_social, nome_contato, email, cidade, estado, responsavel_id, status")
+        .eq("responsavel_id", user.id)
         .not("email", "is", null)
         .order("razao_social");
+
+      // Exclude inactive statuses
+      for (const status of EXCLUDED_STATUSES) {
+        query = query.neq("status", status);
+      }
+
       if (search) {
         query = query.or(`razao_social.ilike.%${search}%,nome_contato.ilike.%${search}%,email.ilike.%${search}%`);
       }
@@ -42,6 +52,7 @@ export function BulkDispatchTab() {
       if (error) throw error;
       return data || [];
     },
+    enabled: !!user,
   });
 
   const toggleLead = (id: string) => {
@@ -137,9 +148,18 @@ export function BulkDispatchTab() {
     toast.success(`Disparo concluído: ${sent} enviados, ${failed} falhas`);
   };
 
+  const hasNoLeads = !leads || leads.length === 0;
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Disparo em Massa</h3>
+
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          Você só pode enviar comunicações para seus próprios leads ativos.
+        </AlertDescription>
+      </Alert>
 
       {sending ? (
         <Card>
@@ -197,31 +217,37 @@ export function BulkDispatchTab() {
                     className="pl-9"
                   />
                 </div>
-                <Button variant="outline" size="sm" onClick={toggleAll}>
+                <Button variant="outline" size="sm" onClick={toggleAll} disabled={hasNoLeads}>
                   <Users className="w-4 h-4 mr-1" />
                   {selectedLeads.size === leads?.length ? "Desmarcar" : "Selecionar"} todos
                 </Button>
               </div>
-              <div className="max-h-[300px] overflow-y-auto border rounded-md divide-y">
-                {leads?.map((lead) => (
-                  <label
-                    key={lead.id}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedLeads.has(lead.id)}
-                      onCheckedChange={() => toggleLead(lead.id)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{lead.razao_social}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {lead.nome_contato} — {lead.email}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{lead.cidade}/{lead.estado}</span>
-                  </label>
-                ))}
-              </div>
+              {hasNoLeads ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhum lead ativo atribuído a você foi encontrado.
+                </p>
+              ) : (
+                <div className="max-h-[300px] overflow-y-auto border rounded-md divide-y">
+                  {leads?.map((lead) => (
+                    <label
+                      key={lead.id}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedLeads.has(lead.id)}
+                        onCheckedChange={() => toggleLead(lead.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{lead.razao_social}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {lead.nome_contato} — {lead.email}
+                        </p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{lead.cidade}/{lead.estado}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
