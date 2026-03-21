@@ -157,21 +157,16 @@ export function useEmailMetrics() {
         sent: logs.filter((l: any) => l.status === "sent").length,
         delivered: logs.filter((l: any) => l.status === "delivered").length,
         read: logs.filter((l: any) => l.status === "read").length,
-        replied: logs.filter((l: any) => l.status === "replied").length,
         failed: logs.filter((l: any) => l.status === "failed").length,
-        replyRate: logs.length > 0
-          ? ((logs.filter((l: any) => l.status === "replied").length / logs.length) * 100).toFixed(1)
-          : "0",
         openRate: logs.length > 0
-          ? ((logs.filter((l: any) => ["read", "replied"].includes(l.status)).length / logs.length) * 100).toFixed(1)
+          ? ((logs.filter((l: any) => l.status === "read").length / logs.length) * 100).toFixed(1)
           : "0",
         byUser: Object.values(
           logs.reduce((acc: any, l: any) => {
             const key = l.user_id;
-            if (!acc[key]) acc[key] = { user_id: key, nome: l.sender_name || "N/A", sent: 0, replied: 0, read: 0 };
+            if (!acc[key]) acc[key] = { user_id: key, nome: l.sender_name || "N/A", sent: 0, read: 0 };
             acc[key].sent++;
-            if (l.status === "replied") acc[key].replied++;
-            if (["read", "replied"].includes(l.status)) acc[key].read++;
+            if (l.status === "read") acc[key].read++;
             return acc;
           }, {})
         ),
