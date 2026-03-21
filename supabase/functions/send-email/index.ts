@@ -104,31 +104,42 @@ serve(async (req) => {
       throw new Error(`Sender domain '${senderDomain}' not allowed. Allowed: ${ALLOWED_DOMAINS.join(", ")}`);
     }
 
-    // Build final HTML with proper email structure
+    // Build Gmail-safe HTML with table-based layout and inline CSS only
     const isRichHtml = /<[a-z][\s\S]*>/i.test(body);
     const bodyHtml = isRichHtml ? body : body.replace(/\n/g, "<br/>");
 
     let signatureBlock = "";
     if (profile?.email_signature_html) {
-      signatureBlock = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">${profile.email_signature_html}</div>`;
+      signatureBlock = `<tr><td style="padding-top:16px;border-top:1px solid #e2e8f0;">${profile.email_signature_html}</td></tr>`;
     }
 
-    const baseHtml = `<!DOCTYPE html>
-<html lang="pt-BR">
+    const baseHtml = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>${subject}</title>
 </head>
-<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a202c;background-color:#ffffff;">
-  <div style="max-width:600px;margin:0 auto;padding:20px;">
-    ${bodyHtml}
-    ${signatureBlock}
-  </div>
+<body style="margin:0;padding:0;background-color:#ffffff;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#ffffff;">
+    <tr>
+      <td align="center" style="padding:0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;">
+          <tr>
+            <td style="padding:20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a202c;">
+              ${bodyHtml}
+            </td>
+          </tr>
+          ${signatureBlock}
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 
-    // Convert data URI images to inline CID attachments.
+    // Convert data URI images to inline CID attachments
     const inlineAttachments: Array<{
       filename: string;
       content: string;
