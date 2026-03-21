@@ -19,7 +19,7 @@ export function CommMetricsTab() {
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Métricas de Email</h3>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((kpi) => (
           <Card key={kpi.title}>
             <CardContent className="pt-6">
