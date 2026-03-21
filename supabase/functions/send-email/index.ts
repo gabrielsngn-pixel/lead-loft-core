@@ -184,6 +184,7 @@ serve(async (req) => {
         text: textFallback,
         reply_to: replyTo,
         attachments: inlineAttachments.length > 0 ? inlineAttachments : undefined,
+        tracking: { opens: true, clicks: true },
       }),
     });
 
