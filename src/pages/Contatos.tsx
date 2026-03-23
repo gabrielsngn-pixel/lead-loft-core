@@ -167,7 +167,7 @@ const Contatos = () => {
   }, [leads]);
 
   // Filter only leads that have a responsible person (active contacts)
-  const activeContacts = leads.filter((lead) => lead.responsavelId);
+  const activeContacts = leads.filter((lead) => lead.responsavelId && lead.status !== "perdido");
 
   // Get unique consultants for filter dropdown
   const consultants = Array.from(new Set(activeContacts.map((c) => c.responsavelId).filter(Boolean))).map((id) => {
