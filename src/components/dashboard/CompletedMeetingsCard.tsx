@@ -24,17 +24,24 @@ export function CompletedMeetingsCard({ contatos }: CompletedMeetingsCardProps) 
   const today = new Date();
   const sevenDaysAgo = startOfDay(subDays(today, 7));
   
-  // Get all contacts with meetings completed in the last 7 days
-  // Check both ultimaReuniao AND proximaReuniao (when date already passed)
+  const todayStart = startOfDay(today);
+  
+  // Get all contacts with meetings completed (past dates within last 7 days)
+  // Check BOTH ultimaReuniao and proximaReuniao - if the date is in the past, it counts as completed
   const contatosComReuniaoRealizada = contatos
     .filter(c => {
-      const ultimaNoRange = c.ultimaReuniao && c.ultimaReuniao >= sevenDaysAgo && c.ultimaReuniao <= today;
-      const proximaJaPassou = c.proximaReuniao && c.proximaReuniao >= sevenDaysAgo && c.proximaReuniao <= today;
-      return ultimaNoRange || proximaJaPassou;
+      const ultimaPassada = c.ultimaReuniao && startOfDay(c.ultimaReuniao) >= sevenDaysAgo && startOfDay(c.ultimaReuniao) <= todayStart;
+      const proximaPassada = c.proximaReuniao && startOfDay(c.proximaReuniao) >= sevenDaysAgo && startOfDay(c.proximaReuniao) <= todayStart;
+      return ultimaPassada || proximaPassada;
     })
     .sort((a, b) => {
-      const dateA = a.ultimaReuniao && a.ultimaReuniao >= sevenDaysAgo ? a.ultimaReuniao : a.proximaReuniao;
-      const dateB = b.ultimaReuniao && b.ultimaReuniao >= sevenDaysAgo ? b.ultimaReuniao : b.proximaReuniao;
+      const getDate = (c: Lead) => {
+        const ultPassada = c.ultimaReuniao && startOfDay(c.ultimaReuniao) <= todayStart && c.ultimaReuniao >= sevenDaysAgo ? c.ultimaReuniao : null;
+        const proxPassada = c.proximaReuniao && startOfDay(c.proximaReuniao) <= todayStart && c.proximaReuniao >= sevenDaysAgo ? c.proximaReuniao : null;
+        return ultPassada || proxPassada;
+      };
+      const dateA = getDate(a);
+      const dateB = getDate(b);
       if (!dateA || !dateB) return 0;
       return dateB.getTime() - dateA.getTime();
     });
@@ -92,9 +99,9 @@ export function CompletedMeetingsCard({ contatos }: CompletedMeetingsCardProps) 
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
                         {(() => {
-                          const meetingDate = (contact.ultimaReuniao && contact.ultimaReuniao >= sevenDaysAgo && contact.ultimaReuniao <= today)
-                            ? contact.ultimaReuniao
-                            : contact.proximaReuniao;
+                          const ultPassada = contact.ultimaReuniao && startOfDay(contact.ultimaReuniao) <= todayStart && contact.ultimaReuniao >= sevenDaysAgo ? contact.ultimaReuniao : null;
+                          const proxPassada = contact.proximaReuniao && startOfDay(contact.proximaReuniao) <= todayStart && contact.proximaReuniao >= sevenDaysAgo ? contact.proximaReuniao : null;
+                          const meetingDate = ultPassada || proxPassada;
                           return meetingDate ? format(meetingDate, "EEEE, dd/MM", { locale: ptBR }) : "";
                         })()}
                       </div>
