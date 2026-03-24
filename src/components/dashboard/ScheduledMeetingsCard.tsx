@@ -25,16 +25,24 @@ export function ScheduledMeetingsCard({ contatos }: ScheduledMeetingsCardProps) 
   const todayStart = startOfDay(today);
   const next7Days = endOfDay(addDays(todayStart, 7));
   
-  // Get all contacts with meetings in the next 7 days
+  // Get all contacts with meetings scheduled in the future (next 7 days)
+  // Check BOTH ultimaReuniao and proximaReuniao - if the date is in the future, it counts as scheduled
   const contatosComReuniaoAgendada = contatos
     .filter(c => {
-      if (!c.proximaReuniao) return false;
-      const reuniaoDate = startOfDay(c.proximaReuniao);
-      return reuniaoDate >= todayStart && reuniaoDate <= next7Days;
+      const proximaFutura = c.proximaReuniao && startOfDay(c.proximaReuniao) > todayStart && startOfDay(c.proximaReuniao) <= next7Days;
+      const ultimaFutura = c.ultimaReuniao && startOfDay(c.ultimaReuniao) > todayStart && startOfDay(c.ultimaReuniao) <= next7Days;
+      return proximaFutura || ultimaFutura;
     })
     .sort((a, b) => {
-      if (!a.proximaReuniao || !b.proximaReuniao) return 0;
-      return a.proximaReuniao.getTime() - b.proximaReuniao.getTime();
+      const getDate = (c: Lead) => {
+        const proxFutura = c.proximaReuniao && startOfDay(c.proximaReuniao) > todayStart ? c.proximaReuniao : null;
+        const ultFutura = c.ultimaReuniao && startOfDay(c.ultimaReuniao) > todayStart ? c.ultimaReuniao : null;
+        return proxFutura || ultFutura;
+      };
+      const dateA = getDate(a);
+      const dateB = getDate(b);
+      if (!dateA || !dateB) return 0;
+      return dateA.getTime() - dateB.getTime();
     });
 
   const count = contatosComReuniaoAgendada.length;
@@ -89,7 +97,12 @@ export function ScheduledMeetingsCard({ contatos }: ScheduledMeetingsCardProps) 
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
-                        {contact.proximaReuniao && format(contact.proximaReuniao, "EEEE, dd/MM", { locale: ptBR })}
+                        {(() => {
+                          const proxFutura = contact.proximaReuniao && startOfDay(contact.proximaReuniao) > todayStart ? contact.proximaReuniao : null;
+                          const ultFutura = contact.ultimaReuniao && startOfDay(contact.ultimaReuniao) > todayStart ? contact.ultimaReuniao : null;
+                          const meetingDate = proxFutura || ultFutura;
+                          return meetingDate ? format(meetingDate, "EEEE, dd/MM", { locale: ptBR }) : "";
+                        })()}
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">
