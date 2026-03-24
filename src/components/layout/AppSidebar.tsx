@@ -24,6 +24,7 @@ import {
   Mail,
   Inbox,
   Settings2,
+  TrendingDown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -207,6 +208,26 @@ const { state } = useSidebar();
                         <UserX className="w-5 h-5 flex-shrink-0" />
                         {!collapsed && (
                           <span className="text-sm font-medium">Contatos Excluídos</span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {isMaster && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/inteligencia-perda"
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                          "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                          collapsed && "justify-center px-2"
+                        )}
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground"
+                      >
+                        <TrendingDown className="w-5 h-5 flex-shrink-0" />
+                        {!collapsed && (
+                          <span className="text-sm font-medium">Inteligência de Perda</span>
                         )}
                       </NavLink>
                     </SidebarMenuButton>
