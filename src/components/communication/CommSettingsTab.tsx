@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ClipboardEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { sendEmail } from "@/hooks/useEmailOutreach";
@@ -102,7 +102,7 @@ export function CommSettingsTab() {
     else toast.success("Configurações salvas");
   };
 
-  const handleVisualPaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+  const handleVisualPaste = async (e: ClipboardEvent<HTMLDivElement>) => {
     const html = e.clipboardData.getData("text/html");
     if (!html) return;
 
