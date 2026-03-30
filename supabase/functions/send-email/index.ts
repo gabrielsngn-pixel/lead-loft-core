@@ -9,6 +9,24 @@ const corsHeaders = {
 
 const ALLOWED_DOMAINS = ["outreach.loftinsights.com.br"];
 const EXCLUDED_STATUSES = ["perdido", "descartado", "inativo"];
+const BLOCKED_IMAGE_HOSTS = ["mail.google.com", "mail-attachment.googleusercontent.com"];
+
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&amp;/gi, "&")
+    .replace(/&#x2F;/gi, "/")
+    .replace(/&#47;/gi, "/");
+
+const isBlockedRemoteImage = (src: string) => {
+  try {
+    const url = new URL(src);
+    return BLOCKED_IMAGE_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+    );
+  } catch {
+    return BLOCKED_IMAGE_HOSTS.some((host) => src.includes(host));
+  }
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -179,11 +197,26 @@ serve(async (req) => {
     const urlMatches = [...processedHtml.matchAll(urlImageRegex)];
     for (const match of urlMatches) {
       const [fullMatch, before, imageUrl, after] = match;
+      const normalizedImageUrl = decodeHtmlEntities(String(imageUrl).trim());
+
+      if (isBlockedRemoteImage(normalizedImageUrl)) {
+        processedHtml = processedHtml.replace(fullMatch, "");
+        continue;
+      }
+
       try {
-        const imgResponse = await fetch(imageUrl);
-        if (!imgResponse.ok) continue;
+        const imgResponse = await fetch(normalizedImageUrl);
+        if (!imgResponse.ok) {
+          processedHtml = processedHtml.replace(fullMatch, "");
+          continue;
+        }
+
         const contentType = imgResponse.headers.get("content-type") || "image/png";
-        if (!contentType.startsWith("image/")) continue;
+        if (!contentType.startsWith("image/")) {
+          processedHtml = processedHtml.replace(fullMatch, "");
+          continue;
+        }
+
         const arrayBuf = await imgResponse.arrayBuffer();
         const uint8 = new Uint8Array(arrayBuf);
         let binary = "";
@@ -201,7 +234,8 @@ serve(async (req) => {
         });
         processedHtml = processedHtml.replace(fullMatch, `<img${before}src="cid:${cid}"${after}>`);
       } catch (e) {
-        console.warn(`Failed to fetch image: ${imageUrl}`, e);
+        console.warn(`Failed to fetch image: ${normalizedImageUrl}`, e);
+        processedHtml = processedHtml.replace(fullMatch, "");
       }
     }
 
