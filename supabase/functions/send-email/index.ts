@@ -156,7 +156,8 @@ serve(async (req) => {
       "image/svg+xml": "svg",
     };
 
-    const finalHtml = baseHtml.replace(
+    // Step 1: Convert data URI images to CID
+    let processedHtml = baseHtml.replace(
       /<img([^>]*?)src=["']data:(image\/[a-zA-Z0-9.+-]+);base64,([^"']+)["']([^>]*)>/gi,
       (_match, before, mime, base64Content, after) => {
         const cid = `inline-image-${inlineAttachments.length + 1}`;
@@ -172,6 +173,39 @@ serve(async (req) => {
         return `<img${before}src="cid:${cid}"${after}>`;
       }
     );
+
+    // Step 2: Fetch remote URL images (in signature) and convert to CID
+    const urlImageRegex = /<img([^>]*?)src=["'](https?:\/\/[^"']+)["']([^>]*)>/gi;
+    const urlMatches = [...processedHtml.matchAll(urlImageRegex)];
+    for (const match of urlMatches) {
+      const [fullMatch, before, imageUrl, after] = match;
+      try {
+        const imgResponse = await fetch(imageUrl);
+        if (!imgResponse.ok) continue;
+        const contentType = imgResponse.headers.get("content-type") || "image/png";
+        if (!contentType.startsWith("image/")) continue;
+        const arrayBuf = await imgResponse.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < uint8.length; i++) {
+          binary += String.fromCharCode(uint8[i]);
+        }
+        const base64 = btoa(binary);
+        const cid = `inline-image-${inlineAttachments.length + 1}`;
+        const ext = extByMime[contentType.toLowerCase()] || "png";
+        inlineAttachments.push({
+          filename: `${cid}.${ext}`,
+          content: base64,
+          content_type: contentType,
+          content_id: cid,
+        });
+        processedHtml = processedHtml.replace(fullMatch, `<img${before}src="cid:${cid}"${after}>`);
+      } catch (e) {
+        console.warn(`Failed to fetch image: ${imageUrl}`, e);
+      }
+    }
+
+    const finalHtml = processedHtml;
 
     const textFallback = finalHtml
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
