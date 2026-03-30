@@ -60,6 +60,7 @@ function RichBodyEditor({ value, onChange }: { value: string; onChange: (v: stri
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
+    // Check for pasted images first
     for (const item of items) {
       if (item.type.startsWith("image/")) {
         e.preventDefault();
@@ -70,6 +71,13 @@ function RichBodyEditor({ value, onChange }: { value: string; onChange: (v: stri
         reader.readAsDataURL(file);
         return;
       }
+    }
+    // Preserve HTML content (cards, formatted text, etc.)
+    const html = e.clipboardData.getData("text/html");
+    if (html) {
+      e.preventDefault();
+      execCommand("insertHTML", html);
+      return;
     }
   };
 
