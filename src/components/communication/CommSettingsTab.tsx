@@ -11,6 +11,47 @@ import { toast } from "sonner";
 import { Save, SendHorizonal, Eye, Code, Type } from "lucide-react";
 
 const ALLOWED_DOMAINS = ["outreach.loftinsights.com.br"];
+const BLOCKED_IMAGE_HOSTS = ["mail.google.com"];
+
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&amp;/gi, "&")
+    .replace(/&#x2F;/gi, "/")
+    .replace(/&#47;/gi, "/");
+
+const isBlockedImageUrl = (src?: string | null) => {
+  if (!src || src.startsWith("data:")) return false;
+
+  const normalizedSrc = decodeHtmlEntities(src.trim());
+  try {
+    const url = new URL(normalizedSrc);
+    return BLOCKED_IMAGE_HOSTS.includes(url.hostname);
+  } catch {
+    return BLOCKED_IMAGE_HOSTS.some((host) => normalizedSrc.includes(host));
+  }
+};
+
+const fileToDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Falha ao processar imagem colada"));
+    reader.readAsDataURL(file);
+  });
+
+const sanitizeSignatureHtml = (html: string) => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  let removedCount = 0;
+
+  doc.querySelectorAll("img").forEach((img) => {
+    if (isBlockedImageUrl(img.getAttribute("src"))) {
+      img.remove();
+      removedCount += 1;
+    }
+  });
+
+  return { html: doc.body.innerHTML, removedCount };
+};
 
 export function CommSettingsTab() {
   const { user, profile } = useAuth();
@@ -38,6 +79,14 @@ export function CommSettingsTab() {
 
   const handleSave = async () => {
     if (!user) return;
+
+    const { html: sanitizedSignatureHtml, removedCount } = sanitizeSignatureHtml(signatureHtml);
+
+    if (removedCount > 0) {
+      setSignatureHtml(sanitizedSignatureHtml);
+      toast.warning("Algumas imagens da assinatura foram removidas por serem privadas; cole a imagem direto do arquivo para embutir corretamente.");
+    }
+
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
@@ -45,12 +94,55 @@ export function CommSettingsTab() {
         sender_name: senderName,
         sender_email: senderEmail,
         reply_to_email: replyTo,
-        email_signature_html: signatureHtml,
+        email_signature_html: sanitizedSignatureHtml,
       } as any)
       .eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error("Erro ao salvar configurações");
     else toast.success("Configurações salvas");
+  };
+
+  const handleVisualPaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const html = e.clipboardData.getData("text/html");
+    if (!html) return;
+
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const images = Array.from(doc.querySelectorAll("img"));
+    if (!images.length) return;
+
+    const clipboardImages = Array.from(e.clipboardData.items)
+      .filter((item) => item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file));
+
+    let fileIndex = 0;
+    let changed = false;
+
+    for (const image of images) {
+      const src = image.getAttribute("src") || "";
+      if (!isBlockedImageUrl(src)) continue;
+
+      if (clipboardImages[fileIndex]) {
+        try {
+          const dataUrl = await fileToDataUrl(clipboardImages[fileIndex]);
+          image.setAttribute("src", dataUrl);
+          fileIndex += 1;
+          changed = true;
+        } catch {
+          image.remove();
+          changed = true;
+        }
+      } else {
+        image.remove();
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+
+    e.preventDefault();
+    document.execCommand("insertHTML", false, doc.body.innerHTML);
+    toast.info("Imagem de assinatura convertida para envio no e-mail.");
   };
 
   const handleTest = async () => {
@@ -115,6 +207,7 @@ export function CommSettingsTab() {
                 contentEditable
                 className="min-h-[150px] border rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
                 dangerouslySetInnerHTML={{ __html: signatureHtml }}
+                onPaste={handleVisualPaste}
                 onBlur={(e) => setSignatureHtml(e.currentTarget.innerHTML)}
               />
               <p className="text-xs text-muted-foreground mt-2">
