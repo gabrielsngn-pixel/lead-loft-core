@@ -52,7 +52,7 @@ import { CreateContactDialog, NewContactData, UniqueCompany } from "@/components
 import { ContatosAtivosSummary } from "@/components/contatos/ContatosAtivosSummary";
 import { ReassignContactDialog } from "@/components/contatos/ReassignContactDialog";
 import { FollowUpCell } from "@/components/contatos/FollowUpCell";
-import { useContactFollowups } from "@/hooks/useContactFollowups";
+import { useContactFollowups, getFollowupColor } from "@/hooks/useContactFollowups";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
