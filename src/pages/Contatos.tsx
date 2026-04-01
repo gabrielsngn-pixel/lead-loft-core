@@ -214,7 +214,6 @@ const Contatos = () => {
       if (followupFilter === "null") {
         matchesFollowup = leadFollowups.length === 0;
       } else if (followupFilter === "green" || followupFilter === "yellow" || followupFilter === "red") {
-        const { getFollowupColor } = require("@/hooks/useContactFollowups");
         const color = getFollowupColor(leadFollowups);
         matchesFollowup = color === followupFilter;
       }
