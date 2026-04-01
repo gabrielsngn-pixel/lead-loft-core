@@ -191,7 +191,36 @@ const Contatos = () => {
     const matchesConsultor = consultorFilter === "all" || lead.responsavelId === consultorFilter;
     const matchesTipo = tipoFilter === "all" || lead.tipoEmpresa === tipoFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesConsultor && matchesTipo;
+    // Última Reunião filter
+    let matchesUltimaReuniao = true;
+    if (ultimaReuniaoFilter === "null") {
+      matchesUltimaReuniao = !lead.ultimaReuniao;
+    } else if (ultimaReuniaoFilter === "filled") {
+      matchesUltimaReuniao = !!lead.ultimaReuniao;
+    }
+
+    // Próxima Reunião filter
+    let matchesProximaReuniao = true;
+    if (proximaReuniaoFilter === "null") {
+      matchesProximaReuniao = !lead.proximaReuniao;
+    } else if (proximaReuniaoFilter === "filled") {
+      matchesProximaReuniao = !!lead.proximaReuniao;
+    }
+
+    // Follow-up filter
+    let matchesFollowup = true;
+    if (followupFilter !== "all") {
+      const leadFollowups = getFollowupsForLead(lead.id);
+      if (followupFilter === "null") {
+        matchesFollowup = leadFollowups.length === 0;
+      } else if (followupFilter === "green" || followupFilter === "yellow" || followupFilter === "red") {
+        const { getFollowupColor } = require("@/hooks/useContactFollowups");
+        const color = getFollowupColor(leadFollowups);
+        matchesFollowup = color === followupFilter;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesConsultor && matchesTipo && matchesUltimaReuniao && matchesProximaReuniao && matchesFollowup;
   });
 
   // Sort contacts
