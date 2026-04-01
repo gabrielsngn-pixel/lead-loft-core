@@ -121,6 +121,9 @@ const Contatos = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [consultorFilter, setConsultorFilter] = useState<string>("all");
   const [tipoFilter, setTipoFilter] = useState<string>("all");
+  const [ultimaReuniaoFilter, setUltimaReuniaoFilter] = useState<string>("all");
+  const [proximaReuniaoFilter, setProximaReuniaoFilter] = useState<string>("all");
+  const [followupFilter, setFollowupFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<"prioridade" | "dataUltimaInteracao">("prioridade");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [editingContact, setEditingContact] = useState<Lead | null>(null);
