@@ -711,6 +711,40 @@ const Contatos = () => {
               </SelectContent>
             </Select>
 
+            <Select value={ultimaReuniaoFilter} onValueChange={setUltimaReuniaoFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Última Reunião" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Última Reunião</SelectItem>
+                <SelectItem value="null">Sem registro</SelectItem>
+                <SelectItem value="filled">Com registro</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={proximaReuniaoFilter} onValueChange={setProximaReuniaoFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Próxima Reunião" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Próxima Reunião</SelectItem>
+                <SelectItem value="null">Sem agendamento</SelectItem>
+                <SelectItem value="filled">Com agendamento</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={followupFilter} onValueChange={setFollowupFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Follow-up" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Follow-ups</SelectItem>
+                <SelectItem value="null">Sem follow-up</SelectItem>
+                <SelectItem value="green">🟢 Em dia (≤5d)</SelectItem>
+                <SelectItem value="yellow">🟡 Atenção (6-7d)</SelectItem>
+                <SelectItem value="red">🔴 Atrasado (&gt;7d)</SelectItem>
+              </SelectContent>
+            </Select>
             <Badge variant="secondary" className="ml-auto">
               {sortedContacts.length} contatos
             </Badge>
