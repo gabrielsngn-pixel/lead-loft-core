@@ -230,8 +230,8 @@ export function BulkDispatchTab() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              <div className="flex gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={search}
@@ -240,18 +240,31 @@ export function BulkDispatchTab() {
                     className="pl-9"
                   />
                 </div>
+                <Select value={followupFilter} onValueChange={setFollowupFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <Filter className="w-4 h-4 mr-1" />
+                    <SelectValue placeholder="Follow-up" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="gray">🔘 Sem follow-up</SelectItem>
+                    <SelectItem value="red">🔴 Atrasado</SelectItem>
+                    <SelectItem value="yellow">🟡 Atenção</SelectItem>
+                    <SelectItem value="green">🟢 Em dia</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button variant="outline" size="sm" onClick={toggleAll} disabled={hasNoLeads}>
                   <Users className="w-4 h-4 mr-1" />
-                  {selectedLeads.size === leads?.length ? "Desmarcar" : "Selecionar"} todos
+                  {filteredLeads.every((l) => selectedLeads.has(l.id)) && filteredLeads.length > 0 ? "Desmarcar" : "Selecionar"} todos
                 </Button>
               </div>
               {hasNoLeads ? (
                 <p className="text-sm text-muted-foreground text-center py-6">
-                  Nenhum lead ativo atribuído a você foi encontrado.
+                  Nenhum lead encontrado com esse filtro.
                 </p>
               ) : (
                 <div className="max-h-[300px] overflow-y-auto border rounded-md divide-y">
-                  {leads?.map((lead) => (
+                  {filteredLeads.map((lead) => (
                     <label
                       key={lead.id}
                       className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
