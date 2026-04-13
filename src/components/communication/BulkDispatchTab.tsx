@@ -58,6 +58,17 @@ export function BulkDispatchTab() {
     enabled: !!user,
   });
 
+  // Filter leads by follow-up status
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+    if (followupFilter === "all") return leads;
+    return leads.filter((lead) => {
+      const leadFollowups = getFollowupsForLead(lead.id);
+      if (followupFilter === "gray") return leadFollowups.length === 0;
+      return getFollowupColor(leadFollowups) === followupFilter;
+    });
+  }, [leads, followupFilter, getFollowupsForLead]);
+
   const toggleLead = (id: string) => {
     setSelectedLeads((prev) => {
       const next = new Set(prev);
@@ -68,11 +79,20 @@ export function BulkDispatchTab() {
   };
 
   const toggleAll = () => {
-    if (!leads) return;
-    if (selectedLeads.size === leads.length) {
-      setSelectedLeads(new Set());
+    if (!filteredLeads || filteredLeads.length === 0) return;
+    const allSelected = filteredLeads.every((l) => selectedLeads.has(l.id));
+    if (allSelected) {
+      setSelectedLeads((prev) => {
+        const next = new Set(prev);
+        filteredLeads.forEach((l) => next.delete(l.id));
+        return next;
+      });
     } else {
-      setSelectedLeads(new Set(leads.map((l) => l.id)));
+      setSelectedLeads((prev) => {
+        const next = new Set(prev);
+        filteredLeads.forEach((l) => next.add(l.id));
+        return next;
+      });
     }
   };
 
