@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMessageTemplates, sendEmail, resolveTemplateVariables } from "@/hooks/useEmailOutreach";
+import { useContactFollowups, getFollowupColor } from "@/hooks/useContactFollowups";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Send, Search, Users, AlertTriangle } from "lucide-react";
+import { Send, Search, Users, AlertTriangle, Filter } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const EXCLUDED_STATUSES = ["perdido", "descartado", "inativo"];
@@ -21,9 +22,11 @@ export function BulkDispatchTab() {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
   const { data: templates } = useMessageTemplates();
+  const { getFollowupsForLead } = useContactFollowups();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [followupFilter, setFollowupFilter] = useState<string>("all");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, sent: 0, failed: 0 });
@@ -55,6 +58,17 @@ export function BulkDispatchTab() {
     enabled: !!user,
   });
 
+  // Filter leads by follow-up status
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+    if (followupFilter === "all") return leads;
+    return leads.filter((lead) => {
+      const leadFollowups = getFollowupsForLead(lead.id);
+      if (followupFilter === "gray") return leadFollowups.length === 0;
+      return getFollowupColor(leadFollowups) === followupFilter;
+    });
+  }, [leads, followupFilter, getFollowupsForLead]);
+
   const toggleLead = (id: string) => {
     setSelectedLeads((prev) => {
       const next = new Set(prev);
@@ -65,11 +79,20 @@ export function BulkDispatchTab() {
   };
 
   const toggleAll = () => {
-    if (!leads) return;
-    if (selectedLeads.size === leads.length) {
-      setSelectedLeads(new Set());
+    if (!filteredLeads || filteredLeads.length === 0) return;
+    const allSelected = filteredLeads.every((l) => selectedLeads.has(l.id));
+    if (allSelected) {
+      setSelectedLeads((prev) => {
+        const next = new Set(prev);
+        filteredLeads.forEach((l) => next.delete(l.id));
+        return next;
+      });
     } else {
-      setSelectedLeads(new Set(leads.map((l) => l.id)));
+      setSelectedLeads((prev) => {
+        const next = new Set(prev);
+        filteredLeads.forEach((l) => next.add(l.id));
+        return next;
+      });
     }
   };
 
@@ -148,7 +171,7 @@ export function BulkDispatchTab() {
     toast.success(`Disparo concluído: ${sent} enviados, ${failed} falhas`);
   };
 
-  const hasNoLeads = !leads || leads.length === 0;
+  const hasNoLeads = !filteredLeads || filteredLeads.length === 0;
 
   return (
     <div className="space-y-4">
@@ -207,8 +230,8 @@ export function BulkDispatchTab() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              <div className="flex gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={search}
@@ -217,18 +240,31 @@ export function BulkDispatchTab() {
                     className="pl-9"
                   />
                 </div>
+                <Select value={followupFilter} onValueChange={setFollowupFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <Filter className="w-4 h-4 mr-1" />
+                    <SelectValue placeholder="Follow-up" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="gray">🔘 Sem follow-up</SelectItem>
+                    <SelectItem value="red">🔴 Atrasado</SelectItem>
+                    <SelectItem value="yellow">🟡 Atenção</SelectItem>
+                    <SelectItem value="green">🟢 Em dia</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button variant="outline" size="sm" onClick={toggleAll} disabled={hasNoLeads}>
                   <Users className="w-4 h-4 mr-1" />
-                  {selectedLeads.size === leads?.length ? "Desmarcar" : "Selecionar"} todos
+                  {filteredLeads.every((l) => selectedLeads.has(l.id)) && filteredLeads.length > 0 ? "Desmarcar" : "Selecionar"} todos
                 </Button>
               </div>
               {hasNoLeads ? (
                 <p className="text-sm text-muted-foreground text-center py-6">
-                  Nenhum lead ativo atribuído a você foi encontrado.
+                  Nenhum lead encontrado com esse filtro.
                 </p>
               ) : (
                 <div className="max-h-[300px] overflow-y-auto border rounded-md divide-y">
-                  {leads?.map((lead) => (
+                  {filteredLeads.map((lead) => (
                     <label
                       key={lead.id}
                       className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
