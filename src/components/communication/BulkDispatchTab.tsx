@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMessageTemplates, sendEmail, resolveTemplateVariables } from "@/hooks/useEmailOutreach";
+import { useContactFollowups, getFollowupColor } from "@/hooks/useContactFollowups";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Send, Search, Users, AlertTriangle } from "lucide-react";
+import { Send, Search, Users, AlertTriangle, Filter } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const EXCLUDED_STATUSES = ["perdido", "descartado", "inativo"];
@@ -21,9 +22,11 @@ export function BulkDispatchTab() {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
   const { data: templates } = useMessageTemplates();
+  const { getFollowupsForLead } = useContactFollowups();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [followupFilter, setFollowupFilter] = useState<string>("all");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, sent: 0, failed: 0 });
