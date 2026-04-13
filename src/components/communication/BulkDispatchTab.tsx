@@ -171,7 +171,7 @@ export function BulkDispatchTab() {
     toast.success(`Disparo concluído: ${sent} enviados, ${failed} falhas`);
   };
 
-  const hasNoLeads = !leads || leads.length === 0;
+  const hasNoLeads = !filteredLeads || filteredLeads.length === 0;
 
   return (
     <div className="space-y-4">
