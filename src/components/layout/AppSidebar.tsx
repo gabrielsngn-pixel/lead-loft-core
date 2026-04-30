@@ -25,6 +25,7 @@ import {
   Inbox,
   Settings2,
   TrendingDown,
+  Users2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -58,6 +59,7 @@ const mainMenuItems = [
   { title: "Central de Materiais", url: "/materiais", icon: BookOpen },
   { title: "Reuniões & Atas", url: "/reunioes", icon: ClipboardList },
   { title: "Script de Atendimento", url: "/script", icon: MessageSquareText },
+  { title: "Papéis & Responsabilidades", url: "/papeis-responsabilidades", icon: Users2 },
   { title: "Minutas", url: "/minutas", icon: FileText },
 ];
 
