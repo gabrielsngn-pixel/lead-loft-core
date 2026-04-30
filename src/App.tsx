@@ -29,6 +29,7 @@ import Minutas from "./pages/Minutas";
 import CommunicationPage from "./pages/CommunicationPage";
 import InboxPage from "./pages/InboxPage";
 import EmailIdentityPage from "./pages/EmailIdentityPage";
+import PapeisResponsabilidades from "./pages/PapeisResponsabilidades";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -158,6 +159,11 @@ const App = () => (
             <Route path="/email-identity" element={
               <ProtectedRoute>
                 <EmailIdentityPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/papeis-responsabilidades" element={
+              <ProtectedRoute>
+                <PapeisResponsabilidades />
               </ProtectedRoute>
             } />
 
