@@ -51,7 +51,7 @@ export function BulkDispatchTab() {
       if (search) {
         query = query.or(`razao_social.ilike.%${search}%,nome_contato.ilike.%${search}%,email.ilike.%${search}%`);
       }
-      const { data, error } = await query.limit(100);
+      const { data, error } = await query.limit(2000);
       if (error) throw error;
       return data || [];
     },
