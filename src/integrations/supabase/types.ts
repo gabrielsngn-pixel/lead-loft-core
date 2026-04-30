@@ -1330,6 +1330,66 @@ export type Database = {
           },
         ]
       }
+      playbook_roles: {
+        Row: {
+          behaviors: Json
+          created_at: string
+          display_order: number
+          guiding_quote: string | null
+          id: string
+          indicators: Json
+          mission: string | null
+          mission_highlight: string | null
+          mistakes: Json
+          risks: Json
+          role_key: string
+          role_label: string
+          stages: Json
+          subtitle: string | null
+          updated_at: string
+          updated_by: string | null
+          updated_by_nome: string | null
+        }
+        Insert: {
+          behaviors?: Json
+          created_at?: string
+          display_order?: number
+          guiding_quote?: string | null
+          id?: string
+          indicators?: Json
+          mission?: string | null
+          mission_highlight?: string | null
+          mistakes?: Json
+          risks?: Json
+          role_key: string
+          role_label: string
+          stages?: Json
+          subtitle?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Update: {
+          behaviors?: Json
+          created_at?: string
+          display_order?: number
+          guiding_quote?: string | null
+          id?: string
+          indicators?: Json
+          mission?: string | null
+          mission_highlight?: string | null
+          mistakes?: Json
+          risks?: Json
+          role_key?: string
+          role_label?: string
+          stages?: Json
+          subtitle?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved_at: string | null
