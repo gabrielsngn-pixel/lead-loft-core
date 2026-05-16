@@ -75,7 +75,7 @@ export function useDeleteTemplate() {
 }
 
 // Message Logs
-export function useMessageLogs(filters?: { channel?: string; status?: string }) {
+export function useMessageLogs(filters?: { channel?: string; status?: string; sender?: string }) {
   return useQuery({
     queryKey: ["message_logs", filters],
     queryFn: async () => {
@@ -86,6 +86,7 @@ export function useMessageLogs(filters?: { channel?: string; status?: string }) 
         .limit(200);
       if (filters?.channel) query = query.eq("channel", filters.channel);
       if (filters?.status) query = query.eq("status", filters.status);
+      if (filters?.sender) query = query.eq("user_id", filters.sender);
       const { data, error } = await query;
       if (error) throw error;
       return data as any[];
