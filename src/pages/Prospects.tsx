@@ -369,10 +369,6 @@ const Prospects = () => {
               Importar Prospects
             </Button>
           )}
-              <Upload className="w-4 h-4 mr-2" />
-              Importar Prospects
-            </Button>
-          )}
         </div>
       </div>
 
