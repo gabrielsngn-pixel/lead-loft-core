@@ -129,8 +129,8 @@ export function useProspects() {
     ignored: number;
     reasons: Record<string, string>;
   }> => {
-    if (!profile || !isMaster) {
-      throw new Error("Apenas usuários Master podem importar prospects");
+    if (!profile || (!isMaster && !isGestor)) {
+      throw new Error("Apenas Gestores ou Master podem importar prospects");
     }
 
     // Get existing emails and linkedin URLs for deduplication
