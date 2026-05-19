@@ -363,7 +363,7 @@ const Prospects = () => {
             <Download className="w-4 h-4 mr-2" />
             Exportar CSV
           </Button>
-          {isMaster && (
+          {(isMaster || isGestor) && (
             <Button onClick={() => setImportDialogOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Importar Prospects
