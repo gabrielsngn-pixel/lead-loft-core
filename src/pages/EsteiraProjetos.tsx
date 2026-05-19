@@ -67,10 +67,10 @@ const MONTHS_2026 = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-const META_VGV_TOTAL = 1_000_000_000;
-const META_UNIDADES_TOTAL = 2500;
-const META_VGV_CONSULTOR = 333_000_000;
-const META_UNIDADES_CONSULTOR = 833;
+const META_VGV_TOTAL = 500_000_000;
+const META_UNIDADES_TOTAL = 1250;
+const META_VGV_CONSULTOR = 166_000_000;
+const META_UNIDADES_CONSULTOR = 417;
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", {

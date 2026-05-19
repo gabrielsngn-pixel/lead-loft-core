@@ -157,8 +157,8 @@ export function useExecutiveSummary() {
     return uniqueCompanies.size;
   }, [contatos]);
 
-  const META_VGV = 1_000_000_000;
-  const META_UNIDADES = 2500;
+  const META_VGV = 500_000_000;
+  const META_UNIDADES = 1250;
 
   const totalVgvProjetos = useMemo(
     () => projetos.reduce((sum, p) => sum + (p.vgv_estimado || 0), 0),
