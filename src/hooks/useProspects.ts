@@ -91,7 +91,7 @@ function rowToActivity(row: ProspectActivityRow): ProspectActivity {
 }
 
 export function useProspects() {
-  const { profile, isMaster } = useAuth();
+  const { profile, isMaster, isGestor } = useAuth();
   const { toast } = useToast();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
